@@ -1,0 +1,178 @@
+.register-form {
+  width: 100%;
+}
+
+.register-header {
+  margin-bottom: 1.5rem;
+}
+
+.register-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.register-header p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  color: #991b1b;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.error-banner svg {
+  flex-shrink: 0;
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: width var(--transition-normal), background var(--transition-normal);
+}
+
+.strength-fill.strength-0,
+.strength-fill.strength-1 {
+  background: #ef4444;
+}
+
+.strength-fill.strength-2 {
+  background: #f59e0b;
+}
+
+.strength-fill.strength-3 {
+  background: #3b82f6;
+}
+
+.strength-fill.strength-4 {
+  background: var(--accent-green);
+}
+
+.strength-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 50px;
+  text-align: right;
+}
+
+.strength-label.strength-0,
+.strength-label.strength-1 {
+  color: #ef4444;
+}
+
+.strength-label.strength-2 {
+  color: #f59e0b;
+}
+
+.strength-label.strength-3 {
+  color: #3b82f6;
+}
+
+.strength-label.strength-4 {
+  color: var(--accent-green);
+}
+
+.password-requirements {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.875rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  transition: color var(--transition-fast);
+}
+
+.requirement svg {
+  flex-shrink: 0;
+  opacity: 0.3;
+  transition: opacity var(--transition-fast);
+}
+
+.requirement.met {
+  color: var(--accent-green);
+}
+
+.requirement.met svg {
+  opacity: 1;
+  color: var(--accent-green);
+}
+
+.password-match {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--accent-green);
+  margin-top: -0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.password-match svg {
+  color: var(--accent-green);
+}
+
+.register-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.register-footer p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.register-footer a {
+  color: var(--primary-blue);
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.register-footer a:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .register-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .password-requirements {
+    grid-template-columns: 1fr;
+  }
+}
