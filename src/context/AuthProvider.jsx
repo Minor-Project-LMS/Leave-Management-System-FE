@@ -175,22 +175,21 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
-    let fallbackTimer = setTimeout(() => {
-      if (mounted) setInitializing(false);
-    }, 2500);
 
     (async () => {
       try {
-        await silentRefresh();
+        await silentRefresh(); // already internally capped at 3500ms via Promise.race
       } catch (e) {
-        // silently ignore refresh failures; the app should still load for login flows
+        // ignore; app should still load for login flows
       } finally {
-        if (mounted) {
-          clearTimeout(fallbackTimer);
-          setInitializing(false);
-        }
+        if (mounted) setInitializing(false);
       }
     })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [silentRefresh]);
 
     return () => {
       mounted = false;

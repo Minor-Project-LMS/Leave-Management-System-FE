@@ -1,94 +1,194 @@
-import { handleApiError, isSecurityError } from '../utils/errorHandler';
-import api, { rawApi } from '../api/axios';
+import { handleApiError } from '../utils/errorHandler';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+// The access token lives ONLY in memory (this module-level variable) — never
+// in localStorage/sessionStorage. It's gone the moment the tab is closed or
+// the page is fully reloaded, which is the point: it's not readable from
+// DevTools > Application > Storage, and an XSS payload can't exfiltrate it
+// from disk. On page load, AuthContext calls refreshToken() once to silently
+// re-derive a new access token from the httpOnly refresh-token cookie.
+let accessToken = null;
+
+export const setAccessToken = (token) => {
+  accessToken = token;
+};
+
+export const getAccessToken = () => accessToken;
 
 class ApiService {
-  // Generic request via axios api (will include Authorization header if access token set)
-  async request(endpoint, options = {}) {
+  async request(endpoint, options = {}, { skipAuthRetry = false } = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Always send the httpOnly refresh-token cookie automatically. This is
+      // what lets /auth/refresh and /auth/logout work without the frontend
+      // ever touching the refresh token directly.
+      credentials: 'include',
+    };
+
+    const config = {
+      ...defaultOptions,
+      ...options,
+      headers: { ...defaultOptions.headers, ...options.headers },
+    };
+
     try {
-      const method = (options.method || 'GET').toLowerCase();
-      const config = {
-        url: endpoint,
-        method,
-        params: options.params,
-        data: options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined,
-      };
-      const resp = await api.request(config);
-      return resp.data;
-    } catch (error) {
-      // Security errors are handled by axios interceptors, but we still check here
-      if (isSecurityError(error)) {
-        // Let the error propagate - it will be handled by the auth context
-        throw error;
+      const response = await fetch(url, config);
+
+      const contentType = response.headers.get('content-type') || '';
+      let data;
+
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = text ? { message: text } : { message: response.statusText || 'Request failed' };
       }
-      handleApiError(error);
+
+      if (!response.ok) {
+        // Access token expired mid-session: try one silent refresh (via the
+        // httpOnly cookie) and replay the original request exactly once.
+        if (response.status === 401 && !skipAuthRetry && endpoint !== '/auth/refresh') {
+          const refreshed = await this.tryRefresh();
+          if (refreshed) {
+            return this.request(endpoint, {
+              ...options,
+              headers: { ...options.headers, ...this.authHeaders() },
+            }, { skipAuthRetry: true });
+          }
+        }
+
+        const errorMessage = data?.message || data?.error || data?.detail || 'API request failed';
+        throw new Error(errorMessage);
+      }
+
+      return data;
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        const networkError = new Error('Server not reachable. Please check your connection.');
+        handleApiError(networkError);
+        throw networkError;
+      }
       throw error;
     }
   }
 
-  // Auth endpoints: use rawApi so refresh logic doesn't intercept these calls
+  // Auth endpoints
   async login(email, password) {
-    try {
-      const resp = await rawApi.post('/auth/login', { email, password });
-      return resp.data;
-    } catch (error) {
-      if (isSecurityError(error)) {
-        throw error; // Let auth context handle security errors
-      }
-      handleApiError(error);
-      throw error;
-    }
+    const data = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    const token = data?.accessToken || data?.token || data?.data?.accessToken || data?.data?.token;
+    if (token) setAccessToken(token);
+    return data;
+  }
+
+  async getCurrentUser() {
+    return this.request('/users/me', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
   }
 
   async forgotPassword(email) {
-    try {
-      const resp = await rawApi.post('/auth/forgot-password', { email });
-      return resp.data;
-    } catch (error) {
-      if (isSecurityError(error)) {
-        throw error; // Let components handle security errors
-      }
-      handleApiError(error);
-      throw error;
-    }
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   async resetPassword(email, otp, newPassword) {
-    try {
-      const resp = await rawApi.post('/auth/reset-password', { email, otp, newPassword });
-      return resp.data;
-    } catch (error) {
-      if (isSecurityError(error)) {
-        throw error; // Let components handle security errors
-      }
-      handleApiError(error);
-      throw error;
-    }
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
   }
 
+  // No refreshToken argument: the httpOnly cookie is sent automatically by
+  // the browser (credentials: 'include'), so the frontend never reads or
+  // passes the refresh token itself.
   async refreshToken() {
+    const data = await this.request('/auth/refresh', { method: 'POST' }, { skipAuthRetry: true });
+    const token = data?.accessToken || data?.token || data?.data?.accessToken || data?.data?.token;
+    if (token) setAccessToken(token);
+    return data;
+  }
+
+  // Attempts a silent refresh; returns true/false instead of throwing, for
+  // use as an internal retry helper.
+  async tryRefresh() {
     try {
-      const resp = await rawApi.post('/auth/refresh');
-      return resp.data;
-    } catch (error) {
-      if (isSecurityError(error)) {
-        throw error; // Let auth context handle security errors
-      }
-      handleApiError(error);
-      throw error;
+      await this.refreshToken();
+      return true;
+    } catch {
+      setAccessToken(null);
+      return false;
     }
   }
 
   async logout() {
     try {
-      const resp = await rawApi.post('/auth/logout');
-      return resp.data;
-    } catch (error) {
-      if (isSecurityError(error)) {
-        throw error; // Let auth context handle security errors
-      }
-      handleApiError(error);
-      throw error;
+      return await this.request('/auth/logout', { method: 'POST' });
+    } finally {
+      setAccessToken(null);
     }
+  }
+
+  // Attaches the in-memory JWT as a Bearer token, per the auth convention
+  // (Authorization header on every call except /auth/login and /auth/refresh).
+  authHeaders() {
+    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  }
+
+  // Dashboard endpoints (/api/... — no version segment, matches backend routing)
+  async getDashboardSummary() {
+    return this.request('/dashboard/summary', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveTrend(year = new Date().getFullYear()) {
+    return this.request(`/dashboard/leave-trend?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveDistribution(year = new Date().getFullYear()) {
+    return this.request(`/dashboard/leave-distribution?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getRecentRequests(limit = 5) {
+    return this.request(`/leave-requests?limit=${limit}&sort=recent`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getUpcomingHolidays(month, year) {
+    const params = new URLSearchParams();
+    if (month != null) params.set('month', month);
+    if (year != null) params.set('year', year);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/holidays/upcoming${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getRecentActivity(limit = 5) {
+    return this.request(`/audit-log/recent?limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
   }
 }
 

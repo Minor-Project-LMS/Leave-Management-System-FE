@@ -4,7 +4,7 @@ import AuthLayout from '../../components/auth/AuthLayout';
 import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
 import { apiService } from '../../services/api';
-import { getApiErrorMessage, handleApiError } from '../../utils/errorHandler';
+import { handleApiError } from '../../utils/errorHandler';
 import forgotPasswordSideImage from '../../assets/forgot-password-side.png';
 import './ForgotPassword.css';
 
@@ -48,7 +48,7 @@ const ForgotPassword = () => {
       }
     } catch (error) {
       handleApiError(error);
-      setError(getApiErrorMessage(error) || 'Failed to send reset link. Please try again.');
+      setError(error.message || 'Failed to send reset link. Please try again.');
     } finally {
       setLoading(false);
     }

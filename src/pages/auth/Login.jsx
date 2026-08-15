@@ -3,8 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../../components/auth/AuthLayout';
 import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
-import { useAuth } from '../../context/AuthProvider';
-import { getApiErrorMessage, handleApiError } from '../../utils/errorHandler';
+import { handleApiError } from '../../utils/errorHandler';
+import { useAuth } from '../../context/AuthContext';
 import loginSideImage from '../../assets/login-side.png';
 import './Login.css';
 
@@ -12,7 +12,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -24,9 +23,15 @@ const Login = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-
-
   useEffect(() => {
+    // One-time cleanup: earlier builds stored the raw password, and later the
+    // full JWT/user object, directly in localStorage. Purge all of it for
+    // anyone returning with those already set.
+    localStorage.removeItem('rememberedPassword');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
@@ -83,10 +88,12 @@ const Login = () => {
     setApiError('');
     
     try {
-      const { token, profile } = await login(formData.email, formData.password);
+      // login() calls POST /auth/login with credentials:'include' so the
+      // backend's Set-Cookie response sets the httpOnly refresh-token cookie;
+      // the access token it returns is kept in memory only (never localStorage).
+      await login(formData.email, formData.password);
 
       if (formData.rememberMe) {
-        // Only remember email; do NOT persist passwords or tokens
         localStorage.setItem('rememberMe', 'true');
         localStorage.setItem('rememberedEmail', formData.email);
       } else {
@@ -94,11 +101,10 @@ const Login = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // navigate to dashboard after successful login
       navigate('/dashboard');
     } catch (error) {
       handleApiError(error);
-      setApiError(getApiErrorMessage(error) || 'Login failed. Please try again.');
+      setApiError(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
