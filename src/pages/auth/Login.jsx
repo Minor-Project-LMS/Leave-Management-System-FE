@@ -3,14 +3,16 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../../components/auth/AuthLayout';
 import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
-import { apiService } from '../../services/api';
-import { handleApiError } from '../../utils/errorHandler';
+import { useAuth } from '../../context/AuthProvider';
+import { getApiErrorMessage, handleApiError } from '../../utils/errorHandler';
 import loginSideImage from '../../assets/login-side.png';
 import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,16 +24,16 @@ const Login = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+
+
   useEffect(() => {
     const rememberedEmail = localStorage.getItem('rememberedEmail');
-    const rememberedPassword = localStorage.getItem('rememberedPassword');
     const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
     if (rememberMe && rememberedEmail) {
       setFormData(prev => ({
         ...prev,
         email: rememberedEmail,
-        password: rememberedPassword || '',
         rememberMe: true,
       }));
     }
@@ -81,31 +83,22 @@ const Login = () => {
     setApiError('');
     
     try {
-      const response = await apiService.login(formData.email, formData.password);
-      const accessToken = response.accessToken || response.token || response.data?.accessToken || response.data?.token;
-      const refreshToken = response.refreshToken || response.refresh_token || response.data?.refreshToken || response.data?.refresh_token;
-      const user = response.user || response.data?.user || response.profile || response.data?.profile;
+      const { token, profile } = await login(formData.email, formData.password);
 
-      if (response.success !== false && (accessToken || refreshToken || user || response.message || response.data)) {
-        if (formData.rememberMe) {
-          localStorage.setItem('rememberMe', 'true');
-          localStorage.setItem('rememberedEmail', formData.email);
-          localStorage.setItem('rememberedPassword', formData.password);
-        } else {
-          localStorage.removeItem('rememberMe');
-          localStorage.removeItem('rememberedEmail');
-          localStorage.removeItem('rememberedPassword');
-        }
-
-        if (accessToken) localStorage.setItem('accessToken', accessToken);
-        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-        if (user) localStorage.setItem('user', JSON.stringify(user));
-
-        navigate('/dashboard');
+      if (formData.rememberMe) {
+        // Only remember email; do NOT persist passwords or tokens
+        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem('rememberedEmail', formData.email);
+      } else {
+        localStorage.removeItem('rememberMe');
+        localStorage.removeItem('rememberedEmail');
       }
+
+      // navigate to dashboard after successful login
+      navigate('/dashboard');
     } catch (error) {
       handleApiError(error);
-      setApiError(error.message || 'Login failed. Please try again.');
+      setApiError(getApiErrorMessage(error) || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

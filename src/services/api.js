@@ -1,81 +1,94 @@
-import { handleApiError } from '../utils/errorHandler';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { handleApiError, isSecurityError } from '../utils/errorHandler';
+import api, { rawApi } from '../api/axios';
 
 class ApiService {
+  // Generic request via axios api (will include Authorization header if access token set)
   async request(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    const defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    const config = { ...defaultOptions, ...options };
-
     try {
-      const response = await fetch(url, config);
-
-      const contentType = response.headers.get('content-type') || '';
-      let data;
-
-      if (contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = text ? { message: text } : { message: response.statusText || 'Request failed' };
-      }
-
-      if (!response.ok) {
-        const errorMessage = data?.message || data?.error || data?.detail || 'API request failed';
-        throw new Error(errorMessage);
-      }
-
-      return data;
+      const method = (options.method || 'GET').toLowerCase();
+      const config = {
+        url: endpoint,
+        method,
+        params: options.params,
+        data: options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined,
+      };
+      const resp = await api.request(config);
+      return resp.data;
     } catch (error) {
-      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-        const networkError = new Error('Server not reachable. Please check your connection.');
-        handleApiError(networkError);
-        throw networkError;
+      // Security errors are handled by axios interceptors, but we still check here
+      if (isSecurityError(error)) {
+        // Let the error propagate - it will be handled by the auth context
+        throw error;
       }
+      handleApiError(error);
       throw error;
     }
   }
 
-  // Auth endpoints
+  // Auth endpoints: use rawApi so refresh logic doesn't intercept these calls
   async login(email, password) {
-    return this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const resp = await rawApi.post('/auth/login', { email, password });
+      return resp.data;
+    } catch (error) {
+      if (isSecurityError(error)) {
+        throw error; // Let auth context handle security errors
+      }
+      handleApiError(error);
+      throw error;
+    }
   }
 
   async forgotPassword(email) {
-    return this.request('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
+    try {
+      const resp = await rawApi.post('/auth/forgot-password', { email });
+      return resp.data;
+    } catch (error) {
+      if (isSecurityError(error)) {
+        throw error; // Let components handle security errors
+      }
+      handleApiError(error);
+      throw error;
+    }
   }
 
   async resetPassword(email, otp, newPassword) {
-    return this.request('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ email, otp, newPassword }),
-    });
+    try {
+      const resp = await rawApi.post('/auth/reset-password', { email, otp, newPassword });
+      return resp.data;
+    } catch (error) {
+      if (isSecurityError(error)) {
+        throw error; // Let components handle security errors
+      }
+      handleApiError(error);
+      throw error;
+    }
   }
 
-  async refreshToken(refreshToken) {
-    return this.request('/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ refreshToken }),
-    });
+  async refreshToken() {
+    try {
+      const resp = await rawApi.post('/auth/refresh');
+      return resp.data;
+    } catch (error) {
+      if (isSecurityError(error)) {
+        throw error; // Let auth context handle security errors
+      }
+      handleApiError(error);
+      throw error;
+    }
   }
 
-  async logout(refreshToken) {
-    return this.request('/auth/logout', {
-      method: 'POST',
-      body: JSON.stringify({ refreshToken }),
-    });
+  async logout() {
+    try {
+      const resp = await rawApi.post('/auth/logout');
+      return resp.data;
+    } catch (error) {
+      if (isSecurityError(error)) {
+        throw error; // Let auth context handle security errors
+      }
+      handleApiError(error);
+      throw error;
+    }
   }
 }
 

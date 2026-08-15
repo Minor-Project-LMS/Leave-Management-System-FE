@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthProvider';
 import './SplashScreen.css';
 
 const SplashScreen = () => {
   const navigate = useNavigate();
+  const { initializing, isAuthenticated } = useAuth();
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Simulate loading progress
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
@@ -18,16 +19,13 @@ const SplashScreen = () => {
       });
     }, 60);
 
-    // Navigate to login after 3 seconds
-    const timer = setTimeout(() => {
-      navigate('/login');
-    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
-  }, [navigate]);
+  useEffect(() => {
+    if (initializing) return;
+    navigate(isAuthenticated ? '/dashboard' : '/login', { replace: true });
+  }, [initializing, isAuthenticated, navigate]);
 
   return (
     <div className="splash-screen">

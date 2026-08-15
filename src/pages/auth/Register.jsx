@@ -4,7 +4,7 @@ import AuthLayout from '../../components/auth/AuthLayout';
 import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
 import { apiService } from '../../services/api';
-import { handleApiError } from '../../utils/errorHandler';
+import { getApiErrorMessage, handleApiError } from '../../utils/errorHandler';
 import loginSideImage from '../../assets/login-side.png';
 import './Register.css';
 
@@ -95,7 +95,7 @@ const Register = () => {
       }
     } catch (error) {
       handleApiError(error);
-      setApiError(error.message || 'Registration failed. Please try again.');
+      setApiError(getApiErrorMessage(error) || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,7 @@ import AuthLayout from '../../components/auth/AuthLayout';
 import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
 import { apiService } from '../../services/api';
-import { handleApiError } from '../../utils/errorHandler';
+import { getApiErrorMessage, handleApiError } from '../../utils/errorHandler';
 import resetPasswordSideImage from '../../assets/reset-password-side.png';
 import './ResetPassword.css';
 
@@ -54,7 +54,7 @@ const ResetPassword = () => {
       setCanResend(false);
     } catch (error) {
       handleApiError(error);
-      setApiError(error.message || 'Failed to resend code. Please try again.');
+      setApiError(getApiErrorMessage(error) || 'Failed to resend code. Please try again.');
     }
   };
 
@@ -117,7 +117,7 @@ const ResetPassword = () => {
       }
     } catch (error) {
       handleApiError(error);
-      setApiError(error.message || 'Password reset failed. Please try again.');
+      setApiError(getApiErrorMessage(error) || 'Password reset failed. Please try again.');
     } finally {
       setLoading(false);
     }
