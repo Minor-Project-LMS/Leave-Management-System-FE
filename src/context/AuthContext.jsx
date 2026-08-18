@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(profile);
     setIsAuthenticated(true);
-    return { ...data, profile };
+    return data;
   }, []);
 
   const logout = useCallback(async () => {

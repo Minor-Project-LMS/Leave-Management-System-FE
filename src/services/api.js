@@ -190,49 +190,6 @@ class ApiService {
       headers: this.authHeaders(),
     });
   }
-
-  // Manager dashboard endpoints (/api/manager/...)
-  async getManagerSummary() {
-    return this.request('/manager/dashboard/summary', {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
-
-  async getTeamLeaveTrend(months = 6) {
-    return this.request(`/manager/dashboard/leave-trend?months=${months}`, {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
-
-  async getTeamLeaveDistribution() {
-    return this.request('/manager/dashboard/leave-distribution', {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
-
-  async getPendingApprovals(limit = 5) {
-    return this.request(`/manager/approvals/pending?limit=${limit}`, {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
-
-  async getTeamLeaveOverview() {
-    return this.request('/manager/team/leave-overview', {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
-
-  async getUpcomingTeamLeaves(limit = 5) {
-    return this.request(`/manager/team/upcoming-leaves?limit=${limit}`, {
-      method: 'GET',
-      headers: this.authHeaders(),
-    });
-  }
 }
 
 export const apiService = new ApiService();

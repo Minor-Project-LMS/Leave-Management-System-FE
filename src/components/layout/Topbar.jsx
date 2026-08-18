@@ -1,17 +1,7 @@
-import { Link } from 'react-router-dom';
-import { SearchIcon, BellIcon, ListIcon, ChevronRightSmallIcon, CalendarIcon } from '../icons/Icons';
+import { SearchIcon, BellIcon, ListIcon } from '../icons/Icons';
 import './Topbar.css';
 
-const Topbar = ({
-  title,
-  subtitle,
-  breadcrumbs,
-  searchPlaceholder = 'Search anything...',
-  dateLabel,
-  user,
-  notificationCount = 0,
-  onMenuClick,
-}) => {
+const Topbar = ({ title, subtitle, user, notificationCount = 0, onMenuClick }) => {
   const initials = (user?.name || 'U')
     .split(' ')
     .map((part) => part[0])
@@ -27,32 +17,14 @@ const Topbar = ({
         </button>
         <div>
           <h1 className="topbar-title">{title}</h1>
-          {breadcrumbs?.length > 0 ? (
-            <nav className="topbar-breadcrumbs" aria-label="Breadcrumb">
-              {breadcrumbs.map((crumb, i) => (
-                <span key={crumb.label} className="topbar-breadcrumb-item">
-                  {crumb.path ? <Link to={crumb.path}>{crumb.label}</Link> : <span>{crumb.label}</span>}
-                  {i < breadcrumbs.length - 1 && <ChevronRightSmallIcon width={12} height={12} />}
-                </span>
-              ))}
-            </nav>
-          ) : (
-            subtitle && <p className="topbar-subtitle">{subtitle}</p>
-          )}
+          {subtitle && <p className="topbar-subtitle">{subtitle}</p>}
         </div>
       </div>
 
       <div className="topbar-right">
-        {dateLabel && (
-          <div className="topbar-date-pill">
-            <CalendarIcon width={14} height={14} />
-            <span>{dateLabel}</span>
-          </div>
-        )}
-
         <div className="topbar-search">
           <SearchIcon className="topbar-search-icon" />
-          <input type="text" placeholder={searchPlaceholder} />
+          <input type="text" placeholder="Search anything..." />
           <kbd>Ctrl+K</kbd>
         </div>
 

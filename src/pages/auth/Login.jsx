@@ -5,7 +5,6 @@ import Input from '../../components/auth/Input';
 import Button from '../../components/auth/Button';
 import { handleApiError } from '../../utils/errorHandler';
 import { useAuth } from '../../context/AuthContext';
-import { getHomePathForRole } from '../../config/navConfig';
 import loginSideImage from '../../assets/login-side.png';
 import './Login.css';
 
@@ -92,7 +91,7 @@ const Login = () => {
       // login() calls POST /auth/login with credentials:'include' so the
       // backend's Set-Cookie response sets the httpOnly refresh-token cookie;
       // the access token it returns is kept in memory only (never localStorage).
-      const { profile } = await login(formData.email, formData.password);
+      await login(formData.email, formData.password);
 
       if (formData.rememberMe) {
         localStorage.setItem('rememberMe', 'true');
@@ -102,7 +101,7 @@ const Login = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      navigate(getHomePathForRole(profile?.role));
+      navigate('/dashboard');
     } catch (error) {
       handleApiError(error);
       setApiError(error.message || 'Login failed. Please try again.');

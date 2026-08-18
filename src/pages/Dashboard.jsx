@@ -11,8 +11,6 @@ import RecentActivity from '../components/dashboard/RecentActivity';
 import { CalendarIcon, ClockIcon, HourglassIcon, CoffeeIcon } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { EMPLOYEE_PORTAL } from '../config/navConfig';
-import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import {
   mockSummary,
   mockTrend,
@@ -29,8 +27,7 @@ const USE_MOCK = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 't
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth(); // user profile now comes from AuthContext, not localStorage
-  useRoleRedirect('employee');
+  const { isAuthenticated, user, logout, initializing } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,6 +41,12 @@ const Dashboard = () => {
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError('');
+
+    const handleSecurityError = (error) => {
+        if (isSecurityError(error)) {
+          logout();
+        }
+      };
 
     if (USE_MOCK) {
       setSummary(mockSummary);
@@ -90,8 +93,11 @@ const Dashboard = () => {
   useEffect(() => {
     // Auth is already verified by ProtectedRoute before this component
     // renders, so we only need to fetch the dashboard data here.
+    if (!initializing && !isAuthenticated) {
+          navigate('/login', { replace: true });
+        }
     loadDashboard();
-  }, [loadDashboard]);
+  }, [initializing, isAuthenticated, navigate,loadDashboard]);
 
   const handleLogout = async () => {
     await logout(); // clears in-memory access token + httpOnly refresh cookie
@@ -111,10 +117,6 @@ const Dashboard = () => {
     <DashboardLayout
       title="Employee Dashboard"
       subtitle={`Welcome back, ${user?.name || 'there'}!`}
-      portalLabel={EMPLOYEE_PORTAL.portalLabel}
-      navItems={EMPLOYEE_PORTAL.navItems}
-      searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
-      badgeCounts={{ notifications: activity.length }}
       user={user}
       notificationCount={activity.length}
       onLogout={handleLogout}
