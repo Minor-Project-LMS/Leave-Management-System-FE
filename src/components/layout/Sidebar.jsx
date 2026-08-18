@@ -1,38 +1,16 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  GridIcon,
-  PlusCircleIcon,
-  FileTextIcon,
-  BookIcon,
-  CoffeeIcon,
-  CalendarIcon,
-  BellIcon,
-  UserIcon,
-  LogoutIcon,
-} from '../icons/Icons';
+import { Link, useLocation } from 'react-router-dom';
+import { LogoutIcon } from '../icons/Icons';
 import './Sidebar.css';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/dashboard', icon: GridIcon },
-  { label: 'Apply Leave', path: '/apply-leave', icon: PlusCircleIcon },
-  { label: 'My Requests', path: '/my-requests', icon: FileTextIcon },
-  { label: 'Leave Ledger', path: '/leave-ledger', icon: BookIcon },
-  { label: 'Comp-Off', path: '/comp-off', icon: CoffeeIcon },
-  { label: 'Holiday Calendar', path: '/holiday-calendar', icon: CalendarIcon },
-  { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications' },
-  { label: 'Profile', path: '/profile', icon: UserIcon },
-];
-
-const Sidebar = ({ notificationCount = 0, onLogout, isOpen = false, onClose }) => {
+const Sidebar = ({
+  portalLabel = 'EMPLOYEE PORTAL',
+  navItems = [],
+  badgeCounts = {},
+  onLogout,
+  isOpen = false,
+  onClose,
+}) => {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleNavClick = (path) => {
-    // Routes that don't exist yet stay on Dashboard for now; real pages will replace this.
-    if (path !== '/dashboard') return;
-    navigate(path);
-    if (onClose) onClose();
-  };
 
   return (
     <>
@@ -46,18 +24,17 @@ const Sidebar = ({ notificationCount = 0, onLogout, isOpen = false, onClose }) =
           </div>
         </div>
 
+        {portalLabel && <div className="sidebar-portal-label">{portalLabel}</div>}
+
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ label, path, icon: Icon, badgeKey }) => {
+          {navItems.map(({ label, path, icon: Icon, badgeKey }) => {
             const isActive = location.pathname === path;
-            const badge = badgeKey === 'notifications' ? notificationCount : 0;
+            const badge = badgeKey ? badgeCounts[badgeKey] || 0 : 0;
             return (
               <Link
                 key={path}
-                to={isActive ? location.pathname : '#'}
-                onClick={(e) => {
-                  if (path !== '/dashboard') e.preventDefault();
-                  handleNavClick(path);
-                }}
+                to={path}
+                onClick={onClose}
                 className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
               >
                 <Icon className="sidebar-nav-icon" />
