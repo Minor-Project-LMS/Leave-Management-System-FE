@@ -110,12 +110,15 @@ class ApiService {
 
   // No refreshToken argument: the httpOnly cookie is sent automatically by
   // the browser (credentials: 'include'), so the frontend never reads or
-  // passes the refresh token itself.
+  // passes the refresh token itself. The backend's /auth/refresh response
+  // already includes the user profile, so no separate "get current user"
+  // call is needed.
   async refreshToken() {
     const data = await this.request('/auth/refresh', { method: 'POST' }, { skipAuthRetry: true });
     const token = data?.accessToken || data?.token || data?.data?.accessToken || data?.data?.token;
+    const profile = data?.user || data?.data?.user || data?.profile || data?.data?.profile;
     if (token) setAccessToken(token);
-    return data;
+    return { ...data, profile };
   }
 
   // Attempts a silent refresh; returns true/false instead of throwing, for

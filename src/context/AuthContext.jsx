@@ -29,9 +29,8 @@ export const AuthProvider = ({ children }) => {
 
     const restoreSession = async () => {
       try {
-        await apiService.refreshToken();
-        const profile = await apiService.getCurrentUser();
-        setUser(profile?.data ?? profile ?? null);
+        const refreshRes = await apiService.refreshToken();
+        setUser(refreshRes?.profile ?? null);
         setIsAuthenticated(true);
       } catch {
         setAccessToken(null);
@@ -46,12 +45,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     const data = await apiService.login(email, password); // sets access token in memory
-    const profileFromLogin = data?.user || data?.data?.user || data?.profile || data?.data?.profile;
-    let profile = profileFromLogin;
-    if (!profile) {
-      const res = await apiService.getCurrentUser();
-      profile = res?.data ?? res ?? null;
-    }
+    const profile = data?.user || data?.data?.user || data?.profile || data?.data?.profile || null;
     setUser(profile);
     setIsAuthenticated(true);
     return { ...data, profile };
