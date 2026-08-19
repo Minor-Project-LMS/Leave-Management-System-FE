@@ -2,7 +2,7 @@
 import { isSecurityError } from '../utils/errorHandler';
 import { broadcastAuthEvent } from '../utils/authChannel';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // Safe sessionStorage access (for environments where it might not be available)
 const safeSessionStorage = {

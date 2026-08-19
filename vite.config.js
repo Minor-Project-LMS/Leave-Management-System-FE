@@ -4,7 +4,7 @@ import babel from '@rolldown/plugin-babel'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080'
+  const apiProxyTarget = env.VITE_API_TARGET || 'http://localhost:8080'
 
   return {
     plugins: [
