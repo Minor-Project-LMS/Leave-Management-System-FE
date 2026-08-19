@@ -128,3 +128,51 @@ export const XCircleIcon = (props) => (
     <path d="M15 9l-6 6M9 9l6 6" />
   </svg>
 );
+
+export const UsersIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" />
+    <path d="M16 8.5a3 3 0 110-5.99M21.5 20c0-2.8-2-4.5-4.5-5.2" />
+  </svg>
+);
+
+export const InboxIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 12h4l2 3h4l2-3h4" />
+    <path d="M5.5 5h13l2.5 7v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7z" />
+  </svg>
+);
+
+export const ClipboardListIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="5" y="4" width="14" height="18" rx="2" />
+    <path d="M9 2h6v3H9zM8 10h8M8 14h8M8 18h5" />
+  </svg>
+);
+
+export const BarChartIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 20V10M12 20V4M20 20v-7" />
+  </svg>
+);
+
+export const SettingsIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+  </svg>
+);
+
+export const InfoIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 16v-4M12 8h.01" />
+  </svg>
+);
+
+export const ChevronRightSmallIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);

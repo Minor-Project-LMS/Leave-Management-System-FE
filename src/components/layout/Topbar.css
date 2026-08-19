@@ -36,6 +36,48 @@
   margin: 0.15rem 0 0;
 }
 
+.topbar-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.topbar-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.topbar-breadcrumb-item a {
+  color: var(--text-secondary);
+}
+
+.topbar-breadcrumb-item a:hover {
+  color: var(--primary-blue);
+}
+
+.topbar-breadcrumb-item:last-child span {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.topbar-date-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
