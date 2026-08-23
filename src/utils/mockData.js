@@ -99,3 +99,51 @@ export const mockUpcomingTeamLeaves = [
   { day: '30', month: 'MAY', name: 'Vikram Singh', type: 'Casual Leave', dateRange: '30 May 2024' },
   { day: '03', month: 'JUN', name: 'Karan Mehta', type: 'Sick Leave', dateRange: '03 Jun - 04 Jun 2024' },
 ];
+
+// --- HR Dashboard mocks ---
+
+export const mockHRSummary = {
+  totalEmployees: 248,
+  totalEmployeesChangePct: 4.2,
+  onLeaveToday: 18,
+  onLeaveTodayChangePct: 7.3,
+  pendingRequests: 27,
+  leaveUtilizationPct: 64,
+};
+
+// Dual-series: Requests vs Approved, last 6 months.
+// NOTE: the OpenAPI spec's /reports/leave-trend returns a single {month,days}
+// series (LeaveTrendPoint) — it doesn't define a documented way to get both
+// "requests" and "approved" series separately. This mock models the shape
+// the UI needs; confirm with backend whether that endpoint can return both,
+// or if a param (e.g. status=APPROVED) needs to be added.
+export const mockHRLeaveTrend = [
+  { month: 'Mar', requests: 12, approved: 3 },
+  { month: 'Apr', requests: 18, approved: 5 },
+  { month: 'May', requests: 22, approved: 6 },
+  { month: 'Jun', requests: 27, approved: 8 },
+  { month: 'Jul', requests: 24, approved: 9 },
+  { month: 'Aug', requests: 42, approved: 10 },
+];
+
+export const mockHRDistribution = [
+  { label: 'Earned', value: 42, color: '#2563eb' },
+  { label: 'Casual', value: 25, color: '#a855f7' },
+  { label: 'Sick', value: 18, color: '#10b981' },
+  { label: 'Other', value: 15, color: '#cbd5e1' },
+];
+export const mockHRDistributionTotal = 1286;
+
+export const mockDepartmentSummary = [
+  { departmentName: 'Engineering', totalEmployees: 82, totalLeaveDays: 41, utilizationPct: 8.5 },
+  { departmentName: 'Sales', totalEmployees: 54, totalLeaveDays: 29, utilizationPct: 9.1 },
+  { departmentName: 'Operations', totalEmployees: 61, totalLeaveDays: 35, utilizationPct: 10.4 },
+  { departmentName: 'HR & Admin', totalEmployees: 24, totalLeaveDays: 12, utilizationPct: 8.1 },
+  { departmentName: 'Finance', totalEmployees: 27, totalLeaveDays: 15, utilizationPct: 9.7 },
+];
+
+export const mockHRPendingApprovals = [
+  { id: 'LR-2024-301', name: 'Amit Joshi', type: 'Earned', days: 3 },
+  { id: 'LR-2024-302', name: 'Riya Shah', type: 'Casual', days: 2 },
+  { id: 'LR-2024-303', name: 'Manoj Kumar', type: 'Sick', days: 1 },
+];

@@ -1,6 +1,6 @@
 import { handleApiError } from '../utils/errorHandler';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // The access token lives ONLY in memory (this module-level variable) — never
 // in localStorage/sessionStorage. It's gone the moment the tab is closed or
@@ -135,7 +135,7 @@ class ApiService {
 
   async logout() {
     try {
-      return await this.request('/auth/logout', { method: 'POST' });
+      return await this.request('/auth/logout', { method: 'POST',headers: this.authHeaders(), });
     } finally {
       setAccessToken(null);
     }
@@ -232,6 +232,67 @@ class ApiService {
 
   async getUpcomingTeamLeaves(limit = 5) {
     return this.request(`/manager/team/upcoming-leaves?limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // HR dashboard endpoints — paths confirmed against lms-openapi.yaml.
+  // getHRSummary() only covers totalEmployees/activeEmployees/onLeaveToday/
+  // inactiveEmployees per the spec (marked "x-assumption: true" there); it
+  // does NOT include pendingRequests or a leave-utilization %, so those are
+  // pulled from /reports/summary (pendingRequests, approvalRate) alongside it.
+  async getHRSummary() {
+    return this.request('/dashboard/hr-summary', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getReportsSummary(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.request(`/reports/summary${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getHRLeaveTrend(year = new Date().getFullYear()) {
+    return this.request(`/reports/leave-trend?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getDepartmentSummary(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.request(`/reports/department-summary${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // NOTE: reusing the manager preview endpoint for the HR "Pending Approvals"
+  // widget — the spec doesn't define an HR-scoped equivalent, and the shape
+  // (PendingApprovalPreview) matches what this widget needs. Confirm with
+  // backend that HR_ADMIN is authorized here (may currently be manager-only).
+  async getHRPendingApprovals(limit = 5) {
+    return this.request(`/manager/approvals/pending?limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async exportReport(payload) {
+    return this.request('/reports/export', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getReportExportStatus(jobId) {
+    return this.request(`/reports/export/${jobId}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });

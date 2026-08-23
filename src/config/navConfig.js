@@ -12,6 +12,7 @@ import {
   ClipboardListIcon,
   BarChartIcon,
   SettingsIcon,
+  HistoryIcon,
 } from '../components/icons/Icons';
 
 export const EMPLOYEE_PORTAL = {
@@ -43,15 +44,32 @@ export const MANAGER_PORTAL = {
   ],
 };
 
-// Roles that should land on the Manager portal instead of the Employee one.
-// Adjust these strings if your backend uses different role values.
-const MANAGER_ROLES = ['MANAGER', 'ADMIN', 'HR', 'HR_ADMIN'];
+export const HR_PORTAL = {
+  portalLabel: 'HR PORTAL',
+  searchPlaceholder: 'Search employees, requests, reports...',
+  navItems: [
+    { label: 'Dashboard', path: '/hr/dashboard', icon: GridIcon },
+    { label: 'Employee Management', path: '/hr/employees', icon: UsersIcon },
+    { label: 'Leave Policies', path: '/hr/leave-policies', icon: BookIcon },
+    { label: 'Leave Categories', path: '/hr/leave-categories', icon: ClipboardListIcon },
+    { label: 'Holiday Calendar', path: '/hr/holiday-calendar', icon: CalendarIcon },
+    { label: 'Reports & Analytics', path: '/hr/reports', icon: BarChartIcon },
+    { label: 'Audit Trail', path: '/hr/audit-trail', icon: HistoryIcon },
+    { label: 'Notification Queue', path: '/hr/notification-queue', icon: BellIcon, badgeKey: 'notifications' },
+    { label: 'Settings', path: '/hr/settings', icon: SettingsIcon },
+  ],
+};
 
-export const isManagerRole = (role) =>
-  !!role && MANAGER_ROLES.includes(String(role).toUpperCase());
+// Matches the backend's Role enum exactly: [EMPLOYEE, MANAGER, HR_ADMIN]
+// (confirmed against lms-openapi.yaml — components/schemas/Role).
+export const isManagerRole = (role) => String(role).toUpperCase() === 'MANAGER';
+export const isHRRole = (role) => String(role).toUpperCase() === 'HR_ADMIN';
 
 // Single source of truth for "where should this user land after login /
-// on reload" — used by Login.jsx and as a safety redirect inside both
-// dashboard pages in case someone bookmarks or is linked to the wrong one.
-export const getHomePathForRole = (role) =>
-  isManagerRole(role) ? '/manager/dashboard' : '/dashboard';
+// on reload" — used by Login.jsx and as a safety redirect inside every
+// dashboard page in case someone bookmarks or is linked to the wrong portal.
+export const getHomePathForRole = (role) => {
+  if (isHRRole(role)) return '/hr/dashboard';
+  if (isManagerRole(role)) return '/manager/dashboard';
+  return '/dashboard';
+};

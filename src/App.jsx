@@ -3,7 +3,7 @@ import './App.css'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PlaceholderPage from './pages/PlaceholderPage'
-import { EMPLOYEE_PORTAL, MANAGER_PORTAL } from './config/navConfig'
+import { EMPLOYEE_PORTAL, MANAGER_PORTAL, HR_PORTAL } from './config/navConfig'
 
 // Pages
 import SplashScreen from './pages/SplashScreen'
@@ -13,6 +13,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ManagerDashboard from './pages/ManagerDashboard'
+import HRDashboard from './pages/HRDashboard'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
 
@@ -66,6 +67,24 @@ function App() {
           <Route path="/manager/delegation" element={guardedPlaceholder('Delegation', MANAGER_PORTAL)} />
           <Route path="/manager/reports" element={guardedPlaceholder('Reports & Analytics', MANAGER_PORTAL)} />
           <Route path="/manager/settings" element={guardedPlaceholder('Settings', MANAGER_PORTAL)} />
+
+          {/* HR portal */}
+          <Route
+            path="/hr/dashboard"
+            element={
+              <ProtectedRoute>
+                <HRDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/hr/employees" element={guardedPlaceholder('Employee Management', HR_PORTAL)} />
+          <Route path="/hr/leave-policies" element={guardedPlaceholder('Leave Policies', HR_PORTAL)} />
+          <Route path="/hr/leave-categories" element={guardedPlaceholder('Leave Categories', HR_PORTAL)} />
+          <Route path="/hr/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', HR_PORTAL)} />
+          <Route path="/hr/reports" element={guardedPlaceholder('Reports & Analytics', HR_PORTAL)} />
+          <Route path="/hr/audit-trail" element={guardedPlaceholder('Audit Trail', HR_PORTAL)} />
+          <Route path="/hr/notification-queue" element={guardedPlaceholder('Notification Queue', HR_PORTAL)} />
+          <Route path="/hr/settings" element={guardedPlaceholder('Settings', HR_PORTAL)} />
 
           <Route path="/404" element={<NotFound />} />
           <Route path="/server-error" element={<ServerError />} />

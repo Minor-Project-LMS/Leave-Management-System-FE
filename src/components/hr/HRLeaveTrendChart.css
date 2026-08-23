@@ -1,0 +1,83 @@
+.hr-trend-chart {
+  position: relative;
+  width: 100%;
+}
+
+.hr-trend-chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.hr-trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.hr-trend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-requests { background: #2563eb; }
+.dot-approved { background: #a855f7; }
+
+.hr-trend-chart-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.hr-trend-grid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.hr-trend-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-requests { stroke: #2563eb; }
+.line-approved { stroke: #a855f7; }
+
+.hr-trend-dot-marker {
+  fill: var(--bg-white);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: r var(--transition-fast);
+}
+
+.hr-trend-dot-marker.dot-requests { stroke: #2563eb; }
+.hr-trend-dot-marker.dot-approved { stroke: #a855f7; }
+
+.hr-trend-axis-label {
+  font-size: 9px;
+  fill: var(--text-light);
+}
+
+.hr-trend-hover-line {
+  stroke: var(--text-light);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+
+.hr-trend-chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -140%);
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
