@@ -1,0 +1,25 @@
+.approval-inbox-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.approval-inbox-main {
+  min-width: 0;
+}
+
+.approval-inbox-detail {
+  position: sticky;
+  top: 1.75rem;
+}
+
+@media (max-width: 1100px) {
+  .approval-inbox-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-inbox-detail {
+    position: static;
+  }
+}

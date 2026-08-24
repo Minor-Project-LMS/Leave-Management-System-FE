@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PlaceholderPage from './pages/PlaceholderPage'
 import { EMPLOYEE_PORTAL, MANAGER_PORTAL, HR_PORTAL } from './config/navConfig'
+import ApprovalInbox from './pages/manager/ApprovalInbox'
 
 // Pages
 import SplashScreen from './pages/SplashScreen'
@@ -61,7 +62,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/manager/approval-inbox" element={guardedPlaceholder('Approval Inbox', MANAGER_PORTAL)} />
+          <Route
+            path="/manager/approval-inbox"
+            element={
+              <ProtectedRoute>
+                <ApprovalInbox />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/manager/team-calendar" element={guardedPlaceholder('Team Calendar', MANAGER_PORTAL)} />
           <Route path="/manager/team-members" element={guardedPlaceholder('Team Members', MANAGER_PORTAL)} />
           <Route path="/manager/delegation" element={guardedPlaceholder('Delegation', MANAGER_PORTAL)} />

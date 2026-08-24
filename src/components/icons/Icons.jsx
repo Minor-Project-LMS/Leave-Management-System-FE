@@ -201,3 +201,48 @@ export const HistoryIcon = (props) => (
     <path d="M3 3v5h5M12 7v5l4 2" />
   </svg>
 );
+
+export const EyeIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const PaperclipIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M21 11.5L12.5 20a4.5 4.5 0 01-6.36-6.36L14.5 5.28a3 3 0 014.24 4.24L10.4 17.86a1.5 1.5 0 01-2.12-2.12l7.78-7.78" />
+  </svg>
+);
+
+export const FilterIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 5h16M7 12h10M10 19h4" />
+  </svg>
+);
+
+export const ChevronDownIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+export const CheckIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+
+export const XIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M18 6L6 18M6 6l12 12" />
+  </svg>
+);
+
+export const HeadsetIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 13a9 9 0 0118 0" />
+    <path d="M21 13v4a2 2 0 01-2 2h-1v-6h1a2 2 0 012 2zM3 13v4a2 2 0 002 2h1v-6H5a2 2 0 00-2 2z" />
+    <path d="M12 19v1a2 2 0 002 2h1" />
+  </svg>
+);

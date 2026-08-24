@@ -297,6 +297,34 @@ class ApiService {
       headers: this.authHeaders(),
     });
   }
+
+  // Approval Inbox (MGR-02) — GET /approvals/inbox returns per-tab counts
+  // alongside the current page's data in one call.
+  async getApprovalInbox({ status = 'PENDING', page = 1, limit = 5, sort = 'newest' } = {}) {
+    const qs = new URLSearchParams({ status, page, limit, sort }).toString();
+    return this.request(`/approvals/inbox?${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Returns LeaveRequestDetail — includes attachments[] and approvals[]
+  // inline, so the detail panel needs only this one call.
+  async getLeaveRequestDetail(requestId) {
+    return this.request(`/leave-requests/${requestId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // decision: 'APPROVED' | 'REJECTED'; comments required when REJECTED.
+  async decideLeaveRequest(requestId, decision, comments) {
+    return this.request(`/leave-requests/${requestId}/decisions`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ decision, comments }),
+    });
+  }
 }
 
 export const apiService = new ApiService();
