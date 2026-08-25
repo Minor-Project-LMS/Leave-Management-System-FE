@@ -1,0 +1,28 @@
+.leave-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.leave-type-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.leave-type-blue { background: #dbeafe; color: #1d4ed8; }
+.leave-type-green { background: #d1fae5; color: #047857; }
+.leave-type-amber { background: #fef3c7; color: #b45309; }
+.leave-type-purple { background: #ede9fe; color: #7c3aed; }
+.leave-type-default { background: var(--bg-light); color: var(--text-secondary); }
+
+.leave-type-name {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}

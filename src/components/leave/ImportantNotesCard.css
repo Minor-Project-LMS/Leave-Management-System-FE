@@ -1,0 +1,38 @@
+.important-notes-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+}
+
+.important-notes-card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 0.75rem;
+}
+
+.important-notes-card ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.important-notes-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: #92400e;
+}
+
+.important-notes-card li svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #d97706;
+}
+
+.important-notes-card li span {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}

@@ -1,121 +1,113 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import PlaceholderPage from './pages/PlaceholderPage'
+import { EMPLOYEE_PORTAL, MANAGER_PORTAL, HR_PORTAL } from './config/navConfig'
+
+// Pages
+import SplashScreen from './pages/SplashScreen'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
+import Dashboard from './pages/Dashboard'
+import ApplyLeave from './pages/ApplyLeave'
+import ManagerDashboard from './pages/ManagerDashboard'
+import ApprovalInbox from './pages/manager/ApprovalInbox'
+import HRDashboard from './pages/HRDashboard'
+import NotFound from './pages/error/NotFound'
+import ServerError from './pages/error/ServerError'
+
+// Wraps a placeholder page in the route guard + correct portal shell
+const guardedPlaceholder = (title, portal, icon) => (
+  <ProtectedRoute>
+    <PlaceholderPage title={title} portal={portal} icon={icon} />
+  </ProtectedRoute>
+)
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<SplashScreen />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
-      <div className="ticks"></div>
+          {/* Employee portal */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apply-leave"
+            element={
+              <ProtectedRoute>
+                <ApplyLeave />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/my-requests" element={guardedPlaceholder('My Requests', EMPLOYEE_PORTAL)} />
+          <Route path="/leave-ledger" element={guardedPlaceholder('Leave Ledger', EMPLOYEE_PORTAL)} />
+          <Route path="/comp-off" element={guardedPlaceholder('Comp-Off', EMPLOYEE_PORTAL)} />
+          <Route path="/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', EMPLOYEE_PORTAL)} />
+          <Route path="/notifications" element={guardedPlaceholder('Notifications', EMPLOYEE_PORTAL)} />
+          <Route path="/profile" element={guardedPlaceholder('Profile', EMPLOYEE_PORTAL)} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {/* Manager portal */}
+          <Route
+            path="/manager/dashboard"
+            element={
+              <ProtectedRoute>
+                <ManagerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/approval-inbox"
+            element={
+              <ProtectedRoute>
+                <ApprovalInbox />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/manager/team-calendar" element={guardedPlaceholder('Team Calendar', MANAGER_PORTAL)} />
+          <Route path="/manager/team-members" element={guardedPlaceholder('Team Members', MANAGER_PORTAL)} />
+          <Route path="/manager/delegation" element={guardedPlaceholder('Delegation', MANAGER_PORTAL)} />
+          <Route path="/manager/reports" element={guardedPlaceholder('Reports & Analytics', MANAGER_PORTAL)} />
+          <Route path="/manager/settings" element={guardedPlaceholder('Settings', MANAGER_PORTAL)} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          {/* HR portal */}
+          <Route
+            path="/hr/dashboard"
+            element={
+              <ProtectedRoute>
+                <HRDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/hr/employees" element={guardedPlaceholder('Employee Management', HR_PORTAL)} />
+          <Route path="/hr/leave-policies" element={guardedPlaceholder('Leave Policies', HR_PORTAL)} />
+          <Route path="/hr/leave-categories" element={guardedPlaceholder('Leave Categories', HR_PORTAL)} />
+          <Route path="/hr/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', HR_PORTAL)} />
+          <Route path="/hr/reports" element={guardedPlaceholder('Reports & Analytics', HR_PORTAL)} />
+          <Route path="/hr/audit-trail" element={guardedPlaceholder('Audit Trail', HR_PORTAL)} />
+          <Route path="/hr/notification-queue" element={guardedPlaceholder('Notification Queue', HR_PORTAL)} />
+          <Route path="/hr/settings" element={guardedPlaceholder('Settings', HR_PORTAL)} />
+
+          <Route path="/404" element={<NotFound />} />
+          <Route path="/server-error" element={<ServerError />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 

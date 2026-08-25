@@ -1,0 +1,240 @@
+.apply-leave-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.apply-leave-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.apply-leave-alert {
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.apply-leave-alert.error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.apply-leave-alert.success {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.apply-leave-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin-bottom: 1.1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-field.apply-leave-full {
+  margin-bottom: 1.1rem;
+  position: relative;
+}
+
+.form-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-field select,
+.form-field input[type='date'],
+.form-field input[type='text'],
+.form-field textarea {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-white);
+  width: 100%;
+}
+
+.form-field select:focus,
+.form-field input:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.apply-leave-readonly {
+  background: var(--bg-light) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600;
+}
+
+.apply-leave-char-count {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.7rem;
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.apply-leave-radio-group {
+  display: flex;
+  gap: 1.25rem;
+  padding-top: 0.4rem;
+}
+
+.apply-leave-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.apply-leave-radio input {
+  accent-color: var(--primary-blue);
+  width: 16px;
+  height: 16px;
+}
+
+.apply-leave-file-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.apply-leave-file-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-light);
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.apply-leave-file-name {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apply-leave-file-size {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+
+.apply-leave-file-list button {
+  color: var(--text-light);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.apply-leave-file-list button:hover {
+  color: #b91c1c;
+}
+
+.apply-leave-add-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+  padding: 0.4rem 0;
+}
+
+.apply-leave-add-file:hover {
+  text-decoration: underline;
+}
+
+.apply-leave-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  background: var(--bg-blue-light);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 1.25rem;
+  color: var(--primary-blue);
+}
+
+.apply-leave-info-banner p {
+  font-size: 0.78rem;
+  color: #1e40af;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.apply-leave-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.apply-leave-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+}
+
+.apply-leave-btn.cancel {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.apply-leave-btn.draft {
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.apply-leave-btn.submit {
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.apply-leave-btn.submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.apply-leave-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .apply-leave-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .apply-leave-grid {
+    grid-template-columns: 1fr;
+  }
+}

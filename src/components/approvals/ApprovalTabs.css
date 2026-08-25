@@ -1,0 +1,109 @@
+.approval-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.approval-tabs {
+  display: flex;
+  gap: 0.4rem;
+  background: var(--bg-light);
+  padding: 0.3rem;
+  border-radius: var(--radius-md);
+}
+
+.approval-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.approval-tab:hover {
+  color: var(--text-primary);
+}
+
+.approval-tab.active {
+  background: var(--bg-white);
+  color: var(--primary-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.approval-tab-count {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+}
+
+.approval-tab.active .approval-tab-count {
+  background: var(--bg-blue-light);
+  color: var(--primary-blue);
+}
+
+.approval-tabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.approval-filter-btn,
+.approval-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.approval-filter-btn:hover,
+.approval-sort-btn:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.approval-sort-wrap {
+  position: relative;
+}
+
+.approval-sort-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.approval-sort-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.approval-sort-menu button:hover {
+  background: var(--bg-light);
+}

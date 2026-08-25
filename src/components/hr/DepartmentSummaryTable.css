@@ -1,0 +1,42 @@
+.dept-summary-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: 0.15rem 0 0;
+}
+
+.dept-summary-table-wrap {
+  overflow-x: auto;
+}
+
+.dept-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dept-summary-table th {
+  text-align: left;
+  color: var(--text-light);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0 0.5rem 0.7rem 0;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.dept-summary-table td {
+  padding: 0.8rem 0.5rem 0.8rem 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.dept-summary-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dept-summary-name {
+  font-weight: 600;
+}

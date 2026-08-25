@@ -1,0 +1,43 @@
+.team-overview-table-wrap {
+  overflow-x: auto;
+}
+
+.team-overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.team-overview-table th {
+  text-align: left;
+  color: var(--text-light);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0 0.5rem 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.team-overview-table td {
+  padding: 0.65rem 0.5rem 0.65rem 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.team-overview-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.team-overview-dept {
+  font-weight: 600;
+}
+
+.team-overview-table tfoot td {
+  font-weight: 700;
+  padding-top: 0.75rem;
+  border-bottom: none;
+  border-top: 2px solid var(--border-color);
+}
