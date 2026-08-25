@@ -19,10 +19,12 @@ export const getAccessToken = () => accessToken;
 class ApiService {
   async request(endpoint, options = {}, { skipAuthRetry = false } = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      // Omit Content-Type for FormData bodies — the browser must set its own
+      // multipart boundary (e.g. "multipart/form-data; boundary=..."); setting
+      // application/json here would break file uploads like uploadLeaveAttachment().
+      headers: isFormData ? {} : { 'Content-Type': 'application/json' },
       // Always send the httpOnly refresh-token cookie automatically. This is
       // what lets /auth/refresh and /auth/logout work without the frontend
       // ever touching the refresh token directly.
@@ -323,6 +325,52 @@ class ApiService {
       method: 'PATCH',
       headers: this.authHeaders(),
       body: JSON.stringify({ decision, comments }),
+    });
+  }
+
+  // Apply Leave (EMP-02) endpoints
+  async getLeaveCategories(status = 'ACTIVE') {
+    return this.request(`/leave-categories?status=${status}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeavePolicies(categoryId) {
+    const qs = categoryId != null ? `?categoryId=${categoryId}&status=ACTIVE` : '';
+    return this.request(`/leave-policies${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveLedger(year = new Date().getFullYear()) {
+    return this.request(`/leave-ledger?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // payload: { categoryId, startDate, endDate, sessionType, reason, status? }
+  // status: 'DRAFT' saves without submitting; omit/'PENDING_L1' submits (spec convention).
+  async submitLeaveRequest(payload) {
+    return this.request('/leave-requests', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Per spec: attachments are uploaded against an existing request id
+  // (multipart/form-data), so this is called after submitLeaveRequest()
+  // resolves with the new request's id.
+  async uploadLeaveAttachment(requestId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
     });
   }
 }

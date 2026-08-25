@@ -1,0 +1,31 @@
+.leave-policy-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.leave-policy-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.leave-policy-icon {
+  color: var(--text-light);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.leave-policy-label {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.leave-policy-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}

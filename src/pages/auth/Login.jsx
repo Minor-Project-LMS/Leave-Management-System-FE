@@ -282,41 +282,6 @@ const Login = () => {
             Login
           </Button>
         </form>
-
-        <div className="social-login">
-          <div className="divider">
-            <span>or</span>
-          </div>
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="medium"
-            fullWidth
-            icon={googleIcon}
-            onClick={() => {/* TODO: Implement Google OAuth */}}
-          >
-            Sign in with Google
-          </Button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="medium"
-            fullWidth
-            icon={microsoftIcon}
-            onClick={() => {/* TODO: Implement Microsoft OAuth */}}
-          >
-            Sign in with Microsoft
-          </Button>
-        </div>
-
-        <div className="login-footer">
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register">Sign up</Link>
-          </p>
-        </div>
       </div>
     </AuthLayout>
   );

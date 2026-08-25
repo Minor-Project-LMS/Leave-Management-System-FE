@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PlaceholderPage from './pages/PlaceholderPage'
 import { EMPLOYEE_PORTAL, MANAGER_PORTAL, HR_PORTAL } from './config/navConfig'
-import ApprovalInbox from './pages/manager/ApprovalInbox'
 
 // Pages
 import SplashScreen from './pages/SplashScreen'
@@ -13,7 +12,9 @@ import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import ApplyLeave from './pages/ApplyLeave'
 import ManagerDashboard from './pages/ManagerDashboard'
+import ApprovalInbox from './pages/manager/ApprovalInbox'
 import HRDashboard from './pages/HRDashboard'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
@@ -45,7 +46,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/apply-leave" element={guardedPlaceholder('Apply Leave', EMPLOYEE_PORTAL)} />
+          <Route
+            path="/apply-leave"
+            element={
+              <ProtectedRoute>
+                <ApplyLeave />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/my-requests" element={guardedPlaceholder('My Requests', EMPLOYEE_PORTAL)} />
           <Route path="/leave-ledger" element={guardedPlaceholder('Leave Ledger', EMPLOYEE_PORTAL)} />
           <Route path="/comp-off" element={guardedPlaceholder('Comp-Off', EMPLOYEE_PORTAL)} />

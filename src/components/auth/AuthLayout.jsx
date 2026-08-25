@@ -39,7 +39,7 @@ const AuthLayout = ({
 
             {/* Footer */}
             <div className="auth-side-footer">
-              <p>© 2025 Leave Management System. All rights reserved.</p>
+              <p>© 2026 Leave Management System. All rights reserved.</p>
             </div>
           </div>
         </div>

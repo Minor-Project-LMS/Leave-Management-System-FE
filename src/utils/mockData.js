@@ -150,6 +150,20 @@ export const mockHRPendingApprovals = [
 
 // --- Approval Inbox mocks ---
 
+const baseApprovals = [
+  {
+    id: 1,
+    requestId: 4001,
+    approverId: 9,
+    approverName: 'Alex Johnson',
+    actingAsDelegateFor: null,
+    level: 1,
+    decision: null,
+    decidedAt: null,
+    comments: null,
+  },
+];
+
 export const mockApprovalInboxCounts = { all: 5, pending: 5, approved: 0, rejected: 0 };
 
 export const mockApprovalInbox = [
@@ -289,3 +303,31 @@ export const mockApprovalDetails = {
     ],
   },
 };
+
+// --- Apply Leave (EMP-02) mocks ---
+
+export const mockLeaveCategories = [
+  { id: 1, categoryName: 'Casual Leave', categoryCode: 'CL', categoryType: 'STANDARD', isPaid: true, requiresDocument: false },
+  { id: 2, categoryName: 'Sick Leave', categoryCode: 'SL', categoryType: 'STANDARD', isPaid: true, requiresDocument: true },
+  { id: 3, categoryName: 'Earned Leave', categoryCode: 'EL', categoryType: 'ACCRUAL', isPaid: true, requiresDocument: false },
+  { id: 4, categoryName: 'Comp-Off', categoryCode: 'CO', categoryType: 'COMPENSATORY', isPaid: true, requiresDocument: false },
+];
+
+// Keyed by categoryId — matches LeavePolicy shape.
+export const mockLeavePolicies = {
+  1: { id: 1, categoryId: 1, categoryName: 'Casual Leave', annualQuota: 15, maxCarryForward: 5, maxConsecutiveDays: 5, minNoticeDays: 1, applicableTo: 'ALL_EMPLOYEES' },
+  2: { id: 2, categoryId: 2, categoryName: 'Sick Leave', annualQuota: 10, maxCarryForward: 0, maxConsecutiveDays: 7, minNoticeDays: 0, applicableTo: 'ALL_EMPLOYEES' },
+  3: { id: 3, categoryId: 3, categoryName: 'Earned Leave', annualQuota: 20, maxCarryForward: 10, maxConsecutiveDays: 15, minNoticeDays: 7, applicableTo: 'ALL_EMPLOYEES' },
+  4: { id: 4, categoryId: 4, categoryName: 'Comp-Off', annualQuota: 5, maxCarryForward: 0, maxConsecutiveDays: 2, minNoticeDays: 1, applicableTo: 'ALL_EMPLOYEES' },
+};
+
+// Matches LeaveLedgerSummary[] shape. "Total" shown in the UI is computed
+// client-side as openingBalance + accrued + carriedForward, since the schema
+// doesn't expose a single "total allocated" field directly — see
+// LeaveBalanceSummary.jsx.
+export const mockLeaveLedger = [
+  { categoryId: 1, categoryName: 'Casual Leave', openingBalance: 18, accrued: 0, used: 5.5, carriedForward: 0, availableBalance: 12.5 },
+  { categoryId: 2, categoryName: 'Sick Leave', openingBalance: 10, accrued: 0, used: 2, carriedForward: 0, availableBalance: 8.0 },
+  { categoryId: 3, categoryName: 'Earned Leave', openingBalance: 20, accrued: 0, used: 2, carriedForward: 0, availableBalance: 18.0 },
+  { categoryId: 4, categoryName: 'Comp-Off', openingBalance: 5, accrued: 0, used: 4, carriedForward: 0, availableBalance: 1.0 },
+];
