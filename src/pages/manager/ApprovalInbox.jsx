@@ -10,10 +10,11 @@ import { apiService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { MANAGER_PORTAL } from '../../config/navConfig';
 import { useRoleRedirect } from '../../hooks/useRoleRedirect';
+import { env } from '../../config/env';
 import { mockApprovalInbox, mockApprovalDetails } from '../../utils/mockData';
 import './ApprovalInbox.css';
 
-const USE_MOCK = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
+const USE_MOCK = env.useMockData;
 const LIMIT = 5;
 
 const isPendingStatus = (status) => status === 'PENDING_L1' || status === 'PENDING_L2';

@@ -1,6 +1,6 @@
-export const handleApiError = (error) => {
-  if (error.message === 'Server not reachable. Please check your connection.') {
-    // Navigate to server error page
+export const handleApiError = (error, skipRedirect = false) => {
+  if (error.message === 'Server not reachable. Please check your connection.' && !skipRedirect) {
+    // Navigate to server error page (only if not skipping redirect)
     window.location.href = '/server-error';
     return;
   }

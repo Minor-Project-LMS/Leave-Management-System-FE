@@ -14,6 +14,7 @@ import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { MANAGER_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
+import { env } from '../config/env';
 import {
   mockManagerSummary,
   mockManagerTrend,
@@ -24,7 +25,7 @@ import {
 } from '../utils/mockData';
 import './ManagerDashboard.css';
 
-const USE_MOCK = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
+const USE_MOCK = env.useMockData;
 
 const formatToday = () =>
   new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'long' });

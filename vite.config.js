@@ -1,15 +1,16 @@
 import { defineConfig, loadEnv } from 'vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
+  // Load env file based on `mode` in the current working directory.
+  const env = loadEnv(mode, process.cwd(), '')
+  
+  // API proxy target for development (only used in dev mode)
   const apiProxyTarget = env.VITE_API_TARGET || 'http://localhost:8081'
 
   return {
     plugins: [
       react(),
-      babel({ presets: [reactCompilerPreset()] })
     ],
     server: {
       proxy: {
@@ -20,5 +21,11 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // Build configuration for production
+    build: {
+      sourcemap: mode === 'production' ? false : true,
+    },
+    // Ensure environment variables are properly loaded
+    envPrefix: 'VITE_',
   }
 })
