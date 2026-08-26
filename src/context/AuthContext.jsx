@@ -32,7 +32,10 @@ export const AuthProvider = ({ children }) => {
         const refreshRes = await apiService.refreshToken();
         setUser(refreshRes?.profile ?? null);
         setIsAuthenticated(true);
-      } catch {
+      } catch (error) {
+        // Silently fail during initialization - don't redirect to server error
+        // This prevents infinite redirect loops when backend is unreachable
+        console.warn('Session restoration failed:', error.message);
         setAccessToken(null);
         setUser(null);
         setIsAuthenticated(false);

@@ -19,7 +19,7 @@ export const setAccessToken = (token) => {
 export const getAccessToken = () => accessToken;
 
 class ApiService {
-  async request(endpoint, options = {}, { skipAuthRetry = false } = {}) {
+  async request(endpoint, options = {}, { skipAuthRetry = false, skipErrorRedirect = false } = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const defaultOptions = {
@@ -77,7 +77,7 @@ class ApiService {
     } catch (error) {
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
         const networkError = new Error('Server not reachable. Please check your connection.');
-        handleApiError(networkError);
+        handleApiError(networkError, skipErrorRedirect);
         throw networkError;
       }
       throw error;
@@ -122,7 +122,7 @@ class ApiService {
   // already includes the user profile, so no separate "get current user"
   // call is needed.
   async refreshToken() {
-    const data = await this.request('/auth/refresh', { method: 'POST' }, { skipAuthRetry: true });
+    const data = await this.request('/auth/refresh', { method: 'POST' }, { skipAuthRetry: true, skipErrorRedirect: true });
     const token = data?.accessToken || data?.token || data?.data?.accessToken || data?.data?.token;
     const profile = data?.user || data?.data?.user || data?.profile || data?.data?.profile;
     if (token) setAccessToken(token);

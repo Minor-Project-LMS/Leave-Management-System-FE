@@ -18,7 +18,8 @@ const SplashScreen = () => {
       });
     }, 60);
 
-    // Navigate to login after 3 seconds
+    // Navigate to login after 3 seconds (regardless of auth state)
+    // This ensures users can always reach login even if backend is down
     const timer = setTimeout(() => {
       navigate('/login');
     }, 3000);
