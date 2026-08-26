@@ -1,8 +1,10 @@
 ﻿import axios from 'axios';
 import { isSecurityError } from '../utils/errorHandler';
 import { broadcastAuthEvent } from '../utils/authChannel';
+import { env } from '../config/env';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const BASE_URL = env.apiBaseUrl;
+const API_TIMEOUT = env.apiTimeout;
 
 // Safe sessionStorage access (for environments where it might not be available)
 const safeSessionStorage = {
@@ -40,7 +42,7 @@ const axiosConfig = {
   baseURL: BASE_URL,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30000,
+  timeout: API_TIMEOUT,
 };
 
 // Primary axios instance used across the app (has interceptors)

@@ -1,6 +1,8 @@
 import { handleApiError } from '../utils/errorHandler';
+import { env } from '../config/env';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = env.apiBaseUrl;
+const API_TIMEOUT = env.apiTimeout;
 
 // The access token lives ONLY in memory (this module-level variable) — never
 // in localStorage/sessionStorage. It's gone the moment the tab is closed or
@@ -29,12 +31,16 @@ class ApiService {
       // what lets /auth/refresh and /auth/logout work without the frontend
       // ever touching the refresh token directly.
       credentials: 'include',
+      // Add timeout using AbortController
+      signal: AbortSignal.timeout(API_TIMEOUT),
     };
 
     const config = {
       ...defaultOptions,
       ...options,
       headers: { ...defaultOptions.headers, ...options.headers },
+      // Merge signal if provided in options, otherwise use default
+      signal: options.signal || defaultOptions.signal,
     };
 
     try {

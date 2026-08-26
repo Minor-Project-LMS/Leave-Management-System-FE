@@ -13,6 +13,7 @@ import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
+import { env } from '../config/env';
 import {
   mockSummary,
   mockTrend,
@@ -25,7 +26,7 @@ import './Dashboard.css';
 
 // While the backend dashboard endpoints aren't live yet, set VITE_USE_MOCK_DATA=true
 // in .env to build/preview the UI against realistic sample data.
-const USE_MOCK = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
+const USE_MOCK = env.useMockData;
 
 const Dashboard = () => {
   const navigate = useNavigate();
