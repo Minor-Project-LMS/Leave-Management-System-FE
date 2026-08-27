@@ -18,6 +18,15 @@ const LIMIT = 5;
 
 const isPendingStatus = (status) => status === 'PENDING_L1' || status === 'PENDING_L2';
 
+// Helper to extract a human-readable string from any error object structure
+const getErrorMessage = (err, fallback) => {
+  if (typeof err === 'string') return err;
+  if (err?.response?.data?.error?.message) return err.response.data.error.message;
+  if (err?.response?.data?.message) return err.response.data.message;
+  if (typeof err?.message === 'string') return err.message;
+  return fallback;
+};
+
 // Builds a reasonable detail object from a list row when no richer
 // mockApprovalDetails/backend detail is available for that id.
 const synthesizeDetail = (item) => ({
@@ -117,7 +126,7 @@ const ApprovalInbox = () => {
       setTotalCount(res?.totalCount ?? data.length);
       setTotalPages(res?.totalPages ?? 1);
     } catch (err) {
-      setError(err.message || 'Failed to load approval inbox.');
+      setError(getErrorMessage(err, 'Failed to load approval inbox.'));
       setRequests(mockApprovalInbox.slice(0, LIMIT));
       setCounts({ all: 5, pending: 5, approved: 0, rejected: 0 });
       setTotalCount(5);
@@ -189,7 +198,13 @@ const ApprovalInbox = () => {
         if (selectedId === req.id) await loadDetail(req.id);
       }
     } catch (err) {
-      setActionError(err.message || 'Failed to approve request.');
+      const msg = getErrorMessage(err, 'Failed to approve request.');
+      setActionError(msg);
+
+      // Auto-refresh data if conflict occurs (e.g., overlapping leave exists)
+      if (err?.status === 409 || err?.response?.status === 409 || msg.toLowerCase().includes('overlapping')) {
+        await loadInbox();
+      }
     } finally {
       setActionSubmitting(false);
     }
@@ -209,7 +224,12 @@ const ApprovalInbox = () => {
       }
       setRejectTarget(null);
     } catch (err) {
-      setActionError(err.message || 'Failed to reject request.');
+      const msg = getErrorMessage(err, 'Failed to reject request.');
+      setActionError(msg);
+
+      if (err?.status === 409 || err?.response?.status === 409 || msg.toLowerCase().includes('overlapping')) {
+        await loadInbox();
+      }
     } finally {
       setActionSubmitting(false);
     }

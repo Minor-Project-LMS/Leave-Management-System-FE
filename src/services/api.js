@@ -56,14 +56,24 @@ class ApiService {
         if (response.status === 401 && !skipAuthRetry && endpoint !== '/auth/refresh') {
           const refreshed = await this.tryRefresh();
           if (refreshed) {
-            return this.request(endpoint, {
-              ...options,
-              headers: { ...options.headers, ...this.authHeaders() },
-            }, { skipAuthRetry: true });
+            return this.request(
+              endpoint,
+              {
+                ...options,
+                headers: { ...options.headers, ...this.authHeaders() },
+              },
+              { skipAuthRetry: true }
+            );
           }
         }
 
-        const errorMessage = data?.message || data?.error || data?.detail || 'API request failed';
+        // Safely extract string message from standard or nested error response shapes
+        const rawMsg = data?.error?.message || data?.message || data?.error || data?.detail;
+        const errorMessage =
+          typeof rawMsg === 'object'
+            ? rawMsg?.message || JSON.stringify(rawMsg)
+            : rawMsg || 'API request failed';
+
         throw new Error(errorMessage);
       }
 
@@ -137,7 +147,10 @@ class ApiService {
 
   async logout() {
     try {
-      return await this.request('/auth/logout', { method: 'POST',headers: this.authHeaders(), });
+      return await this.request('/auth/logout', {
+        method: 'POST',
+        headers: this.authHeaders(),
+      });
     } finally {
       setAccessToken(null);
     }
@@ -240,10 +253,6 @@ class ApiService {
   }
 
   // HR dashboard endpoints — paths confirmed against lms-openapi.yaml.
-  // getHRSummary() only covers totalEmployees/activeEmployees/onLeaveToday/
-  // inactiveEmployees per the spec (marked "x-assumption: true" there); it
-  // does NOT include pendingRequests or a leave-utilization %, so those are
-  // pulled from /reports/summary (pendingRequests, approvalRate) alongside it.
   async getHRSummary() {
     return this.request('/dashboard/hr-summary', {
       method: 'GET',
@@ -274,10 +283,6 @@ class ApiService {
     });
   }
 
-  // NOTE: reusing the manager preview endpoint for the HR "Pending Approvals"
-  // widget — the spec doesn't define an HR-scoped equivalent, and the shape
-  // (PendingApprovalPreview) matches what this widget needs. Confirm with
-  // backend that HR_ADMIN is authorized here (may currently be manager-only).
   async getHRPendingApprovals(limit = 5) {
     return this.request(`/manager/approvals/pending?limit=${limit}`, {
       method: 'GET',
