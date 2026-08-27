@@ -343,7 +343,7 @@ const ApplyLeave = () => {
 
           <div className="apply-leave-info-banner">
             <InfoIcon width={16} height={16} />
-            <p>Please ensure you apply for leave as per the leave policy at least 1 day in advance.</p>
+            <p>Please ensure you apply for leave as per the leave policy.</p>
           </div>
 
           <div className="apply-leave-actions">
