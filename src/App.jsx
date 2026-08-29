@@ -15,6 +15,8 @@ import Dashboard from './pages/Dashboard'
 import ApplyLeave from './pages/ApplyLeave'
 import ManagerDashboard from './pages/ManagerDashboard'
 import ApprovalInbox from './pages/manager/ApprovalInbox'
+import TeamCalendar from './pages/manager/TeamCalendar'
+import TeamMembers from './pages/manager/TeamMembers'
 import HRDashboard from './pages/HRDashboard'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
@@ -78,8 +80,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/manager/team-calendar" element={guardedPlaceholder('Team Calendar', MANAGER_PORTAL)} />
-          <Route path="/manager/team-members" element={guardedPlaceholder('Team Members', MANAGER_PORTAL)} />
+          <Route path="/manager/team-calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
+          <Route path="/manager/team-members" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
           <Route path="/manager/delegation" element={guardedPlaceholder('Delegation', MANAGER_PORTAL)} />
           <Route path="/manager/reports" element={guardedPlaceholder('Reports & Analytics', MANAGER_PORTAL)} />
           <Route path="/manager/settings" element={guardedPlaceholder('Settings', MANAGER_PORTAL)} />

@@ -258,6 +258,46 @@ class ApiService {
     });
   }
 
+  // Team Calendar (MGR-04) + Team Members (MGR-05) — paths confirmed
+  // against lms-openapi.yaml (/team/members, /team/calendar, /team/leave-summary).
+  async getTeamMembers({ departmentId, q, page = 1, limit = 8 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (departmentId) params.set('departmentId', departmentId);
+    if (q) params.set('q', q);
+    return this.request(`/team/members?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getTeamCalendar({ month, year, departmentId, categoryId, showWeekends = false }) {
+    const params = new URLSearchParams({ month, year, showWeekends });
+    if (departmentId) params.set('departmentId', departmentId);
+    if (categoryId) params.set('categoryId', categoryId);
+    return this.request(`/team/calendar?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getTeamLeaveSummary({ year = new Date().getFullYear(), month } = {}) {
+    const params = new URLSearchParams({ year });
+    if (month) params.set('month', month);
+    return this.request(`/team/leave-summary?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Used by department filter dropdowns (Team Calendar, Team Members).
+  async getDepartments({ page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    return this.request(`/departments?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   // HR dashboard endpoints — paths confirmed against lms-openapi.yaml.
   async getHRSummary() {
     return this.request('/dashboard/hr-summary', {

@@ -100,6 +100,99 @@ export const mockUpcomingTeamLeaves = [
   { day: '03', month: 'JUN', name: 'Karan Mehta', type: 'Sick Leave', dateRange: '03 Jun - 04 Jun 2024' },
 ];
 
+// --- Team Calendar (MGR-04) mocks ---
+
+export const mockDepartments = [
+  { id: 1, departmentName: 'Engineering', memberCount: 14 },
+  { id: 2, departmentName: 'Product', memberCount: 4 },
+  { id: 3, departmentName: 'Design', memberCount: 6 },
+  { id: 4, departmentName: 'QA', memberCount: 4 },
+  { id: 5, departmentName: 'Business Analysis', memberCount: 1 },
+];
+
+export const mockLeaveSummaryCategories = [
+  { categoryId: 1, categoryName: 'Casual Leave', categoryCode: 'CL', totalDays: 8.0 },
+  { categoryId: 2, categoryName: 'Sick Leave', categoryCode: 'SL', totalDays: 6.0 },
+  { categoryId: 3, categoryName: 'Earned Leave', categoryCode: 'EL', totalDays: 10.0 },
+  { categoryId: 4, categoryName: 'Comp-Off', categoryCode: 'CO', totalDays: 4.0 },
+];
+
+// Matches TeamCalendarDay[] — one entry per day that has at least one leave
+// or a holiday. Days not listed here render as plain empty cells.
+export const mockTeamCalendarDays = [
+  {
+    date: '2024-05-06',
+    entries: [{ userId: 102, fullName: 'Rahul Verma', avatarUrl: null, categoryId: 2, categoryName: 'Sick Leave', categoryCode: 'SL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-07',
+    entries: [{ userId: 101, fullName: 'Priya Sharma', avatarUrl: null, categoryId: 1, categoryName: 'Casual Leave', categoryCode: 'CL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-08',
+    entries: [{ userId: 102, fullName: 'Rahul Verma', avatarUrl: null, categoryId: 2, categoryName: 'Sick Leave', categoryCode: 'SL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-13',
+    entries: [{ userId: 101, fullName: 'Priya Sharma', avatarUrl: null, categoryId: 1, categoryName: 'Casual Leave', categoryCode: 'CL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-14',
+    entries: [{ userId: 104, fullName: 'Vikram Singh', avatarUrl: null, categoryId: 1, categoryName: 'Casual Leave', categoryCode: 'CL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-16',
+    entries: [{ userId: 103, fullName: 'Sneha Patel', avatarUrl: null, categoryId: 3, categoryName: 'Earned Leave', categoryCode: 'EL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-17',
+    entries: [{ userId: 105, fullName: 'Anjali Mehta', avatarUrl: null, categoryId: 4, categoryName: 'Comp-Off', categoryCode: 'CO', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-21',
+    entries: [{ userId: 102, fullName: 'Rahul Verma', avatarUrl: null, categoryId: 2, categoryName: 'Sick Leave', categoryCode: 'SL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-23',
+    entries: [{ userId: 104, fullName: 'Vikram Singh', avatarUrl: null, categoryId: 1, categoryName: 'Casual Leave', categoryCode: 'CL', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-24',
+    entries: [{ userId: 105, fullName: 'Anjali Mehta', avatarUrl: null, categoryId: 4, categoryName: 'Comp-Off', categoryCode: 'CO', sessionType: 'FULL_DAY' }],
+  },
+  {
+    date: '2024-05-27',
+    holiday: { name: 'Memorial Day' },
+    entries: [],
+  },
+];
+
+export const mockTeamCalendarUpcoming = [
+  { day: '21', month: 'MAY', name: 'Rahul Verma', type: 'Sick Leave (SL)', dateRange: '1 Day' },
+  { day: '23', month: 'MAY', name: 'Vikram Singh', type: 'Casual Leave (CL)', dateRange: '1 Day' },
+  { day: '24', month: 'MAY', name: 'Anjali Mehta', type: 'Comp-Off (CO)', dateRange: '1 Day' },
+];
+
+// --- Team Members (MGR-05) mocks ---
+
+export const mockTeamMembersStats = {
+  totalMembers: 28,
+  onLeaveToday: 4,
+  availableToday: 24,
+  departments: 5,
+};
+
+export const mockTeamMembers = [
+  { id: 1, employeeCode: 'EMP0047', fullName: 'Rahul Verma', departmentId: 1, departmentName: 'Engineering', designation: 'Senior Developer', email: 'rahul.verma@lms.com', phone: '+91 90945 43210', status: 'AVAILABLE', avatarUrl: null },
+  { id: 2, employeeCode: 'EMP0045', fullName: 'Priya Sharma', departmentId: 2, departmentName: 'Product', designation: 'Team Lead', email: 'priya.sharma@lms.com', phone: '+91 91234 56789', status: 'AVAILABLE', avatarUrl: null },
+  { id: 3, employeeCode: 'EMP0039', fullName: 'Sneha Patel', departmentId: 3, departmentName: 'Design', designation: 'UI/UX Designer', email: 'sneha.patel@lms.com', phone: '+91 93887 65432', status: 'ON_LEAVE', avatarUrl: null },
+  { id: 4, employeeCode: 'EMP0038', fullName: 'Vikram Singh', departmentId: 2, departmentName: 'Product', designation: 'Product Manager', email: 'vikram.singh@lms.com', phone: '+91 90311 22334', status: 'AVAILABLE', avatarUrl: null },
+  { id: 5, employeeCode: 'EMP0038', fullName: 'Anjali Mehta', departmentId: 4, departmentName: 'QA', designation: 'QA Engineer', email: 'anjali.mehta@lms.com', phone: '+91 93555 77889', status: 'ON_LEAVE', avatarUrl: null },
+  { id: 6, employeeCode: 'EMP0028', fullName: 'Neha Gupta', departmentId: 1, departmentName: 'Engineering', designation: 'Developer', email: 'neha.gupta@lms.com', phone: '+91 87654 32198', status: 'HALF_DAY', avatarUrl: null },
+  { id: 7, employeeCode: 'EMP0023', fullName: 'Arjun Kumar', departmentId: 1, departmentName: 'Engineering', designation: 'DevOps Engineer', email: 'arjun.kumar@lms.com', phone: '+91 88997 71233', status: 'AVAILABLE', avatarUrl: null },
+  { id: 8, employeeCode: 'EMP0021', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 89665 43120', status: 'AVAILABLE', avatarUrl: null },
+];
+
 // --- HR Dashboard mocks ---
 
 export const mockHRSummary = {
