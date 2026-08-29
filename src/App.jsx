@@ -13,6 +13,8 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ApplyLeave from './pages/ApplyLeave'
+import MyRequests from './pages/MyRequests'
+import RequestDetails from './pages/RequestDetails'
 import ManagerDashboard from './pages/ManagerDashboard'
 import ApprovalInbox from './pages/manager/ApprovalInbox'
 import HRDashboard from './pages/HRDashboard'
@@ -54,7 +56,22 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/my-requests" element={guardedPlaceholder('My Requests', EMPLOYEE_PORTAL)} />
+          <Route
+            path="/my-requests"
+            element={
+              <ProtectedRoute>
+                <MyRequests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-requests/:requestId"
+            element={
+              <ProtectedRoute>
+                <RequestDetails />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/leave-ledger" element={guardedPlaceholder('Leave Ledger', EMPLOYEE_PORTAL)} />
           <Route path="/comp-off" element={guardedPlaceholder('Comp-Off', EMPLOYEE_PORTAL)} />
           <Route path="/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', EMPLOYEE_PORTAL)} />

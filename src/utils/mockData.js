@@ -331,3 +331,353 @@ export const mockLeaveLedger = [
   { categoryId: 3, categoryName: 'Earned Leave', openingBalance: 20, accrued: 0, used: 2, carriedForward: 0, availableBalance: 18.0 },
   { categoryId: 4, categoryName: 'Comp-Off', openingBalance: 5, accrued: 0, used: 4, carriedForward: 0, availableBalance: 1.0 },
 ];
+
+// --- My Requests (EMP-03) mocks ---
+
+export const mockMyRequests = [
+  {
+    id: 'LR-2024-125',
+    type: 'Casual Leave',
+    typeIcon: 'CL',
+    startDate: '2024-05-20',
+    endDate: '2024-05-22',
+    dateRange: '20 May 2024 - 22 May 2024 (3 Days)',
+    totalDays: 3.0,
+    status: 'Pending',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-05-18T10:30:00Z',
+  },
+  {
+    id: 'LR-2024-119',
+    type: 'Sick Leave',
+    typeIcon: 'SL',
+    startDate: '2024-04-24',
+    endDate: '2024-04-26',
+    dateRange: '24 Apr 2024 - 26 Apr 2024 (3 Days)',
+    totalDays: 3.0,
+    status: 'Approved',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-04-22T09:15:00Z',
+  },
+  {
+    id: 'LR-2024-115',
+    type: 'Earned Leave',
+    typeIcon: 'EL',
+    startDate: '2024-04-10',
+    endDate: '2024-04-12',
+    dateRange: '10 Apr 2024 - 12 Apr 2024 (3 Days)',
+    totalDays: 3.0,
+    status: 'Approved',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-04-08T14:20:00Z',
+  },
+  {
+    id: 'LR-2024-108',
+    type: 'Casual Leave',
+    typeIcon: 'CL',
+    startDate: '2024-03-28',
+    endDate: '2024-03-29',
+    dateRange: '28 Mar 2024 - 29 Mar 2024 (2 Days)',
+    totalDays: 2.0,
+    status: 'Rejected',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-03-25T11:45:00Z',
+  },
+  {
+    id: 'LR-2024-095',
+    type: 'Comp-Off',
+    typeIcon: 'CO',
+    startDate: '2024-03-15',
+    endDate: '2024-03-15',
+    dateRange: '15 Mar 2024 (1 Day)',
+    totalDays: 1.0,
+    status: 'Approved',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-03-12T16:00:00Z',
+  },
+  {
+    id: 'LR-2024-088',
+    type: 'Sick Leave',
+    typeIcon: 'SL',
+    startDate: '2024-02-20',
+    endDate: '2024-02-21',
+    dateRange: '20 Feb 2024 - 21 Feb 2024 (2 Days)',
+    totalDays: 2.0,
+    status: 'Cancelled',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-02-18T09:30:00Z',
+  },
+  {
+    id: 'LR-2024-075',
+    type: 'Earned Leave',
+    typeIcon: 'EL',
+    startDate: '2024-01-25',
+    endDate: '2024-01-26',
+    dateRange: '25 Jan 2024 - 26 Jan 2024 (2 Days)',
+    totalDays: 2.0,
+    status: 'Approved',
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    appliedOn: '2024-01-22T13:15:00Z',
+  },
+];
+
+// --- Request Details (EMP-04) mocks ---
+
+export const mockRequestDetails = {
+  'LR-2024-125': {
+    id: 'LR-2024-125',
+    type: 'Casual Leave',
+    typeIcon: 'CL',
+    startDate: '2024-05-20',
+    endDate: '2024-05-22',
+    dateRange: '20 May 2024 - 22 May 2024',
+    totalDays: 3.0,
+    status: 'Pending',
+    reason: 'Personal work to attend family function',
+    sessionType: 'FULL_DAY',
+    appliedOn: '2024-05-18T10:30:00Z',
+    appliedOnFormatted: '18 May 2024 10:30 AM',
+    
+    // Current approver
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    
+    // Employee details
+    employee: {
+      name: 'John Doe',
+      employeeCode: 'EMP-001',
+      designation: 'Software Engineer',
+      department: 'Engineering',
+      email: 'john.doe@company.com',
+      phone: '+91 98765 43210',
+    },
+    
+    // Leave balance at time of request
+    leaveBalance: {
+      available: 12.5,
+      used: 5.5,
+      total: 18.0,
+    },
+    
+    // Approval timeline
+    approvals: [
+      {
+        id: 1,
+        level: 1,
+        approverName: 'John Doe',
+        decision: 'REQUESTED',
+        decidedAt: '2024-05-18T10:30:00Z',
+        decidedAtFormatted: '18 May 2024 10:30 AM',
+        comments: null,
+      },
+      {
+        id: 2,
+        level: 1,
+        approverName: 'Alex Johnson',
+        decision: 'PENDING',
+        decidedAt: null,
+        decidedAtFormatted: null,
+        comments: null,
+      },
+    ],
+    
+    // Attachments
+    attachments: [
+      {
+        id: 1,
+        fileName: 'family_invitation.pdf',
+        size: '245 KB',
+        uploadedAt: '2024-05-18T10:32:00Z',
+        downloadUrl: '#',
+      },
+    ],
+    
+    // Comments
+    comments: [
+      {
+        id: 1,
+        author: 'John Doe',
+        authorInitials: 'JD',
+        message: 'Please approve this request as I need to attend an important family function.',
+        timestamp: '2024-05-18T10:35:00Z',
+        timestampFormatted: '18 May 2024 10:35 AM',
+      },
+    ],
+  },
+  'LR-2024-119': {
+    id: 'LR-2024-119',
+    displayId: 'LR-2024-119',
+    type: 'Sick Leave',
+    typeIcon: 'SL',
+    categoryName: 'Sick Leave',
+    categoryCode: 'SL',
+    startDate: '2024-04-24',
+    endDate: '2024-04-26',
+    dateRange: '24 Apr 2024 - 26 Apr 2024',
+    totalDays: 3.0,
+    status: 'Approved',
+    reason: 'I am not feeling well and need rest for recovery.',
+    sessionType: 'FULL_DAY',
+    appliedOn: '2024-04-19T10:30:00Z',
+    appliedOnFormatted: '19 Apr 2024, 10:30 AM',
+    updatedAt: '2024-04-22T15:45:00Z',
+    updatedAtFormatted: '22 Apr 2024, 03:45 PM',
+    
+    // Contact and handover details
+    contactNumber: '+1 98196 43210',
+    addressDuringLeave: '21, Talk Street, Bangalore, Karnataka - 560001',
+    handoverTo: null,
+    handoverToName: 'Available on phone',
+    handoverNotes: null,
+    
+    // Current approver
+    approverName: 'Alex Johnson',
+    approverRole: 'Team Lead',
+    approverInitials: 'AJ',
+    
+    // Employee details
+    employee: {
+      fullName: 'John Doe',
+      name: 'John Doe',
+      employeeCode: 'EMP00123',
+      designation: 'Software Engineer',
+      department: 'Engineering',
+      email: 'johndoe@company.com',
+      phone: '+1 98755 43210',
+      managerName: 'Alex Johnson',
+    },
+    
+    // Leave balance at time of request - multiple leave types
+    balanceAsOfRequestDate: [
+      {
+        categoryId: 2,
+        categoryName: 'Sick Leave',
+        categoryCode: 'SL',
+        openingBalance: 10,
+        accrued: 0,
+        carriedForward: 0,
+        availableBalance: 8.0,
+        used: 2.0,
+      },
+      {
+        categoryId: 1,
+        categoryName: 'Casual Leave',
+        categoryCode: 'CL',
+        openingBalance: 15,
+        accrued: 0,
+        carriedForward: 0,
+        availableBalance: 12.5,
+        used: 2.5,
+      },
+      {
+        categoryId: 3,
+        categoryName: 'Earned Leave',
+        categoryCode: 'EL',
+        openingBalance: 15,
+        accrued: 3,
+        carriedForward: 0,
+        availableBalance: 18.0,
+        used: 0,
+      },
+      {
+        categoryId: 4,
+        categoryName: 'Comp-Off',
+        categoryCode: 'CO',
+        openingBalance: 5,
+        accrued: 0,
+        carriedForward: 0,
+        availableBalance: 1.0,
+        used: 4.0,
+      },
+    ],
+    
+    // Approval timeline - matching the image exactly
+    approvals: [
+      {
+        id: 1,
+        level: 0,
+        approverName: 'John Doe',
+        decision: 'REQUESTED',
+        decidedAt: '2024-04-19T10:30:00Z',
+        decidedAtFormatted: '19 Apr 2024, 10:30 AM',
+        comments: 'Request requested successfully.',
+      },
+      {
+        id: 2,
+        level: 1,
+        approverName: 'John Doe',
+        approverRole: 'Now',
+        decision: 'APPROVED',
+        decidedAt: '2024-04-22T11:15:00Z',
+        decidedAtFormatted: '22 Apr 2024, 11:15 AM',
+        comments: 'Your care and get well week.',
+      },
+      {
+        id: 3,
+        level: 2,
+        approverName: 'Alex Johnson',
+        approverRole: 'Toom Load',
+        decision: 'APPROVED',
+        decidedAt: '2024-04-22T14:30:00Z',
+        decidedAtFormatted: '22 Apr 2024, 02:30 PM',
+        comments: 'Approved as per company policy.',
+      },
+      {
+        id: 4,
+        level: 3,
+        approverName: 'Sarah Williams',
+        approverRole: 'HR Manager',
+        decision: 'APPROVED',
+        decidedAt: '2024-04-22T15:45:00Z',
+        decidedAtFormatted: '22 Apr 2024, 03:45 PM',
+        comments: 'Latest request has been fully approved.',
+      },
+    ],
+    
+    // Attachments
+    attachments: [
+      {
+        id: 1,
+        fileName: 'medical_report.pdf',
+        size: '156 KB',
+        uploadedAt: '2024-04-19T10:32:00Z',
+        downloadUrl: '#',
+      },
+    ],
+    
+    // Comments
+    comments: [
+      {
+        id: 1,
+        author: 'John Doe',
+        authorInitials: 'JD',
+        message: 'Please find attached medical certificate for reference.',
+        timestamp: '2024-04-19T10:35:00Z',
+        timestampFormatted: '19 Apr 2024, 10:35 AM',
+      },
+      {
+        id: 2,
+        author: 'Alex Johnson',
+        authorInitials: 'AJ',
+        message: 'Medical certificate verified. Leave approved.',
+        timestamp: '2024-04-22T11:20:00Z',
+        timestampFormatted: '22 Apr 2024, 11:20 AM',
+      },
+    ],
+  },
+};

@@ -4,6 +4,9 @@ const STATUS_CLASS = {
   Pending: 'status-pending',
   Approved: 'status-approved',
   Rejected: 'status-rejected',
+  Cancelled: 'status-cancelled',
+  Withdrawn: 'status-withdrawn',
+  Requested: 'status-requested',
 };
 
 const StatusBadge = ({ status }) => (

@@ -278,3 +278,30 @@ export const UploadIcon = (props) => (
     <path d="M12 21V9M7 14l5-5 5 5M4 21h16" />
   </svg>
 );
+
+export const ArrowLeftIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
+export const MoreVerticalIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
+);
+
+export const MessageSquareIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+  </svg>
+);
+
+export const BuildingIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="4" y="2" width="16" height="20" rx="2" />
+    <path d="M9 2v20M15 2v20M4 10h16M4 16h16M8 6h2M14 6h2M8 12h2M14 12h2M8 18h2M14 18h2" />
+  </svg>
+);

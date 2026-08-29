@@ -384,6 +384,67 @@ class ApiService {
       body: formData,
     });
   }
+
+  // My Requests (EMP-03) endpoints
+  async getLeaveRequests(params = {}) {
+    const { status, categoryId, userId, fromDate, toDate, page = 1, limit = 10, sort = 'recent' } = params;
+    const queryParams = new URLSearchParams({ page, limit, sort });
+    if (status) queryParams.set('status', status);
+    if (categoryId) queryParams.set('categoryId', categoryId);
+    if (userId) queryParams.set('userId', userId);
+    if (fromDate) queryParams.set('fromDate', fromDate);
+    if (toDate) queryParams.set('toDate', toDate);
+    const qs = queryParams.toString();
+    return this.request(`/leave-requests${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Request Details (EMP-04) endpoints
+  async withdrawLeaveRequest(requestId, payload = {}) {
+    return this.request(`/leave-requests/${requestId}/withdraw`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async addLeaveComment(requestId, payload) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeaveComments(requestId) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveAttachments(requestId) {
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveApprovals(requestId) {
+    return this.request(`/leave-requests/${requestId}/approvals`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async downloadRequestPDF(requestId) {
+    return this.request(`/leave-requests/${requestId}/pdf`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
 }
 
 export const apiService = new ApiService();
