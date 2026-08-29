@@ -14,12 +14,15 @@ import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ApplyLeave from './pages/ApplyLeave'
 import MyRequests from './pages/MyRequests'
+import LeaveLedger from './pages/LeaveLedger'
 import RequestDetails from './pages/RequestDetails'
 import ManagerDashboard from './pages/ManagerDashboard'
 import ApprovalInbox from './pages/manager/ApprovalInbox'
 import HRDashboard from './pages/HRDashboard'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
+import CompOff from './pages/CompOff'
+import HolidayCalendar from './pages/HolidayCalendar'
 
 // Wraps a placeholder page in the route guard + correct portal shell
 const guardedPlaceholder = (title, portal, icon) => (
@@ -72,9 +75,30 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/leave-ledger" element={guardedPlaceholder('Leave Ledger', EMPLOYEE_PORTAL)} />
-          <Route path="/comp-off" element={guardedPlaceholder('Comp-Off', EMPLOYEE_PORTAL)} />
-          <Route path="/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', EMPLOYEE_PORTAL)} />
+          <Route
+            path="/leave-ledger"
+            element={
+              <ProtectedRoute>
+                <LeaveLedger />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/comp-off"
+            element={
+              <ProtectedRoute>
+                <CompOff />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/holiday-calendar"
+            element={
+              <ProtectedRoute>
+                <HolidayCalendar />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/notifications" element={guardedPlaceholder('Notifications', EMPLOYEE_PORTAL)} />
           <Route path="/profile" element={guardedPlaceholder('Profile', EMPLOYEE_PORTAL)} />
 

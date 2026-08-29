@@ -305,3 +305,10 @@ export const BuildingIcon = (props) => (
     <path d="M9 2v20M15 2v20M4 10h16M4 16h16M8 6h2M14 6h2M8 12h2M14 12h2M8 18h2M14 18h2" />
   </svg>
 );
+
+export const AlertCircleIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v4M12 16h.01" />
+  </svg>
+);

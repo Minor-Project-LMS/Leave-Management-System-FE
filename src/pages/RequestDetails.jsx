@@ -60,8 +60,6 @@ const RequestDetails = () => {
       // Fetch request details (basic response from actual API)
       const response = await apiService.getLeaveRequestDetail(requestId);
       
-      console.log('API Response:', response); // Debug logging
-      
       // Check if response is valid
       if (!response || (typeof response === 'object' && Object.keys(response).length === 0)) {
         throw new Error('Invalid response from server');
@@ -81,45 +79,37 @@ const RequestDetails = () => {
         // Fetch employee details
         if (requestData.userId) {
           employeeData = await apiService.getCurrentUser();
-          console.log('Employee Data:', employeeData);
-          console.log('Employee Manager Name:', employeeData?.data?.managerName);
-          console.log('User Context:', user);
         }
       } catch (empErr) {
-        console.warn('Failed to load employee details:', empErr);
-        console.log('Using user context as fallback:', user);
+        // Silently fall back to user context
       }
 
       try {
         // Fetch leave ledger/balance
         balanceData = await apiService.getLeaveLedger(new Date().getFullYear());
-        console.log('Balance Data:', balanceData);
       } catch (balanceErr) {
-        console.warn('Failed to load balance:', balanceErr);
+        // Silently ignore balance loading failure
       }
 
       try {
         // Fetch approvals
         approvalsData = await apiService.getLeaveApprovals(requestId);
-        console.log('Approvals Data:', approvalsData);
       } catch (approvalsErr) {
-        console.warn('Failed to load approvals:', approvalsErr);
+        // Silently ignore approvals loading failure
       }
 
       try {
         // Fetch attachments
         attachmentsData = await apiService.getLeaveAttachments(requestId);
-        console.log('Attachments Data:', attachmentsData);
       } catch (attachmentsErr) {
-        console.warn('Failed to load attachments:', attachmentsErr);
+        // Silently ignore attachments loading failure
       }
 
       try {
         // Fetch comments
         commentsData = await apiService.getLeaveComments(requestId);
-        console.log('Comments Data:', commentsData);
       } catch (commentsErr) {
-        console.warn('Failed to load comments:', commentsErr);
+        // Silently ignore comments loading failure
       }
       
       // Transform API response to match our component structure
@@ -138,7 +128,6 @@ const RequestDetails = () => {
         totalDays: requestData.totalDays || requestData.days || 0,
         status: (() => {
           const apiStatus = requestData.status;
-          console.log('API Status:', apiStatus); // Debug logging
           
           if (apiStatus === 'PENDING_L1' || apiStatus === 'PENDING_L2') return 'Pending';
           if (apiStatus === 'APPROVED') return 'Approved';
@@ -255,10 +244,6 @@ const RequestDetails = () => {
         teamImpact: requestData.teamImpact || null,
       };
       
-      console.log('Transformed Request:', transformedRequest); // Debug logging
-      console.log('Final Status:', transformedRequest.status); // Debug final status
-      console.log('Employee Manager Name in transformed:', transformedRequest.employee.managerName); // Debug manager name
-      
       setRequest(transformedRequest);
     } catch (err) {
       console.error('Error loading request details:', err);
@@ -266,7 +251,6 @@ const RequestDetails = () => {
       
       // Fallback to mock data for demonstration
       const mockData = mockRequestDetails[requestId] || mockRequestDetails['LR-2024-119'];
-      console.log('Using mock data:', mockData);
       setRequest(mockData);
     } finally {
       setLoading(false);
@@ -325,7 +309,6 @@ const RequestDetails = () => {
     if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
       window.open(attachment.downloadUrl, '_blank');
     } else {
-      console.log('Download attachment:', attachment);
       // Fallback: construct download URL based on attachment ID
       const downloadUrl = `/leave-requests/${requestId}/attachments/${attachment.id}`;
       window.open(downloadUrl, '_blank');

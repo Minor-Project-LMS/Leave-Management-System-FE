@@ -84,8 +84,6 @@ const MyRequests = () => {
 
       const response = await apiService.getLeaveRequests(params);
       
-      console.log('My Requests API Response:', response); // Debug logging
-      
       // Transform API response to match our component structure
       const data = response?.data ?? response ?? [];
       let transformedRequests = data.map(req => ({
@@ -154,7 +152,6 @@ const MyRequests = () => {
 
   const handleExport = () => {
     // TODO: Implement export functionality
-    console.log('Exporting leave requests...');
   };
 
   const handleRowClick = (requestId) => {

@@ -39,6 +39,11 @@
   color: var(--primary-blue);
 }
 
+.status-expired {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .status-default {
   background: var(--bg-light);
   color: var(--text-secondary);
