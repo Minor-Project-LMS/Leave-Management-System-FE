@@ -3,7 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
 import StatusBadge from '../components/dashboard/StatusBadge';
-import { CalendarIcon, ClockIcon, HourglassIcon, CoffeeIcon, DownloadIcon, PlusIcon, InfoIcon, CheckCircleIcon, AlertCircleIcon, XIcon } from '../components/icons/Icons';
+import { 
+  CalendarIcon, 
+  ClockIcon, 
+  HourglassIcon, 
+  CoffeeIcon, 
+  DownloadIcon, 
+  PlusIcon, 
+  InfoIcon, 
+  CheckCircleIcon, 
+  AlertCircleIcon, 
+  XIcon 
+} from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
@@ -54,7 +65,7 @@ const mockCompOffSummary = {
   availableBalance: 1.0,
   used: 4.0,
   pendingApproval: 0.0,
-  asOnDate: '24 May 2024',
+  asOnDate: formatDate(new Date()),
 };
 
 const mockCompOffRequests = [
@@ -159,17 +170,14 @@ const CompOff = () => {
     }
 
     try {
-      // In a real implementation, we'd call a dedicated comp-off summary endpoint
-      // For now, we'll use the dashboard summary which includes compOffBalance
       const summaryRes = await apiService.getCompOffSummary();
       const requestsRes = await apiService.getCompOffRequests({ page: 1, limit: 100 });
 
-      // Transform the summary data
       const compOffSummary = {
-        earned: summaryRes?.compOffBalance ? summaryRes.compOffBalance + 4.0 : 5.0, // Mock calculation
+        earned: summaryRes?.compOffBalance ? summaryRes.compOffBalance + 4.0 : 5.0,
         availableBalance: summaryRes?.compOffBalance || 1.0,
-        used: 4.0, // This would come from the API
-        pendingApproval: 0.0, // This would come from the API
+        used: summaryRes?.used || 4.0,
+        pendingApproval: summaryRes?.pendingApproval || 0.0,
         asOnDate: formatDate(new Date()),
       };
 
@@ -177,8 +185,7 @@ const CompOff = () => {
       setRequests(requestsRes?.data ?? requestsRes ?? []);
     } catch (err) {
       console.error('Error loading comp-off data:', err);
-      setError(err.message || 'Failed to load comp-off data. Using sample data for demonstration.');
-      // Fallback to mock data
+      setError(err.message || 'Failed to load comp-off data. Showing sample data.');
       setSummary(mockCompOffSummary);
       setRequests(mockCompOffRequests);
     } finally {
@@ -187,7 +194,13 @@ const CompOff = () => {
   }, []);
 
   useEffect(() => {
-    loadCompOffData();
+    let isMounted = true;
+    if (isMounted) {
+      loadCompOffData();
+    }
+    return () => {
+      isMounted = false;
+    };
   }, [loadCompOffData]);
 
   const handleLogout = async () => {
@@ -200,8 +213,49 @@ const CompOff = () => {
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting comp-off data...');
+    if (!requests || requests.length === 0) {
+      alert('No data available to export.');
+      return;
+    }
+
+    let headers = [];
+    let rows = [];
+
+    if (activeTab === 'earned') {
+      headers = ['Date Earned', 'Reason', 'Hours Worked', 'Comp-Off Earned (Days)', 'Approved On', 'Approved By', 'Status'];
+      rows = requests.map(req => [
+        `"${formatDate(req.workedOn)}"`,
+        `"${(req.reason || '').replace(/"/g, '""')}"`,
+        req.hoursWorked,
+        req.daysCredited,
+        `"${formatDateTime(req.approvedOn)}"`,
+        `"${req.approverName || 'N/A'}"`,
+        `"${req.status}"`
+      ]);
+    } else if (activeTab === 'requests') {
+      headers = ['Request ID', 'Date Worked', 'Reason', 'Hours Worked', 'Comp-Off Earned (Days)', 'Status', 'Applied On'];
+      rows = requests.map(req => [
+        `"${req.displayId || req.id}"`,
+        `"${formatDate(req.workedOn)}"`,
+        `"${(req.reason || '').replace(/"/g, '""')}"`,
+        req.hoursWorked,
+        req.daysCredited,
+        `"${req.status}"`,
+        `"${formatDateTime(req.createdAt)}"`
+      ]);
+    } else {
+      alert('No exportable data in Usage History.');
+      return;
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `comp_off_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleRequestModalOpen = () => {
@@ -226,7 +280,6 @@ const CompOff = () => {
     e.preventDefault();
     setFormError('');
 
-    // Validation
     if (!formData.workedOn) {
       setFormError('Please select the date you worked.');
       return;
@@ -243,22 +296,39 @@ const CompOff = () => {
     setSubmitting(true);
 
     try {
+      const hours = parseFloat(formData.hoursWorked);
       const payload = {
         workedOn: formData.workedOn,
         reason: formData.reason.trim(),
-        hoursWorked: parseFloat(formData.hoursWorked),
+        hoursWorked: hours,
       };
 
       if (USE_MOCK) {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Mock comp-off request submitted:', payload);
+        await new Promise(resolve => setTimeout(resolve, 600));
+        const newMockRequest = {
+          id: Date.now(),
+          displayId: `CO-2024-0${requests.length + 10}`,
+          workedOn: payload.workedOn,
+          reason: payload.reason,
+          hoursWorked: hours,
+          daysCredited: hours >= 8 ? 1.0 : hours >= 4 ? 0.5 : 0.25,
+          status: 'PENDING',
+          approverName: 'Pending Approval',
+          approverRole: '',
+          approvedOn: null,
+          createdAt: new Date().toISOString(),
+        };
+        setRequests(prev => [newMockRequest, ...prev]);
+        setSummary(prev => ({
+          ...prev,
+          pendingApproval: prev.pendingApproval + newMockRequest.daysCredited
+        }));
       } else {
         await apiService.submitCompOffRequest(payload);
+        await loadCompOffData();
       }
 
       handleRequestModalClose();
-      loadCompOffData(); // Reload data to show the new request
     } catch (err) {
       console.error('Error submitting comp-off request:', err);
       setFormError(err.message || 'Failed to submit comp-off request. Please try again.');
@@ -277,7 +347,7 @@ const CompOff = () => {
   }
 
   const getApproverInitials = (name) => {
-    if (!name) return 'NA';
+    if (!name || name === 'Pending Approval') return 'NA';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -291,7 +361,7 @@ const CompOff = () => {
       user={user}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} - Showing sample data for demonstration.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       {/* Summary Cards */}
       <div className="comp-off-summary-row">
@@ -351,7 +421,7 @@ const CompOff = () => {
           {/* Action Bar */}
           <div className="comp-off-action-bar">
             <h3>{activeTab === 'earned' ? 'Comp-Off Earned History' : activeTab === 'requests' ? 'My Comp-Off Requests' : 'Comp-Off Usage History'}</h3>
-            <button className="btn-export" onClick={handleExport}>
+            <button className="btn-export" onClick={handleExport} disabled={activeTab === 'usage'}>
               <DownloadIcon width={16} height={16} />
               Export
             </button>
@@ -386,13 +456,13 @@ const CompOff = () => {
                         <td className="reason">{request.reason}</td>
                         <td className="hours-worked">{request.hoursWorked} hrs</td>
                         <td className="comp-off-earned">{request.daysCredited} Day</td>
-                        <td className="approved-on">{formatDateTime(request.approvedOn)}</td>
+                        <td className="approved-on">{request.approvedOn ? formatDateTime(request.approvedOn) : '-'}</td>
                         <td className="approved-by">
                           <div className="approver-info">
                             <div className="approver-avatar">{getApproverInitials(request.approverName)}</div>
                             <div className="approver-details">
-                              <span className="approver-name">{request.approverName}</span>
-                              <span className="approver-role">{request.approverRole}</span>
+                              <span className="approver-name">{request.approverName || 'N/A'}</span>
+                              <span className="approver-role">{request.approverRole || ''}</span>
                             </div>
                           </div>
                         </td>
@@ -405,26 +475,17 @@ const CompOff = () => {
                 </tbody>
               </table>
 
-              {/* Pagination */}
               {requests.length > 0 && (
                 <div className="comp-off-pagination">
                   <div className="pagination-info">
                     Showing 1 to {requests.length} of {requests.length} entries
                   </div>
                   <div className="pagination-controls">
-                    <button className="pagination-btn" disabled>
-                      &laquo;
-                    </button>
-                    <button className="pagination-btn" disabled>
-                      &lsaquo;
-                    </button>
+                    <button className="pagination-btn" disabled>&laquo;</button>
+                    <button className="pagination-btn" disabled>&lsaquo;</button>
                     <button className="pagination-btn active">1</button>
-                    <button className="pagination-btn" disabled>
-                      &rsaquo;
-                    </button>
-                    <button className="pagination-btn" disabled>
-                      &raquo;
-                    </button>
+                    <button className="pagination-btn" disabled>&rsaquo;</button>
+                    <button className="pagination-btn" disabled>&raquo;</button>
                   </div>
                 </div>
               )}
@@ -455,7 +516,7 @@ const CompOff = () => {
                   ) : (
                     requests.map((request) => (
                       <tr key={request.id} className="comp-off-row">
-                        <td className="request-id">{request.displayId}</td>
+                        <td className="request-id">{request.displayId || request.id}</td>
                         <td className="date-worked">{formatDate(request.workedOn)}</td>
                         <td className="reason">{request.reason}</td>
                         <td className="hours-worked">{request.hoursWorked} hrs</td>
@@ -470,26 +531,17 @@ const CompOff = () => {
                 </tbody>
               </table>
 
-              {/* Pagination */}
               {requests.length > 0 && (
                 <div className="comp-off-pagination">
                   <div className="pagination-info">
                     Showing 1 to {requests.length} of {requests.length} entries
                   </div>
                   <div className="pagination-controls">
-                    <button className="pagination-btn" disabled>
-                      &laquo;
-                    </button>
-                    <button className="pagination-btn" disabled>
-                      &lsaquo;
-                    </button>
+                    <button className="pagination-btn" disabled>&laquo;</button>
+                    <button className="pagination-btn" disabled>&lsaquo;</button>
                     <button className="pagination-btn active">1</button>
-                    <button className="pagination-btn" disabled>
-                      &rsaquo;
-                    </button>
-                    <button className="pagination-btn" disabled>
-                      &raquo;
-                    </button>
+                    <button className="pagination-btn" disabled>&rsaquo;</button>
+                    <button className="pagination-btn" disabled>&raquo;</button>
                   </div>
                 </div>
               )}
@@ -508,7 +560,6 @@ const CompOff = () => {
 
         {/* Right Side - Widgets */}
         <div className="comp-off-widgets-section">
-          {/* Request Comp-Off Widget */}
           <div className="comp-off-request-widget">
             <h3>Request Comp-Off</h3>
             <p>You can request to avail your earned comp-off.</p>
@@ -518,7 +569,6 @@ const CompOff = () => {
             </button>
           </div>
 
-          {/* Comp-Off Rules Widget */}
           <div className="comp-off-rules-widget">
             <h3>Comp-Off Rules</h3>
             <ul>
@@ -531,7 +581,6 @@ const CompOff = () => {
             </ul>
           </div>
 
-          {/* Important Notes Widget */}
           <div className="comp-off-notes-widget">
             <h3>Important Notes</h3>
             <ul>

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/dashboard/StatusBadge';
-import { CalendarIcon, DownloadIcon, FilterIcon, XIcon, MoreVerticalIcon } from '../components/icons/Icons';
+import { CalendarIcon, DownloadIcon, FilterIcon, MoreVerticalIcon, EyeIcon, XCircleIcon } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
@@ -53,6 +53,21 @@ const MyRequests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Action Menu State
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const menuRef = useRef(null);
+
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const loadRequests = useCallback(async (filterParams = {}) => {
     setLoading(true);
     setError('');
@@ -65,7 +80,6 @@ const MyRequests = () => {
         ...filterParams
       };
 
-      // Map filter values to API parameters
       if (filterParams.status && filterParams.status !== 'All Status') {
         params.status = filterParams.status === 'Pending' ? 'PENDING_L1' : 
                       filterParams.status === 'Approved' ? 'APPROVED' :
@@ -74,19 +88,18 @@ const MyRequests = () => {
                       filterParams.status === 'Cancelled' ? 'CANCELLED' : filterParams.status;
       }
 
-      if (filterParams.fromDate) {
-        params.fromDate = filterParams.fromDate;
+      if (filterParams.leaveType && filterParams.leaveType !== 'All Leave Types') {
+        params.categoryName = filterParams.leaveType;
       }
 
-      if (filterParams.toDate) {
-        params.toDate = filterParams.toDate;
-      }
+      if (filterParams.fromDate) params.fromDate = filterParams.fromDate;
+      if (filterParams.toDate) params.toDate = filterParams.toDate;
 
       const response = await apiService.getLeaveRequests(params);
-      
-      // Transform API response to match our component structure
       const data = response?.data ?? response ?? [];
+      
       let transformedRequests = data.map(req => ({
+        rawId: req.id,
         id: req.displayId || req.id,
         type: req.categoryName || req.type,
         typeIcon: req.categoryCode || req.type?.substring(0, 2).toUpperCase() || 'LV',
@@ -94,8 +107,7 @@ const MyRequests = () => {
         endDate: req.endDate,
         dateRange: `${formatDate(req.startDate)} - ${formatDate(req.endDate)} (${req.totalDays} Days)`,
         totalDays: req.totalDays,
-        status: req.status === 'PENDING_L1' ? 'Pending' : 
-                req.status === 'PENDING_L2' ? 'Pending' :
+        status: req.status === 'PENDING_L1' || req.status === 'PENDING_L2' ? 'Pending' : 
                 req.status === 'APPROVED' ? 'Approved' :
                 req.status === 'REJECTED' ? 'Rejected' :
                 req.status === 'WITHDRAWN' ? 'Withdrawn' :
@@ -107,7 +119,7 @@ const MyRequests = () => {
         appliedOn: req.appliedAt || req.createdAt,
       }));
 
-      // Client-side filtering for leave type (since API uses categoryId)
+      // Fallback client filtering if API doesn't support leave type param
       if (filterParams.leaveType && filterParams.leaveType !== 'All Leave Types') {
         transformedRequests = transformedRequests.filter(req => req.type === filterParams.leaveType);
       }
@@ -116,8 +128,7 @@ const MyRequests = () => {
       setFilteredRequests(transformedRequests);
     } catch (err) {
       console.error('Error loading requests:', err);
-      setError(err.message || 'Failed to load leave requests. Using sample data for demonstration.');
-      // Fallback to mock data
+      setError(err.message || 'Failed to load leave requests. Using sample data.');
       setRequests(mockMyRequests);
       setFilteredRequests(mockMyRequests);
     } finally {
@@ -125,12 +136,7 @@ const MyRequests = () => {
     }
   }, []);
 
-  // Load initial requests on mount
-  useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
-
-  // Apply filters - only when reset or explicitly called
+  // Initial load
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
@@ -141,7 +147,6 @@ const MyRequests = () => {
     setFromDate('');
     setToDate('');
     setCurrentPage(1);
-    // Reload initial data
     loadRequests();
   };
 
@@ -150,12 +155,52 @@ const MyRequests = () => {
     loadRequests({ status, leaveType, fromDate, toDate });
   };
 
+  // Functional CSV Export
   const handleExport = () => {
-    // TODO: Implement export functionality
+    if (!filteredRequests.length) return;
+
+    const headers = ['Request ID', 'Leave Type', 'Start Date', 'End Date', 'Total Days', 'Status', 'Approver', 'Applied On'];
+    const rows = filteredRequests.map(req => [
+      req.id,
+      req.type,
+      formatDate(req.startDate),
+      formatDate(req.endDate),
+      req.totalDays,
+      req.status,
+      req.approverName,
+      formatDateTime(req.appliedOn)
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `My_Leave_Requests_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
+  // Row & Menu Actions
   const handleRowClick = (requestId) => {
     navigate(`/my-requests/${requestId}`);
+  };
+
+  const handleCancelOrWithdraw = async (requestId, currentStatus) => {
+    const action = currentStatus === 'Pending' ? 'withdraw' : 'cancel';
+    if (!window.confirm(`Are you sure you want to ${action} this leave request?`)) return;
+
+    try {
+      if (action === 'withdraw') {
+        await apiService.withdrawLeaveRequest?.(requestId);
+      } else {
+        await apiService.cancelLeaveRequest?.(requestId);
+      }
+      setActiveMenuId(null);
+      loadRequests({ status, leaveType, fromDate, toDate });
+    } catch (err) {
+      alert(`Failed to ${action} request: ${err.message}`);
+    }
   };
 
   const handleLogout = async () => {
@@ -193,7 +238,7 @@ const MyRequests = () => {
       {error && <div className="dashboard-error-banner">{error} - Showing sample data for demonstration.</div>}
 
       <div className="my-requests-container">
-        {/* Filter Section */}
+        {/* Filters */}
         <div className="my-requests-filters">
           <div className="filter-row">
             <div className="filter-group">
@@ -251,11 +296,11 @@ const MyRequests = () => {
           </div>
         </div>
 
-        {/* Leave Requests Section */}
+        {/* Leave Requests Table */}
         <div className="my-requests-section">
           <div className="section-header">
             <h3>Leave Requests ({filteredRequests.length})</h3>
-            <button className="btn-export" onClick={handleExport}>
+            <button className="btn-export" onClick={handleExport} disabled={!filteredRequests.length}>
               <DownloadIcon width={16} height={16} />
               Export
             </button>
@@ -308,16 +353,35 @@ const MyRequests = () => {
                           </div>
                         </td>
                         <td className="applied-on">{formatDateTime(request.appliedOn)}</td>
-                        <td className="action">
+                        <td className="action" style={{ position: 'relative' }}>
                           <button 
                             className="action-menu-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // TODO: Implement action menu
+                              setActiveMenuId(activeMenuId === request.id ? null : request.id);
                             }}
                           >
                             <MoreVerticalIcon width={16} height={16} />
                           </button>
+
+                          {/* Action Dropdown Menu */}
+                          {activeMenuId === request.id && (
+                            <div className="action-dropdown-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleRowClick(request.id)}>
+                                <EyeIcon width={14} height={14} /> View Details
+                              </button>
+
+                              {(request.status === 'Pending' || request.status === 'Approved') && (
+                                <button 
+                                  className="danger-action"
+                                  onClick={() => handleCancelOrWithdraw(request.rawId || request.id, request.status)}
+                                >
+                                  <XCircleIcon width={14} height={14} /> 
+                                  {request.status === 'Pending' ? 'Withdraw Request' : 'Cancel Leave'}
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -325,7 +389,7 @@ const MyRequests = () => {
                 </table>
               </div>
 
-              {/* Pagination */}
+              {/* Pagination Controls */}
               <div className="my-requests-pagination">
                 <div className="pagination-info">
                   Showing {showingFrom} to {showingTo} of {filteredRequests.length} entries
