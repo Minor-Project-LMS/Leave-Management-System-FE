@@ -322,14 +322,6 @@ export const ArrowLeftIcon = (props) => (
   </svg>
 );
 
-export const MoreVerticalIcon = (props) => (
-  <svg {...base} {...props}>
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="12" cy="5" r="1" />
-    <circle cx="12" cy="19" r="1" />
-  </svg>
-);
-
 export const MessageSquareIcon = (props) => (
   <svg {...base} {...props}>
     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
