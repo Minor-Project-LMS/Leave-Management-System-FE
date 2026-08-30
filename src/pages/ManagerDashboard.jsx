@@ -77,13 +77,7 @@ const ManagerDashboard = () => {
       setTeamOverview(overviewRes?.data ?? overviewRes ?? []);
       setUpcomingLeaves(upcomingRes?.data ?? upcomingRes ?? []);
     } catch (err) {
-      setError(err.message || 'Failed to load manager dashboard data.');
-      setSummary(mockManagerSummary);
-      setTrend(mockManagerTrend);
-      setDistribution(mockManagerDistribution);
-      setApprovals(mockPendingApprovals);
-      setTeamOverview(mockTeamLeaveOverview);
-      setUpcomingLeaves(mockUpcomingTeamLeaves);
+      setError(err.message || 'Failed to load manager dashboard data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -120,7 +114,7 @@ const ManagerDashboard = () => {
       notificationCount={summary?.pendingApprovals || 0}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="manager-welcome">
         <h2>Welcome back, {(user?.name || 'there').split(' ')[0]}! 👋</h2>

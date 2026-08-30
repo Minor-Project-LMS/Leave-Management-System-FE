@@ -112,6 +112,24 @@ class ApiService {
     });
   }
 
+  async updateUserProfile(payload) {
+    return this.request('/users/me', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
   async forgotPassword(email) {
     return this.request('/auth/forgot-password', {
       method: 'POST',
@@ -421,6 +439,33 @@ class ApiService {
     });
   }
 
+  // New direct-to-blob-storage upload flow
+  async requestAttachmentUploadUrl(fileName, contentType, sizeBytes, entityType, entityId = null) {
+    const payload = {
+      fileName,
+      contentType,
+      sizeBytes,
+      entityType,
+    };
+    if (entityId !== null) {
+      payload.entityId = entityId;
+    }
+    return this.request('/attachments/upload-url', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmAttachmentUpload(attachmentId, entityId = null) {
+    const payload = entityId !== null ? { entityId } : {};
+    return this.request(`/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
   // My Requests (EMP-03) endpoints
   async getLeaveRequests(params = {}) {
     const { status, categoryId, userId, fromDate, toDate, page = 1, limit = 10, sort = 'recent' } = params;
@@ -531,6 +576,43 @@ class ApiService {
     return this.request('/dashboard/summary', {
       method: 'GET',
       headers: this.authHeaders(),
+    });
+  }
+
+  async getNotifications({ tab = 'all', page = 1, limit = 10 } = {}) {
+    const qs = new URLSearchParams({ tab, page, limit }).toString();
+    return this.request(`/notifications?${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read', {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getNotificationPreferences() {
+    return this.request('/notifications/preferences', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateNotificationPreferences(preferences) {
+    return this.request('/notifications/preferences', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(preferences),
     });
   }
 }

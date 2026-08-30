@@ -185,7 +185,7 @@ const CompOff = () => {
       setRequests(requestsRes?.data ?? requestsRes ?? []);
     } catch (err) {
       console.error('Error loading comp-off data:', err);
-      setError(err.message || 'Failed to load comp-off data. Showing sample data.');
+      setError(err.message || 'Failed to load comp-off data. Please try again later.');
       setSummary(mockCompOffSummary);
       setRequests(mockCompOffRequests);
     } finally {

@@ -75,14 +75,7 @@ const Dashboard = () => {
       setHolidays(holidaysRes?.data ?? holidaysRes ?? []);
       setActivity(activityRes?.data ?? activityRes ?? []);
     } catch (err) {
-      setError(err.message || 'Failed to load dashboard data.');
-      // Fall back to mock data so the layout still renders something useful.
-      setSummary(mockSummary);
-      setTrend(mockTrend);
-      setDistribution(mockDistribution);
-      setRequests(mockRecentRequests);
-      setHolidays(mockHolidays);
-      setActivity(mockActivity);
+      setError(err.message || 'Failed to load dashboard data. Please try again later.');
     } finally {
       setLoading(false);
     }

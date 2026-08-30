@@ -159,7 +159,7 @@ const LeaveLedger = () => {
       user={user}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} - Showing sample data for demonstration.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="leave-ledger-container">
         {/* Balance Summary Cards */}

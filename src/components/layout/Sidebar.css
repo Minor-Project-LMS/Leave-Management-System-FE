@@ -112,9 +112,48 @@
   padding: 0 5px;
 }
 
+.sidebar-help-icon {
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+  opacity: 0.7;
+}
+
 .sidebar-footer {
   padding: 1rem 0.75rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-help {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+}
+
+.sidebar-help p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.sidebar-contact-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.sidebar-contact-btn:hover {
+  background: #2563eb;
 }
 
 .sidebar-logout {
