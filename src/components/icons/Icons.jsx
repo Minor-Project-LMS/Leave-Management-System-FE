@@ -315,3 +315,37 @@ export const EyeOffIcon = (props) => (
     <path d="M9.5 5.4A10.4 10.4 0 0 1 12 5c5 0 9 4.5 10 7-0.4 1-1.3 2.5-2.6 3.9M6.2 6.2C4 7.6 2.4 9.7 2 12c1 2.5 5 7 10 7 1.2 0 2.4-.2 3.4-.6" />
   </svg>
 );
+
+export const ArrowLeftIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
+export const MoreVerticalIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
+);
+
+export const MessageSquareIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+  </svg>
+);
+
+export const BuildingIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="4" y="2" width="16" height="20" rx="2" />
+    <path d="M9 2v20M15 2v20M4 10h16M4 16h16M8 6h2M14 6h2M8 12h2M14 12h2M8 18h2M14 18h2" />
+  </svg>
+);
+
+export const AlertCircleIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v4M12 16h.01" />
+  </svg>
+);

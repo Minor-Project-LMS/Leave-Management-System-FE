@@ -65,8 +65,7 @@ export const AuthProvider = ({ children }) => {
       document.body.appendChild(el);
       setTimeout(() => { try { el.remove(); } catch (e) {} }, 3000);
     } catch (e) {
-      // fallback
-      try { console.log(message); } catch (e) {}
+      // fallback - silently ignore
     }
   };
 
@@ -263,9 +262,6 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const resp = await rawApi.post('/auth/logout');
-      // helpful debug when backend doesn't clear cookie
-      // eslint-disable-next-line no-console
-      console.info('logout response', resp && resp.status, resp && resp.headers && resp.headers['set-cookie']);
 
       // Show a friendly message to the user
       if (resp && (resp.status === 200 || resp.status === 204)) {
@@ -274,8 +270,6 @@ export const AuthProvider = ({ children }) => {
         showToast('Logged out (server response)', 'info');
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('logout request failed', e?.response?.status, e?.message);
       // Show error but proceed with logout
       showToast('Logging out...', 'info');
       // proceed to clear client state regardless
