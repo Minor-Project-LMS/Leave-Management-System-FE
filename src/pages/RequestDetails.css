@@ -252,19 +252,6 @@
   gap: 0.5rem;
 }
 
-.leave-type-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--primary-blue);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
 /* Leave Details Card */
 .leave-details-content {
   padding: 1.1rem 1.3rem;

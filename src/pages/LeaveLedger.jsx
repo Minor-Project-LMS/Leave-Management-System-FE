@@ -240,7 +240,7 @@ const LeaveLedger = () => {
                       <tr key={transaction.id}>
                         <td className="transaction-date">{formatDate(transaction.date)}</td>
                         <td className="transaction-type">
-                          <span className="leave-type-badge">{transaction.categoryName}</span>
+                          <span className="ledger-type-badge">{transaction.categoryName}</span>
                         </td>
                         <td className="transaction-description">{transaction.description}</td>
                         <td className="transaction-credits">
