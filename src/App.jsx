@@ -27,6 +27,7 @@ import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
 import CompOff from './pages/CompOff'
 import HolidayCalendar from './pages/HolidayCalendar'
+import Notifications from './pages/Notifications'
 
 // Wraps a placeholder page in the route guard + correct portal shell
 const guardedPlaceholder = (title, portal, icon) => (
@@ -103,14 +104,21 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/notifications" element={guardedPlaceholder('Notifications', EMPLOYEE_PORTAL)} />
           <Route
-            path="/profile"
+            path="/notifications"
             element={
               <ProtectedRoute>
-                <Profile />
+                <Notifications />
               </ProtectedRoute>
             }
+          />
+          <Route
+              path="/Profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
           />
 
           {/* Manager portal */}

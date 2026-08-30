@@ -136,9 +136,9 @@ const MyRequests = () => {
       setFilteredRequests(transformedRequests);
     } catch (err) {
       console.error('Error loading requests:', err);
-      setError(err.message || 'Failed to load leave requests. Using sample data.');
-      setRequests(mockMyRequests);
-      setFilteredRequests(mockMyRequests);
+      setError(err.message || 'Failed to load leave requests. Please try again later.');
+      setRequests([]);
+      setFilteredRequests([]);
     } finally {
       setLoading(false);
     }
@@ -267,7 +267,7 @@ const MyRequests = () => {
       user={user}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} - Showing sample data for demonstration.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="my-requests-container">
         {/* Filters */}

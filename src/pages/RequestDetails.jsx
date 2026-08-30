@@ -225,10 +225,18 @@ const RequestDetails = () => {
         })),
         attachments: (attachmentsData || []).map(att => ({
           id: att.id,
+          entityType: att.entityType,
+          entityId: att.entityId,
           fileName: att.fileName || att.name || att.documentName,
-          size: att.sizeBytes || att.fileSize ? `${(att.sizeBytes || att.fileSize / 1024).toFixed(0)} KB` : 'Unknown',
-          uploadedAt: att.uploadedAt || att.createdAt || att.uploadDate,
+          contentType: att.contentType,
+          sizeBytes: att.sizeBytes,
+          size: att.sizeBytes ? `${(att.sizeBytes / 1024).toFixed(0)} KB` : (att.fileSize ? `${(att.fileSize / 1024).toFixed(0)} KB` : 'Unknown'),
+          storageProvider: att.storageProvider,
+          status: att.status,
+          blobUrl: att.blobUrl,
           downloadUrl: att.downloadUrl || att.url || '#',
+          uploadedBy: att.uploadedBy,
+          uploadedAt: att.uploadedAt || att.createdAt || att.uploadDate,
         })),
         // Comments from separate API call
         comments: (commentsData || []).map(comment => ({
@@ -305,7 +313,13 @@ const RequestDetails = () => {
   };
 
   const handleDownloadAttachment = (attachment) => {
-    // Use the download URL from the attachment
+    // Guard for PENDING status - only allow download when attachment is ACTIVE
+    if (attachment.status === 'PENDING') {
+      setError('Attachment upload is still in progress. Please wait for it to complete.');
+      return;
+    }
+
+    // Use the download URL from the attachment (presigned blob-storage URL)
     if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
       window.open(attachment.downloadUrl, '_blank');
     } else {
@@ -409,7 +423,7 @@ const RequestDetails = () => {
       user={user}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} - Showing sample data for demonstration.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="request-details-container">
         {/* Back link */}

@@ -13,6 +13,7 @@ import {
   BarChartIcon,
   SettingsIcon,
   HistoryIcon,
+  HelpCircleIcon,
 } from '../components/icons/Icons';
 
 export const EMPLOYEE_PORTAL = {
@@ -25,7 +26,7 @@ export const EMPLOYEE_PORTAL = {
     { label: 'Leave Ledger', path: '/leave-ledger', icon: BookIcon },
     { label: 'Comp-Off', path: '/comp-off', icon: CoffeeIcon },
     { label: 'Holiday Calendar', path: '/holiday-calendar', icon: CalendarIcon },
-    { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications' },
+    { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications', helpIcon: HelpCircleIcon },
     { label: 'Profile', path: '/profile', icon: UserIcon },
   ],
 };

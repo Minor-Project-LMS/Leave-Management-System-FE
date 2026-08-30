@@ -39,6 +39,19 @@ const RequestDetailPanel = ({ detail, loading }) => {
   const color = getAvatarColor(employeeName);
   const employeeCode = getEmployeeCode(detail, detail.userId);
 
+  const handleDownloadAttachment = (attachment) => {
+    // Guard for PENDING status - only allow download when attachment is ACTIVE
+    if (attachment.status === 'PENDING') {
+      alert('Attachment upload is still in progress. Please wait for it to complete.');
+      return;
+    }
+
+    // Use the download URL from the attachment (presigned blob-storage URL)
+    if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
+      window.open(attachment.downloadUrl, '_blank');
+    }
+  };
+
   return (
     <div className="request-detail-panel">
       <div className="widget-header">
@@ -99,9 +112,14 @@ const RequestDetailPanel = ({ detail, loading }) => {
                 <PaperclipIcon width={14} height={14} />
                 <span className="request-detail-attachment-name">{att.fileName}</span>
                 <span className="request-detail-attachment-size">{formatFileSize(att.sizeBytes)}</span>
-                <a href={att.downloadUrl} target="_blank" rel="noreferrer" className="request-detail-download">
+                <button 
+                  onClick={() => handleDownloadAttachment(att)}
+                  disabled={att.status === 'PENDING'}
+                  className="request-detail-download"
+                  title={att.status === 'PENDING' ? 'Upload in progress' : 'Download attachment'}
+                >
                   <DownloadIcon width={14} height={14} />
-                </a>
+                </button>
               </li>
             ))}
           </ul>

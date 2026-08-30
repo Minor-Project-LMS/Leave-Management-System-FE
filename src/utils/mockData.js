@@ -493,7 +493,20 @@ export const mockApprovalDetails = {
       designation: 'Product Analyst',
     },
     attachments: [
-      { id: 1, fileName: 'Personal_Work_Details.pdf', contentType: 'application/pdf', sizeBytes: 204800, downloadUrl: '#' },
+      { 
+        id: 1, 
+        entityType: 'LEAVE_REQUEST',
+        entityId: 4001,
+        fileName: 'Personal_Work_Details.pdf', 
+        contentType: 'application/pdf', 
+        sizeBytes: 204800,
+        storageProvider: 'S3',
+        status: 'ACTIVE',
+        blobUrl: 'https://example-bucket.s3.amazonaws.com/attachments/Personal_Work_Details.pdf',
+        downloadUrl: 'https://example-bucket.s3.amazonaws.com/attachments/Personal_Work_Details.pdf?presigned=true',
+        uploadedBy: 101,
+        uploadedAt: '2024-05-24T10:32:00Z',
+      },
     ],
     approvals: [
       {
@@ -706,10 +719,17 @@ export const mockRequestDetails = {
     attachments: [
       {
         id: 1,
+        entityType: 'LEAVE_REQUEST',
+        entityId: 125,
         fileName: 'family_invitation.pdf',
-        size: '245 KB',
+        contentType: 'application/pdf',
+        sizeBytes: 251658,
+        storageProvider: 'S3',
+        status: 'ACTIVE',
+        blobUrl: 'https://example-bucket.s3.amazonaws.com/attachments/family_invitation.pdf',
+        downloadUrl: 'https://example-bucket.s3.amazonaws.com/attachments/family_invitation.pdf?presigned=true',
+        uploadedBy: 101,
         uploadedAt: '2024-05-18T10:32:00Z',
-        downloadUrl: '#',
       },
     ],
     

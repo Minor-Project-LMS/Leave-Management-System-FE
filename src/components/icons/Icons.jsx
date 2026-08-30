@@ -348,3 +348,11 @@ export const SwapIcon = (props) => (
     <path d="M17 21V7M17 21l-4-4M17 21l4-4" />
   </svg>
 );
+
+export const HelpCircleIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+    <path d="M12 17h.01" />
+  </svg>
+);

@@ -131,6 +131,14 @@
   color: var(--text-secondary);
 }
 
+.apply-leave-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .apply-leave-file-name {
   flex: 1;
   font-size: 0.8rem;
@@ -144,6 +152,35 @@
   font-size: 0.7rem;
   color: var(--text-light);
   flex-shrink: 0;
+}
+
+.apply-leave-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.apply-leave-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.apply-leave-progress-bar {
+  background: var(--primary-blue);
+  transition: width 0.2s ease;
+}
+
+.apply-leave-progress-text {
+  font-size: 0.65rem;
+  color: var(--text-light);
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
 }
 
 .apply-leave-file-list button {
