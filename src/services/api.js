@@ -112,6 +112,36 @@ class ApiService {
     });
   }
 
+  // EMP-09 Profile — Personal Information / Emergency Contact "Edit" cards.
+  // Only the self-editable subset (UserProfileUpdate) is sent.
+  async updateProfile(payload) {
+    return this.request('/users/me', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // EMP-09 "Change Password" form.
+  async changeMyPassword(currentPassword, newPassword) {
+    return this.request('/users/me/password', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  // EMP-09 "Change Photo" action.
+  async uploadMyAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: formData,
+    });
+  }
+
   async forgotPassword(email) {
     return this.request('/auth/forgot-password', {
       method: 'POST',

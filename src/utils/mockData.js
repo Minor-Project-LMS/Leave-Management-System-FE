@@ -193,6 +193,41 @@ export const mockTeamMembers = [
   { id: 8, employeeCode: 'EMP0021', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 89665 43120', status: 'AVAILABLE', avatarUrl: null },
 ];
 
+// --- Profile (EMP-09) mock ---
+
+export const mockUserProfile = {
+  id: 1042,
+  employeeCode: 'EMP00038',
+  fullName: 'John Doe',
+  email: 'john.doe@company.com',
+  phone: '+1 98765 43210',
+  role: 'EMPLOYEE',
+  departmentId: 1,
+  departmentName: 'Engineering',
+  designation: 'Software Engineer',
+  reportsTo: 201,
+  reportsToName: 'Alex Johnson',
+  dateOfJoining: '2022-01-15',
+  employmentStatus: 'ACTIVE',
+  workLocation: 'Bangalore, India',
+  employmentType: 'Full Time',
+  avatarUrl: null,
+  dateOfBirth: '1996-03-12',
+  gender: 'Male',
+  bloodGroup: 'O+',
+  address: '27, Park Street, Bangalore, Karnataka - 560001, India',
+  emergencyContact: {
+    name: 'Jane Doe',
+    relationship: 'Sister',
+    phone: '+91 91234 56789',
+    email: 'jane.doe@email.com',
+  },
+  username: 'johndoe123',
+  lastLoginAt: '2024-05-24T09:15:00Z',
+  createdAt: '2022-01-15T10:30:00Z',
+  updatedAt: '2024-05-20T00:00:00Z',
+};
+
 // --- HR Dashboard mocks ---
 
 export const mockHRSummary = {

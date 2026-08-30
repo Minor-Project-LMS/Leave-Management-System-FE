@@ -286,3 +286,32 @@ export const MoreVerticalIcon = (props) => (
     <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
   </svg>
 );
+
+export const EditIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+export const ShieldIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6Z" />
+    <path d="M9.5 12l1.8 1.8L14.5 10" />
+  </svg>
+);
+
+export const CameraIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle cx="12" cy="14" r="3.5" />
+  </svg>
+);
+
+export const EyeOffIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+    <path d="M9.5 5.4A10.4 10.4 0 0 1 12 5c5 0 9 4.5 10 7-0.4 1-1.3 2.5-2.6 3.9M6.2 6.2C4 7.6 2.4 9.7 2 12c1 2.5 5 7 10 7 1.2 0 2.4-.2 3.4-.6" />
+  </svg>
+);

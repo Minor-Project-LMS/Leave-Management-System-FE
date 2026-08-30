@@ -13,6 +13,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import ApplyLeave from './pages/ApplyLeave'
+import Profile from './pages/Profile'
 import ManagerDashboard from './pages/ManagerDashboard'
 import ApprovalInbox from './pages/manager/ApprovalInbox'
 import TeamCalendar from './pages/manager/TeamCalendar'
@@ -61,7 +62,14 @@ function App() {
           <Route path="/comp-off" element={guardedPlaceholder('Comp-Off', EMPLOYEE_PORTAL)} />
           <Route path="/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', EMPLOYEE_PORTAL)} />
           <Route path="/notifications" element={guardedPlaceholder('Notifications', EMPLOYEE_PORTAL)} />
-          <Route path="/profile" element={guardedPlaceholder('Profile', EMPLOYEE_PORTAL)} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Manager portal */}
           <Route
