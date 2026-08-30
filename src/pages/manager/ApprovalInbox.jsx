@@ -127,11 +127,11 @@ const ApprovalInbox = () => {
       setTotalCount(res?.totalCount ?? data.length);
       setTotalPages(res?.totalPages ?? 1);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load approval inbox.'));
-      setRequests(mockApprovalInbox.slice(0, LIMIT));
-      setCounts({ all: 5, pending: 5, approved: 0, rejected: 0 });
-      setTotalCount(5);
-      setTotalPages(1);
+      setError(getErrorMessage(err, 'Failed to load approval inbox. Please try again later.'));
+      setRequests([]);
+      setCounts({ all: 0, pending: 0, approved: 0, rejected: 0 });
+      setTotalCount(0);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -264,7 +264,7 @@ const ApprovalInbox = () => {
         onClick: () => navigate('/hr/employees'),
       }}
     >
-      {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
       {actionError && <div className="dashboard-error-banner">{actionError}</div>}
 
       <div className="approval-inbox-layout">

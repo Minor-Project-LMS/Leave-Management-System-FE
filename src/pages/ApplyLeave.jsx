@@ -14,6 +14,7 @@ import './ApplyLeave.css';
 
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB, per spec (FILE_TOO_LARGE)
+const LARGE_FILE_THRESHOLD = 2 * 1024 * 1024; // 2 MB threshold for direct upload
 const REASON_MAX_LEN = 500;
 
 const formatBytes = (bytes) => {
@@ -53,6 +54,7 @@ const ApplyLeave = () => {
   const [savingDraft, setSavingDraft] = useState(false);
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [uploadProgress, setUploadProgress] = useState({}); // { fileName: progressPercentage }
 
   const categoryCodeById = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c.categoryCode])),
@@ -141,6 +143,86 @@ const ApplyLeave = () => {
 
   const removeFile = (index) => setFiles((prev) => prev.filter((_, i) => i !== index));
 
+  const uploadSingleFile = async (file, requestId) => {
+    // Use direct-to-blob-storage for large files, multipart for small files
+    if (file.size > LARGE_FILE_THRESHOLD) {
+      return uploadLargeFile(file, requestId);
+    } else {
+      return uploadSmallFile(file, requestId);
+    }
+  };
+
+  const uploadSmallFile = async (file, requestId) => {
+    try {
+      return await apiService.uploadLeaveAttachment(requestId, file);
+    } catch (err) {
+      throw new Error(`Failed to upload ${file.name}: ${err.message}`);
+    }
+  };
+
+  const uploadLargeFile = async (file, requestId) => {
+    try {
+      // Step 1: Request presigned upload URL
+      const uploadUrlResponse = await apiService.requestAttachmentUploadUrl(
+        file.name,
+        file.type,
+        file.size,
+        'LEAVE_REQUEST',
+        requestId
+      );
+
+      const { attachmentId, uploadUrl } = uploadUrlResponse;
+
+      // Step 2: Upload directly to blob storage with progress tracking
+      await uploadToBlobStorage(file, uploadUrl, file.name);
+
+      // Step 3: Confirm the upload
+      const confirmedAttachment = await apiService.confirmAttachmentUpload(attachmentId, requestId);
+
+      return confirmedAttachment;
+    } catch (err) {
+      throw new Error(`Failed to upload ${file.name}: ${err.message}`);
+    }
+  };
+
+  const uploadToBlobStorage = (file, uploadUrl, fileName) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: progress,
+          }));
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload was cancelled'));
+      });
+
+      xhr.open('PUT', uploadUrl);
+      // IMPORTANT: Do NOT include Authorization header for blob storage upload
+      // This goes directly to the blob storage provider, not the LMS API
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+    });
+  };
+
   const buildPayload = (status) => ({
     categoryId: Number(categoryId),
     startDate,
@@ -172,6 +254,7 @@ const ApplyLeave = () => {
     setBusy(true);
     setFormError('');
     setSuccessMessage('');
+    setUploadProgress({});
 
     if (USE_MOCK) {
       setTimeout(() => {
@@ -190,7 +273,7 @@ const ApplyLeave = () => {
       if (requestId && files.length) {
         for (const file of files) {
           // eslint-disable-next-line no-await-in-loop
-          await apiService.uploadLeaveAttachment(requestId, file);
+          await uploadSingleFile(file, requestId);
         }
       }
 
@@ -204,6 +287,7 @@ const ApplyLeave = () => {
       setFormError(err.message || 'Failed to submit leave request.');
     } finally {
       setBusy(false);
+      setUploadProgress({});
     }
   };
 
@@ -319,16 +403,37 @@ const ApplyLeave = () => {
                 {files.map((file, i) => (
                   <li key={`${file.name}-${i}`}>
                     <PaperclipIcon width={14} height={14} />
-                    <span className="apply-leave-file-name">{file.name}</span>
-                    <span className="apply-leave-file-size">{formatBytes(file.size)}</span>
-                    <button type="button" onClick={() => removeFile(i)} aria-label="Remove file">
+                    <div className="apply-leave-file-info">
+                      <span className="apply-leave-file-name">{file.name}</span>
+                      <span className="apply-leave-file-size">{formatBytes(file.size)}</span>
+                      {uploadProgress[file.name] !== undefined && (
+                        <div className="apply-leave-upload-progress">
+                          <div 
+                            className="apply-leave-progress-bar" 
+                            style={{ width: `${uploadProgress[file.name]}%` }}
+                          />
+                          <span className="apply-leave-progress-text">{uploadProgress[file.name]}%</span>
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => removeFile(i)} 
+                      aria-label="Remove file"
+                      disabled={submitting || savingDraft}
+                    >
                       <XIcon width={13} height={13} />
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            <button type="button" className="apply-leave-add-file" onClick={() => fileInputRef.current?.click()}>
+            <button 
+              type="button" 
+              className="apply-leave-add-file" 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting || savingDraft}
+            >
               <PlusIcon width={14} height={14} />
               Add {files.length > 0 ? 'Another' : ''} File
             </button>

@@ -27,7 +27,7 @@ const Sidebar = ({
         {portalLabel && <div className="sidebar-portal-label">{portalLabel}</div>}
 
         <nav className="sidebar-nav">
-          {navItems.map(({ label, path, icon: Icon, badgeKey }) => {
+          {navItems.map(({ label, path, icon: Icon, badgeKey, helpIcon: HelpIcon }) => {
             const isActive = location.pathname === path;
             const badge = badgeKey ? badgeCounts[badgeKey] || 0 : 0;
             return (
@@ -39,13 +39,26 @@ const Sidebar = ({
               >
                 <Icon className="sidebar-nav-icon" />
                 <span>{label}</span>
-                {badge > 0 && <span className="sidebar-nav-badge">{badge}</span>}
+                {badge > 0 ? (
+                  <span className="sidebar-nav-badge">{badge}</span>
+                ) : (
+                  HelpIcon && <HelpIcon className="sidebar-help-icon" />
+                )}
               </Link>
             );
           })}
         </nav>
 
         <div className="sidebar-footer">
+          <div className="sidebar-help">
+            <p>Need Help? Contact HR Support</p>
+            <button 
+              className="sidebar-contact-btn"
+              onClick={() => window.location.href = 'mailto:hr@company.com'}
+            >
+              Contact Us
+            </button>
+          </div>
           <button className="sidebar-logout" onClick={onLogout}>
             <LogoutIcon />
             <span>Logout</span>

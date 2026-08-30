@@ -89,18 +89,11 @@ const HRDashboard = () => {
 
       setApprovals(approvalsRes?.data ?? approvalsRes ?? []);
 
-      // Distribution isn't in the spec for HR yet — reuse mock until a
-      // /dashboard/hr-leave-distribution (or similar) endpoint exists.
-      setDistribution(mockHRDistribution);
-      setDistributionTotal(mockHRDistributionTotal);
+      // Distribution isn't in the spec for HR yet — set empty for now
+      setDistribution([]);
+      setDistributionTotal(0);
     } catch (err) {
-      setError(err.message || 'Failed to load HR dashboard data.');
-      setSummary(mockHRSummary);
-      setTrend(mockHRLeaveTrend);
-      setDistribution(mockHRDistribution);
-      setDistributionTotal(mockHRDistributionTotal);
-      setDepartments(mockDepartmentSummary);
-      setApprovals(mockHRPendingApprovals);
+      setError(err.message || 'Failed to load HR dashboard data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -180,7 +173,7 @@ const HRDashboard = () => {
       notificationCount={summary?.pendingRequests || 0}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="hr-dashboard-header-row">
         <div />

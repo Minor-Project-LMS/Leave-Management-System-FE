@@ -112,6 +112,24 @@ class ApiService {
     });
   }
 
+  async updateUserProfile(payload) {
+    return this.request('/users/me', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
   async forgotPassword(email) {
     return this.request('/auth/forgot-password', {
       method: 'POST',
@@ -203,6 +221,20 @@ class ApiService {
     if (year != null) params.set('year', year);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return this.request(`/holidays/upcoming${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getHolidays(params = {}) {
+    const { year, month, departmentId, type, page = 1, limit = 50 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (year != null) queryParams.set('year', year);
+    if (month != null) queryParams.set('month', month);
+    if (departmentId != null) queryParams.set('departmentId', departmentId);
+    if (type != null) queryParams.set('type', type);
+    const qs = queryParams.toString();
+    return this.request(`/holidays${qs ? `?${qs}` : ''}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });
@@ -362,6 +394,28 @@ class ApiService {
     });
   }
 
+  async getLeaveLedgerTransactions(params = {}) {
+    const { year, userId, categoryId, page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (year) queryParams.set('year', year);
+    if (userId) queryParams.set('userId', userId);
+    if (categoryId) queryParams.set('categoryId', categoryId);
+    const qs = queryParams.toString();
+    return this.request(`/leave-ledger/transactions${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async exportLeaveLedger(params = {}) {
+    const { year = new Date().getFullYear(), format = 'csv' } = params;
+    const qs = new URLSearchParams({ year, format }).toString();
+    return this.request(`/leave-ledger/export?${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   // payload: { categoryId, startDate, endDate, sessionType, reason, status? }
   // status: 'DRAFT' saves without submitting; omit/'PENDING_L1' submits (spec convention).
   async submitLeaveRequest(payload) {
@@ -382,6 +436,183 @@ class ApiService {
       method: 'POST',
       headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
       body: formData,
+    });
+  }
+
+  // New direct-to-blob-storage upload flow
+  async requestAttachmentUploadUrl(fileName, contentType, sizeBytes, entityType, entityId = null) {
+    const payload = {
+      fileName,
+      contentType,
+      sizeBytes,
+      entityType,
+    };
+    if (entityId !== null) {
+      payload.entityId = entityId;
+    }
+    return this.request('/attachments/upload-url', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmAttachmentUpload(attachmentId, entityId = null) {
+    const payload = entityId !== null ? { entityId } : {};
+    return this.request(`/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // My Requests (EMP-03) endpoints
+  async getLeaveRequests(params = {}) {
+    const { status, categoryId, userId, fromDate, toDate, page = 1, limit = 10, sort = 'recent' } = params;
+    const queryParams = new URLSearchParams({ page, limit, sort });
+    if (status) queryParams.set('status', status);
+    if (categoryId) queryParams.set('categoryId', categoryId);
+    if (userId) queryParams.set('userId', userId);
+    if (fromDate) queryParams.set('fromDate', fromDate);
+    if (toDate) queryParams.set('toDate', toDate);
+    const qs = queryParams.toString();
+    return this.request(`/leave-requests${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Request Details (EMP-04) endpoints
+  async withdrawLeaveRequest(requestId, payload = {}) {
+    return this.request(`/leave-requests/${requestId}/withdraw`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async addLeaveComment(requestId, payload) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeaveComments(requestId) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveAttachments(requestId) {
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveApprovals(requestId) {
+    return this.request(`/leave-requests/${requestId}/approvals`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async downloadRequestPDF(requestId) {
+    return this.request(`/leave-requests/${requestId}/pdf`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Comp-Off (EMP-06) endpoints
+  async getCompOffRequests(params = {}) {
+    const { status, userId, page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (status) queryParams.set('status', status);
+    if (userId) queryParams.set('userId', userId);
+    const qs = queryParams.toString();
+    return this.request(`/comp-off-requests${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getCompOffRequest(compId) {
+    return this.request(`/comp-off-requests/${compId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async submitCompOffRequest(payload) {
+    return this.request('/comp-off-requests', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async withdrawCompOffRequest(compId) {
+    return this.request(`/comp-off-requests/${compId}`, {
+      method: 'DELETE',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async decideCompOffRequest(compId, decision, comments) {
+    return this.request(`/comp-off-requests/${compId}/decisions`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ decision, comments }),
+    });
+  }
+
+  async getCompOffSummary() {
+    // This endpoint might not exist in the spec yet, but we'll add it for the dashboard
+    // For now, we'll derive it from the comp-off requests data
+    return this.request('/dashboard/summary', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getNotifications({ tab = 'all', page = 1, limit = 10 } = {}) {
+    const qs = new URLSearchParams({ tab, page, limit }).toString();
+    return this.request(`/notifications?${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read', {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getNotificationPreferences() {
+    return this.request('/notifications/preferences', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateNotificationPreferences(preferences) {
+    return this.request('/notifications/preferences', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(preferences),
     });
   }
 }
