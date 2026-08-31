@@ -342,6 +342,39 @@ class ApiService {
     });
   }
 
+  // Delegations (MGR-06) — paths/schema confirmed against lms-openapi.yaml.
+  async getDelegations({ status, page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    return this.request(`/delegations?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createDelegation(payload) {
+    return this.request('/delegations', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateDelegation(delegationId, payload) {
+    return this.request(`/delegations/${delegationId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async revokeDelegation(delegationId) {
+    return this.request(`/delegations/${delegationId}/revoke`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
   // HR dashboard endpoints — paths confirmed against lms-openapi.yaml.
   async getHRSummary() {
     return this.request('/dashboard/hr-summary', {

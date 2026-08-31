@@ -1,0 +1,22 @@
+.delegation-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.delegation-main {
+  min-width: 0;
+}
+
+.delegation-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .delegation-layout {
+    grid-template-columns: 1fr;
+  }
+}

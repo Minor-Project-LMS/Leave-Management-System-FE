@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProfileInfoCard from '../components/profile/ProfileInfoCard';
 import EditableInfoCard from '../components/profile/EditableInfoCard';
@@ -8,7 +8,7 @@ import AccountInfoCard from '../components/profile/AccountInfoCard';
 import PrivacyBanner from '../components/profile/PrivacyBanner';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { EMPLOYEE_PORTAL } from '../config/navConfig';
+import { EMPLOYEE_PORTAL, MANAGER_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
 import { mockUserProfile } from '../utils/mockData';
@@ -91,10 +91,19 @@ const EMERGENCY_FIELDS = [
 
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { user, logout } = useAuth();
 
-  useRoleRedirect('employee');
+  // This page is shared between the Employee Portal (/profile) and the
+  // Manager Portal (/manager/profile) — managers get the same profile
+  // experience as employees, just with the manager's nav/breadcrumb chrome.
+  const isManagerContext = location.pathname.startsWith('/manager');
+  const portal = isManagerContext ? MANAGER_PORTAL : EMPLOYEE_PORTAL;
+  const dashboardPath = isManagerContext ? '/manager/dashboard' : '/dashboard';
+  const dashboardLabel = isManagerContext ? 'Manager Dashboard' : 'Dashboard';
+
+  useRoleRedirect(isManagerContext ? 'manager' : 'employee');
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -290,16 +299,16 @@ const Profile = () => {
       title="Profile"
       breadcrumbs={[
         {
-          label: 'Dashboard',
-          path: '/dashboard',
+          label: dashboardLabel,
+          path: dashboardPath,
         },
         {
           label: 'Profile',
         },
       ]}
-      portalLabel={EMPLOYEE_PORTAL.portalLabel}
-      navItems={EMPLOYEE_PORTAL.navItems}
-      searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      portalLabel={portal.portalLabel}
+      navItems={portal.navItems}
+      searchPlaceholder={portal.searchPlaceholder}
       user={user}
       onLogout={handleLogout}
     >

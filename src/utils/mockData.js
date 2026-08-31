@@ -193,6 +193,84 @@ export const mockTeamMembers = [
   { id: 8, employeeCode: 'EMP0021', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 89665 43120', status: 'AVAILABLE', avatarUrl: null },
 ];
 
+// --- Delegations (MGR-06) mock ---
+// designation/employeeCode on delegateName aren't part of the Delegation
+// schema — enriched client-side from mockTeamMembers where possible, same
+// as the real page does with the fetched team member list.
+
+export const mockDelegations = [
+  {
+    id: 1,
+    delegatorId: 501,
+    delegatorName: 'Alex Johnson',
+    delegateId: 2,
+    delegateName: 'Priya Sharma',
+    startDate: '2024-05-20',
+    endDate: '2024-05-24',
+    isActive: true,
+    computedStatus: 'ACTIVE',
+    departmentIds: [1, 2],
+    categoryIds: [],
+    createdAt: '2024-05-15T09:00:00Z',
+  },
+  {
+    id: 2,
+    delegatorId: 501,
+    delegatorName: 'Alex Johnson',
+    delegateId: 1,
+    delegateName: 'Rahul Verma',
+    startDate: '2024-05-27',
+    endDate: '2024-05-31',
+    isActive: true,
+    computedStatus: 'UPCOMING',
+    departmentIds: [1],
+    categoryIds: [1, 2],
+    createdAt: '2024-05-16T09:00:00Z',
+  },
+  {
+    id: 3,
+    delegatorId: 501,
+    delegatorName: 'Alex Johnson',
+    delegateId: 2,
+    delegateName: 'Priya Sharma',
+    startDate: '2024-06-03',
+    endDate: '2024-06-07',
+    isActive: true,
+    computedStatus: 'UPCOMING',
+    departmentIds: [1, 3],
+    categoryIds: [1],
+    createdAt: '2024-05-20T09:00:00Z',
+  },
+  {
+    id: 4,
+    delegatorId: 501,
+    delegatorName: 'Alex Johnson',
+    delegateId: 4,
+    delegateName: 'Vikram Singh',
+    startDate: '2024-04-10',
+    endDate: '2024-04-14',
+    isActive: false,
+    computedStatus: 'PAST',
+    departmentIds: [2],
+    categoryIds: [],
+    createdAt: '2024-04-01T09:00:00Z',
+  },
+  {
+    id: 5,
+    delegatorId: 501,
+    delegatorName: 'Alex Johnson',
+    delegateId: 7,
+    delegateName: 'Arjun Kumar',
+    startDate: '2024-03-05',
+    endDate: '2024-03-09',
+    isActive: false,
+    computedStatus: 'PAST',
+    departmentIds: [1],
+    categoryIds: [2, 3],
+    createdAt: '2024-02-25T09:00:00Z',
+  },
+];
+
 // --- Profile (EMP-09) mock ---
 
 export const mockUserProfile = {

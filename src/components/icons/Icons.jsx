@@ -341,3 +341,10 @@ export const AlertCircleIcon = (props) => (
     <path d="M12 8v4M12 16h.01" />
   </svg>
 );
+
+export const SwapIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M7 3v14M7 3l-4 4M7 3l4 4" />
+    <path d="M17 21V7M17 21l-4-4M17 21l4-4" />
+  </svg>
+);

@@ -39,8 +39,7 @@ export const MANAGER_PORTAL = {
     { label: 'Team Calendar', path: '/manager/team-calendar', icon: CalendarIcon },
     { label: 'Team Members', path: '/manager/team-members', icon: UsersIcon },
     { label: 'Delegation', path: '/manager/delegation', icon: ClipboardListIcon },
-    { label: 'Reports & Analytics', path: '/manager/reports', icon: BarChartIcon },
-    { label: 'Settings', path: '/manager/settings', icon: SettingsIcon },
+    { label: 'Profile', path: '/manager/profile', icon: UserIcon },
   ],
 };
 

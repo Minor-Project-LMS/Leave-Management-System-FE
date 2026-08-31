@@ -3,7 +3,7 @@ import './App.css'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import PlaceholderPage from './pages/PlaceholderPage'
-import { EMPLOYEE_PORTAL, MANAGER_PORTAL, HR_PORTAL } from './config/navConfig'
+import { EMPLOYEE_PORTAL, HR_PORTAL } from './config/navConfig'
 
 // Pages
 import SplashScreen from './pages/SplashScreen'
@@ -21,6 +21,7 @@ import ManagerDashboard from './pages/ManagerDashboard'
 import ApprovalInbox from './pages/manager/ApprovalInbox'
 import TeamCalendar from './pages/manager/TeamCalendar'
 import TeamMembers from './pages/manager/TeamMembers'
+import DelegationManagement from './pages/manager/DelegationManagement'
 import HRDashboard from './pages/HRDashboard'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
@@ -131,9 +132,15 @@ function App() {
           />
           <Route path="/manager/team-calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
           <Route path="/manager/team-members" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
-          <Route path="/manager/delegation" element={guardedPlaceholder('Delegation', MANAGER_PORTAL)} />
-          <Route path="/manager/reports" element={guardedPlaceholder('Reports & Analytics', MANAGER_PORTAL)} />
-          <Route path="/manager/settings" element={guardedPlaceholder('Settings', MANAGER_PORTAL)} />
+          <Route path="/manager/delegation" element={<ProtectedRoute><DelegationManagement /></ProtectedRoute>} />
+          <Route
+            path="/manager/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* HR portal */}
           <Route
