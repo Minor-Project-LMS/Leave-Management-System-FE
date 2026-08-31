@@ -1,6 +1,7 @@
 import StatusBadge from '../dashboard/StatusBadge';
 import LeaveTypeBadge from './LeaveTypeBadge';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
+import { getEmployeeName } from '../../utils/employee';
 import { CheckIcon, XIcon } from '../icons/Icons';
 import './ApprovalRequestsTable.css';
 
@@ -50,7 +51,8 @@ const ApprovalRequestsTable = ({
         </thead>
         <tbody>
           {requests.map((req) => {
-            const color = getAvatarColor(req.employeeName);
+            const employeeName = getEmployeeName(req);
+            const color = getAvatarColor(employeeName);
             const isPending = req.status === 'PENDING_L1' || req.status === 'PENDING_L2';
             const isSelected = selectedId === req.id;
 
@@ -66,10 +68,10 @@ const ApprovalRequestsTable = ({
                       className="approval-table-avatar"
                       style={{ background: color.bg, color: color.fg }}
                     >
-                      {getInitials(req.employeeName)}
+                      {getInitials(employeeName)}
                     </span>
                     <div className="approval-table-employee-info">
-                      <span className="approval-table-name">{req.employeeName}</span>
+                      <span className="approval-table-name">{employeeName || '—'}</span>
                       <span className="approval-table-team">{req.departmentName}</span>
                     </div>
                   </div>

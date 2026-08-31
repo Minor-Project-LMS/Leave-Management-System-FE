@@ -1,5 +1,6 @@
 import LeaveTypeBadge from './LeaveTypeBadge';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
+import { getEmployeeName, getEmployeeCode } from '../../utils/employee';
 import { PaperclipIcon, DownloadIcon, InfoIcon } from '../icons/Icons';
 import './RequestDetailPanel.css';
 
@@ -34,8 +35,9 @@ const RequestDetailPanel = ({ detail, loading }) => {
     );
   }
 
-  const color = getAvatarColor(detail.employeeName);
-  const employeeCode = detail.employee?.employeeCode || `EMP-${String(detail.userId).padStart(4, '0')}`;
+  const employeeName = getEmployeeName(detail);
+  const color = getAvatarColor(employeeName);
+  const employeeCode = getEmployeeCode(detail, detail.userId);
 
   return (
     <div className="request-detail-panel">
@@ -45,11 +47,13 @@ const RequestDetailPanel = ({ detail, loading }) => {
 
       <div className="request-detail-employee">
         <span className="request-detail-avatar" style={{ background: color.bg, color: color.fg }}>
-          {getInitials(detail.employeeName)}
+          {getInitials(employeeName)}
         </span>
         <div>
-          <span className="request-detail-name">{detail.employeeName}</span>
-          <span className="request-detail-team">{detail.departmentName} · {employeeCode}</span>
+          <span className="request-detail-name">{employeeName || '—'}</span>
+          <span className="request-detail-team">
+            {[detail.departmentName, employeeCode].filter(Boolean).join(' · ')}
+          </span>
         </div>
       </div>
 
@@ -128,11 +132,6 @@ const RequestDetailPanel = ({ detail, loading }) => {
           </ul>
         </div>
       )}
-
-      <div className="request-detail-note">
-        <InfoIcon width={16} height={16} />
-        <p>Please review the request details before approving or rejecting.</p>
-      </div>
     </div>
   );
 };
