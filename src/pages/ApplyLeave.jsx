@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import LeaveBalanceSummary from '../components/leave/LeaveBalanceSummary';
 import LeavePolicyCard from '../components/leave/LeavePolicyCard';
@@ -48,6 +48,10 @@ const daysBetweenInclusive = (start, end) => {
 
 const ApplyLeave = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract draftData passed via React Router navigation state (if any)
+  const draftData = location.state?.draftData || null;
 
   const { user, logout } = useAuth();
 
@@ -62,14 +66,19 @@ const ApplyLeave = () => {
 
   const [error, setError] = useState('');
 
+  // Draft ID tracking if editing an existing draft
+  const [draftId, setDraftId] = useState(draftData?.id || null);
+
   const [categoryId, setCategoryId] = useState('');
+  const [applyFor, setApplyFor] = useState(
+    draftData?.applyFor === 'HALF_DAY' || draftData?.sessionType === 'FIRST_HALF'
+      ? 'HALF_DAY'
+      : 'FULL_DAY'
+  );
 
-  const [applyFor, setApplyFor] = useState('FULL_DAY');
-
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-
-  const [reason, setReason] = useState('');
+  const [startDate, setStartDate] = useState(draftData?.fromDate || draftData?.startDate || '');
+  const [endDate, setEndDate] = useState(draftData?.toDate || draftData?.endDate || '');
+  const [reason, setReason] = useState(draftData?.reason || '');
 
   const [files, setFiles] = useState([]);
 
@@ -95,11 +104,6 @@ const ApplyLeave = () => {
 
   /*
    * Check whether selected leave type is Sick Leave.
-   *
-   * Supports both:
-   * - categoryName: "Sick Leave"
-   * - categoryCode: "SICK"
-   * - categoryCode: "SICK_LEAVE"
    */
   const isSickLeave = useMemo(() => {
     if (!selectedCategory) return false;
@@ -135,12 +139,17 @@ const ApplyLeave = () => {
       setCategories(mockLeaveCategories);
       setLedger(mockLeaveLedger);
 
-      setCategoryId(
-        String(mockLeaveCategories[0]?.id ?? '')
-      );
+      // Match category ID from draft if provided, otherwise default to first category
+      let matchedId = mockLeaveCategories[0]?.id;
+      if (draftData?.leaveType) {
+        const foundCat = mockLeaveCategories.find(
+          (c) => c.categoryName.toLowerCase() === String(draftData.leaveType).toLowerCase()
+        );
+        if (foundCat) matchedId = foundCat.id;
+      }
 
+      setCategoryId(String(matchedId ?? ''));
       setLoading(false);
-
       return;
     }
 
@@ -159,7 +168,16 @@ const ApplyLeave = () => {
       );
 
       if (cats.length) {
-        setCategoryId(String(cats[0].id));
+        let matchedId = cats[0].id;
+        if (draftData?.leaveType || draftData?.categoryId) {
+          const foundCat = cats.find(
+            (c) =>
+              c.id === draftData.categoryId ||
+              c.categoryName.toLowerCase() === String(draftData.leaveType).toLowerCase()
+          );
+          if (foundCat) matchedId = foundCat.id;
+        }
+        setCategoryId(String(matchedId));
       }
     } catch (err) {
       setError(
@@ -175,11 +193,28 @@ const ApplyLeave = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [draftData]);
 
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
+
+  /*
+   * Sync component state when location state changes dynamically
+   */
+  useEffect(() => {
+    if (draftData) {
+      setDraftId(draftData.id || null);
+      setStartDate(draftData.fromDate || draftData.startDate || '');
+      setEndDate(draftData.toDate || draftData.endDate || '');
+      setReason(draftData.reason || '');
+      setApplyFor(
+        draftData.applyFor === 'HALF_DAY' || draftData.sessionType === 'FIRST_HALF'
+          ? 'HALF_DAY'
+          : 'FULL_DAY'
+      );
+    }
+  }, [draftData]);
 
   /*
    * Load leave policy whenever leave type changes.
@@ -271,6 +306,7 @@ const ApplyLeave = () => {
    * Build leave request payload.
    */
   const buildPayload = (status) => ({
+    ...(draftId ? { id: draftId } : {}),
     categoryId: Number(categoryId),
     startDate,
     endDate: endDate || startDate,
@@ -284,12 +320,6 @@ const ApplyLeave = () => {
 
   /*
    * Validate leave application.
-   *
-   * Sick Leave:
-   * Attachment is mandatory when submitting.
-   *
-   * Draft:
-   * Attachment is NOT mandatory.
    */
   const validate = (status) => {
     if (!categoryId) {
@@ -316,9 +346,7 @@ const ApplyLeave = () => {
     }
 
     /*
-     * IMPORTANT:
-     * Sick Leave requires an attachment
-     * when submitting the request.
+     * Sick Leave requires an attachment when submitting the request.
      */
     if (
       status !== 'DRAFT' &&
@@ -358,27 +386,38 @@ const ApplyLeave = () => {
 
         setSuccessMessage(
           status === 'DRAFT'
-            ? 'Draft saved.'
+            ? 'Draft saved successfully.'
             : 'Leave request submitted for approval.'
         );
+
+        if (status !== 'DRAFT') {
+          setTimeout(() => {
+            navigate('/my-requests');
+          }, 1200);
+        }
       }, 700);
 
       return;
     }
 
     try {
-      const created =
-        await apiService.submitLeaveRequest(
-          buildPayload(status)
-        );
+      const payload = buildPayload(status);
+      let response;
+
+      // Call update API if updating existing draft, else create new
+      if (draftId && apiService.updateLeaveRequest) {
+        response = await apiService.updateLeaveRequest(draftId, payload);
+      } else {
+        response = await apiService.submitLeaveRequest(payload);
+      }
 
       const requestId =
-        created?.id ??
-        created?.data?.id;
+        response?.id ??
+        response?.data?.id ??
+        draftId;
 
       /*
-       * Upload attachments after the
-       * leave request has been created.
+       * Upload attachments after the leave request has been submitted/saved.
        */
       if (
         requestId &&
@@ -395,7 +434,7 @@ const ApplyLeave = () => {
 
       setSuccessMessage(
         status === 'DRAFT'
-          ? 'Draft saved.'
+          ? 'Draft saved successfully.'
           : 'Leave request submitted for approval.'
       );
 
@@ -431,14 +470,14 @@ const ApplyLeave = () => {
 
   return (
     <DashboardLayout
-      title="Apply Leave"
+      title={draftId ? 'Edit Draft Request' : 'Apply Leave'}
       breadcrumbs={[
         {
           label: 'Dashboard',
           path: '/dashboard',
         },
         {
-          label: 'Apply Leave',
+          label: draftId ? 'Edit Draft Request' : 'Apply Leave',
         },
       ]}
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
@@ -458,7 +497,11 @@ const ApplyLeave = () => {
       <div className="apply-leave-layout">
         <div className="dashboard-panel apply-leave-form-panel">
           <div className="widget-header">
-            <h3>Leave Application Form</h3>
+            <h3>
+              {draftId
+                ? `Edit Draft Request (${draftData?.id || draftId})`
+                : 'Leave Application Form'}
+            </h3>
           </div>
 
           {formError && (
@@ -700,7 +743,7 @@ const ApplyLeave = () => {
             <button
               className="apply-leave-btn cancel"
               onClick={() =>
-                navigate('/dashboard')
+                navigate('/my-requests')
               }
             >
               Cancel
@@ -718,6 +761,8 @@ const ApplyLeave = () => {
             >
               {savingDraft
                 ? 'Saving...'
+                : draftId
+                ? 'Update Draft'
                 : 'Save Draft'}
             </button>
 

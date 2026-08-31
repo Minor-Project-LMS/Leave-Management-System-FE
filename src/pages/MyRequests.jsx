@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/dashboard/StatusBadge';
-import { CalendarIcon, DownloadIcon, FilterIcon, MoreVerticalIcon, EyeIcon, XCircleIcon } from '../components/icons/Icons';
+import { CalendarIcon, DownloadIcon, FilterIcon, MoreVerticalIcon, EyeIcon, XCircleIcon, EditIcon } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
@@ -10,7 +10,7 @@ import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { mockMyRequests } from '../utils/mockData';
 import './MyRequests.css';
 
-const STATUS_OPTIONS = ['All Status', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Withdrawn'];
+const STATUS_OPTIONS = ['All Status', 'Draft', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Withdrawn'];
 const LEAVE_TYPE_OPTIONS = ['All Leave Types', 'Casual Leave', 'Sick Leave', 'Earned Leave', 'Comp-Off'];
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 25, 50];
 
@@ -23,9 +23,9 @@ const formatDate = (dateStr) => {
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('en-GB', { 
-    day: '2-digit', 
-    month: 'short', 
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -39,16 +39,16 @@ const MyRequests = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
-  
+
   // Filter states
   const [status, setStatus] = useState('All Status');
   const [leaveType, setLeaveType] = useState('All Leave Types');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -81,7 +81,8 @@ const MyRequests = () => {
       };
 
       if (filterParams.status && filterParams.status !== 'All Status') {
-        params.status = filterParams.status === 'Pending' ? 'PENDING_L1' : 
+        params.status = filterParams.status === 'Draft' ? 'DRAFT' :
+                      filterParams.status === 'Pending' ? 'PENDING_L1' :
                       filterParams.status === 'Approved' ? 'APPROVED' :
                       filterParams.status === 'Rejected' ? 'REJECTED' :
                       filterParams.status === 'Withdrawn' ? 'WITHDRAWN' :
@@ -97,7 +98,7 @@ const MyRequests = () => {
 
       const response = await apiService.getLeaveRequests(params);
       const data = response?.data ?? response ?? [];
-      
+
       let transformedRequests = data.map(req => ({
         rawId: req.id,
         id: req.displayId || req.id,
@@ -107,16 +108,23 @@ const MyRequests = () => {
         endDate: req.endDate,
         dateRange: `${formatDate(req.startDate)} - ${formatDate(req.endDate)} (${req.totalDays} Days)`,
         totalDays: req.totalDays,
-        status: req.status === 'PENDING_L1' || req.status === 'PENDING_L2' ? 'Pending' : 
+        status: req.status === 'DRAFT' || req.status === 'Draft' ? 'Draft' :
+                req.status === 'PENDING_L1' || req.status === 'PENDING_L2' ? 'Pending' :
                 req.status === 'APPROVED' ? 'Approved' :
                 req.status === 'REJECTED' ? 'Rejected' :
                 req.status === 'WITHDRAWN' ? 'Withdrawn' :
                 req.status === 'CANCELLED' ? 'Cancelled' : req.status,
         approverName: req.currentApproverName || 'Not Assigned',
         approverRole: 'Approver',
-        approverInitials: req.currentApproverName ? 
+        approverInitials: req.currentApproverName ?
           req.currentApproverName.split(' ').map(n => n[0]).join('').toUpperCase() : 'NA',
         appliedOn: req.appliedAt || req.createdAt,
+        reason: req.reason || '',
+        applyFor: req.applyFor || 'Full Day',
+        contactNo: req.contactNo || '',
+        handoverTo: req.handoverTo || '',
+        address: req.address || '',
+        rawRequestData: req
       }));
 
       // Fallback client filtering if API doesn't support leave type param
@@ -181,9 +189,33 @@ const MyRequests = () => {
     document.body.removeChild(link);
   };
 
-  // Row & Menu Actions
-  const handleRowClick = (requestId) => {
-    navigate(`/my-requests/${requestId}`);
+  // Row & Action Click Handler
+  const handleRowClick = (request) => {
+    const isDraft = request.status?.toUpperCase() === 'DRAFT';
+
+    if (isDraft) {
+      // Navigate to Apply Leave form and pass full draft details to pre-fill inputs
+      navigate('/apply-leave', {
+        state: {
+          draftData: {
+            id: request.rawId || request.id,
+            leaveType: request.type,
+            fromDate: request.startDate,
+            toDate: request.endDate,
+            totalDays: request.totalDays,
+            reason: request.reason,
+            applyFor: request.applyFor,
+            contactNo: request.contactNo,
+            handoverTo: request.handoverTo,
+            address: request.address,
+            ...request.rawRequestData
+          }
+        }
+      });
+    } else {
+      // Navigate to Request Details view
+      navigate(`/my-requests/${request.id}`);
+    }
   };
 
   const handleCancelOrWithdraw = async (requestId, currentStatus) => {
@@ -262,9 +294,9 @@ const MyRequests = () => {
             <div className="filter-group">
               <label>From Date</label>
               <div className="date-input-wrapper">
-                <input 
-                  type="date" 
-                  value={fromDate} 
+                <input
+                  type="date"
+                  value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
                 />
                 <CalendarIcon className="date-icon" width={16} height={16} />
@@ -274,9 +306,9 @@ const MyRequests = () => {
             <div className="filter-group">
               <label>To Date</label>
               <div className="date-input-wrapper">
-                <input 
-                  type="date" 
-                  value={toDate} 
+                <input
+                  type="date"
+                  value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
                   min={fromDate || undefined}
                 />
@@ -328,10 +360,10 @@ const MyRequests = () => {
                   </thead>
                   <tbody>
                     {currentRequests.map((request) => (
-                      <tr 
-                        key={request.id} 
+                      <tr
+                        key={request.id}
                         className="my-requests-row"
-                        onClick={() => handleRowClick(request.id)}
+                        onClick={() => handleRowClick(request)}
                       >
                         <td className="request-id">{request.id}</td>
                         <td className="leave-type">
@@ -354,7 +386,7 @@ const MyRequests = () => {
                         </td>
                         <td className="applied-on">{formatDateTime(request.appliedOn)}</td>
                         <td className="action" style={{ position: 'relative' }}>
-                          <button 
+                          <button
                             className="action-menu-btn"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -367,16 +399,24 @@ const MyRequests = () => {
                           {/* Action Dropdown Menu */}
                           {activeMenuId === request.id && (
                             <div className="action-dropdown-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => handleRowClick(request.id)}>
-                                <EyeIcon width={14} height={14} /> View Details
+                              <button onClick={() => handleRowClick(request)}>
+                                {request.status === 'Draft' ? (
+                                  <>
+                                    <EditIcon width={14} height={14} /> Edit Draft
+                                  </>
+                                ) : (
+                                  <>
+                                    <EyeIcon width={14} height={14} /> View Details
+                                  </>
+                                )}
                               </button>
 
                               {(request.status === 'Pending' || request.status === 'Approved') && (
-                                <button 
+                                <button
                                   className="danger-action"
                                   onClick={() => handleCancelOrWithdraw(request.rawId || request.id, request.status)}
                                 >
-                                  <XCircleIcon width={14} height={14} /> 
+                                  <XCircleIcon width={14} height={14} />
                                   {request.status === 'Pending' ? 'Withdraw Request' : 'Cancel Leave'}
                                 </button>
                               )}
@@ -397,8 +437,8 @@ const MyRequests = () => {
                 <div className="pagination-controls">
                   <div className="pagination-per-page">
                     <span>Show</span>
-                    <select 
-                      value={itemsPerPage} 
+                    <select
+                      value={itemsPerPage}
                       onChange={(e) => {
                         setItemsPerPage(Number(e.target.value));
                         setCurrentPage(1);
@@ -412,21 +452,21 @@ const MyRequests = () => {
                   </div>
 
                   <div className="pagination-nav">
-                    <button 
+                    <button
                       className="pagination-btn"
                       onClick={() => setCurrentPage(1)}
                       disabled={currentPage === 1}
                     >
                       &laquo;
                     </button>
-                    <button 
+                    <button
                       className="pagination-btn"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       &lsaquo;
                     </button>
-                    
+
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
                       if (totalPages <= 5) {
@@ -450,14 +490,14 @@ const MyRequests = () => {
                       );
                     })}
 
-                    <button 
+                    <button
                       className="pagination-btn"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                     >
                       &rsaquo;
                     </button>
-                    <button 
+                    <button
                       className="pagination-btn"
                       onClick={() => setCurrentPage(totalPages)}
                       disabled={currentPage === totalPages}
