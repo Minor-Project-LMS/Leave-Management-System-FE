@@ -25,6 +25,7 @@ const USE_MOCK =
   String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB threshold for direct upload
 const REASON_MAX_LEN = 500;
 
 const formatBytes = (bytes) => {
@@ -104,9 +105,9 @@ const ApplyLeave = () => {
   );
 
   /*
-   * Check whether selected leave type is Sick Leave.
+   * Check whether selected leave type requires a supporting document (Sick or Maternity Leave).
    */
-  const isSickLeave = useMemo(() => {
+  const isAttachmentRequired = useMemo(() => {
     if (!selectedCategory) return false;
 
     const categoryName = String(
@@ -117,11 +118,17 @@ const ApplyLeave = () => {
       selectedCategory.categoryCode || ''
     ).toLowerCase();
 
-    return (
+    const isSick =
       categoryName.includes('sick') ||
       categoryCode === 'sick' ||
-      categoryCode === 'sick_leave'
-    );
+      categoryCode === 'sick_leave';
+
+    const isMaternity =
+      categoryName.includes('maternity') ||
+      categoryCode === 'maternity' ||
+      categoryCode === 'maternity_leave';
+
+    return isSick || isMaternity;
   }, [selectedCategory]);
 
   const totalDays = useMemo(() => {
@@ -303,7 +310,6 @@ const ApplyLeave = () => {
     );
   };
 
-
   const uploadSingleFile = async (file, requestId) => {
     // Use direct-to-blob-storage for large files, multipart for small files
     if (file.size > LARGE_FILE_THRESHOLD) {
@@ -377,8 +383,6 @@ const ApplyLeave = () => {
       });
 
       xhr.open('PUT', uploadUrl);
-      // IMPORTANT: Do NOT include Authorization header for blob storage upload
-      // This goes directly to the blob storage provider, not the LMS API
       xhr.setRequestHeader('Content-Type', file.type);
       xhr.send(file);
     });
@@ -423,19 +427,25 @@ const ApplyLeave = () => {
       return 'End date cannot be before the start date.';
     }
 
+    // --- CONTINUOUS DAYS LIMIT CHECK ---
+    const maxAllowed = policy?.maxConsecutiveDays || policy?.maxContinuousDays || 0;
+    if (maxAllowed > 0 && totalDays > maxAllowed) {
+      return `Selected duration (${totalDays} days) exceeds the maximum allowed continuous limit of ${maxAllowed} days for ${selectedCategory?.categoryName || 'this leave type'}.`;
+    }
+
     if (!reason.trim()) {
       return 'Please provide a reason for leave.';
     }
 
     /*
-     * Sick Leave requires an attachment when submitting the request.
+     * Require supporting document for Sick Leave or Maternity Leave when submitting.
      */
     if (
       status !== 'DRAFT' &&
-      isSickLeave &&
+      isAttachmentRequired &&
       files.length === 0
     ) {
-      return 'Please attach a supporting document for Sick Leave.';
+      return `Please attach a supporting document for ${selectedCategory?.categoryName || 'this leave type'}.`;
     }
 
     return '';
@@ -548,6 +558,9 @@ const ApplyLeave = () => {
       </div>
     );
   }
+
+  const maxAllowedDays = policy?.maxConsecutiveDays || policy?.maxContinuousDays || 0;
+  const isExceedingLimit = maxAllowedDays > 0 && totalDays > maxAllowedDays;
 
   return (
     <DashboardLayout
@@ -665,9 +678,10 @@ const ApplyLeave = () => {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) =>
-                  setStartDate(e.target.value)
-                }
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setFormError('');
+                }}
               />
             </div>
 
@@ -678,9 +692,10 @@ const ApplyLeave = () => {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) =>
-                  setEndDate(e.target.value)
-                }
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setFormError('');
+                }}
                 min={
                   startDate || undefined
                 }
@@ -698,8 +713,13 @@ const ApplyLeave = () => {
                 type="text"
                 value={`${totalDays} Days`}
                 readOnly
-                className="apply-leave-readonly"
+                className={`apply-leave-readonly ${isExceedingLimit ? 'input-error' : ''}`}
               />
+              {isExceedingLimit && (
+                <small style={{ color: '#d32f2f', marginTop: '4px', display: 'block' }}>
+                  Exceeds limit of {maxAllowedDays} days.
+                </small>
+              )}
             </div>
           </div>
 
@@ -727,7 +747,7 @@ const ApplyLeave = () => {
 
             <label>
               Attach Document{' '}
-              {isSickLeave
+              {isAttachmentRequired
                 ? '*'
                 : '(Optional)'}
             </label>
@@ -772,12 +792,11 @@ const ApplyLeave = () => {
               Add {files.length > 0 ? 'Another' : ''} File
             </button>
 
-            {/* Sick Leave requirement message */}
-            {isSickLeave &&
+            {/* Requirement warning message */}
+            {isAttachmentRequired &&
               files.length === 0 && (
                 <small className="apply-leave-file-required">
-                  Supporting document is required
-                  for Sick Leave.
+                  Supporting document is required for {selectedCategory?.categoryName || 'this leave type'}.
                 </small>
               )}
 
@@ -822,7 +841,8 @@ const ApplyLeave = () => {
               }
               disabled={
                 savingDraft ||
-                submitting
+                submitting ||
+                isExceedingLimit
               }
             >
               {savingDraft
@@ -839,7 +859,8 @@ const ApplyLeave = () => {
               }
               disabled={
                 savingDraft ||
-                submitting
+                submitting ||
+                isExceedingLimit
               }
             >
               {submitting
