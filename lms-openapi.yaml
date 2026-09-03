@@ -1,0 +1,3548 @@
+openapi: 3.1.0
+
+info:
+  title: Leave Management System (LMS) API
+  version: 1.0.0
+  description: |
+    Backend REST API contract for the Leave Management System, derived from the
+    System Design (HLD), Database Design, BRD, and UI/UX Design documents, and
+    cross-checked against the existing frontend source (`src/services/api.js`,
+    `src/api/axios.js`, `src/context/AuthProvider.jsx`) so that already-built
+    screens (Login, Forgot/Reset Password, Dashboard) work against this contract
+    unchanged.
+
+    ## Decisions confirmed with the team
+
+    1. **Versioning — RESOLVED.** Every path in this spec is mounted under
+       `/api/v1` (see `servers` below), matching the HLD's API Design
+       Conventions. The frontend's `VITE_API_BASE_URL` is being updated from
+       `/api` to `/api/v1` to match; existing calls (`/auth/login`, `/users/me`,
+       `/dashboard/summary`, `/leave-requests`, `/holidays/upcoming`,
+       `/audit-log/recent`, etc.) are unchanged apart from that prefix.
+    2. **Auth model — confirmed.** The frontend's refresh-token-in-httpOnly-cookie
+       + short-lived access-token-in-memory model (not the simpler "JWT on every
+       request, no refresh" description in the HLD) is the confirmed contract.
+       `POST /auth/login` and `POST /auth/refresh` set a `Set-Cookie` refresh
+       token and return `accessToken` + `user` in the JSON body, matching
+       `AuthProvider.jsx`.
+    3. **Screen-inferred endpoints — reviewed and accepted.** Endpoints
+       reverse-engineered from a specific UI/UX screen element rather than named
+       explicitly in the HLD/DB docs (e.g. "Retry Failed" on HR-07 implying
+       `POST /notification-queue/retry-failed`) have been reviewed and accepted
+       as required functionality. They remain marked `x-assumption: true` in
+       their description purely so backend engineers can see at a glance which
+       endpoints have no line item in the HLD/DB docs to cross-reference against
+       — not as an open question.
+    4. **File attachment size limit — RESOLVED: 10 MB.** All multipart file
+       uploads (leave-request attachments, profile photo, holiday import,
+       employee import) enforce a **10 MB maximum**, on both the frontend
+       (client-side check before upload) and the backend (hard limit, returns
+       `400` with code `FILE_TOO_LARGE` if exceeded). This closes the open
+       question in UI/UX §10.3.
+    5. **Self-registration — gated by a system setting, off by default.**
+       `POST /auth/register` is only usable when HR enables
+       `settings.systemPreferences.employeeSelfRegistration` (HR-08). While
+       disabled — the default — the endpoint returns `403` with the exact
+       user-facing message **"Contact HR to get enabled."**
+    6. Two-tier approval, delegation resolution, comp-off ledger crediting, and
+       audit-log writes are described as **side effects** of the relevant
+       endpoints (per the HLD workflow and DB business rules) rather than as
+       separate client-callable endpoints, since the design doc states these are
+       enforced server-side in the service layer.
+    7. **Reconciled against a newer FE snapshot.** The Manager Dashboard has
+       since been implemented and calls six concrete endpoints under a separate
+       `/manager/...` namespace (`/manager/dashboard/summary`,
+       `/manager/dashboard/leave-trend`, `/manager/dashboard/leave-distribution`,
+       `/manager/approvals/pending`, `/manager/team/leave-overview`,
+       `/manager/team/upcoming-leaves`) — replacing this spec's earlier, guessed
+       `/dashboard/manager-summary` single endpoint. Response shapes below are
+       taken directly from that build's `mockManagerSummary` /
+       `mockPendingApprovals` / `mockTeamLeaveOverview` /
+       `mockUpcomingTeamLeaves` fixtures, which the frontend documents as
+       "mirroring the shape of the real API responses." `/dashboard/hr-summary`
+       has no equivalent HR Dashboard implementation yet in the FE to confirm
+       against, so it remains an `x-assumption: true` placeholder.
+    8. **Notification delivery — now event-driven via Kafka.** The scheduled
+       polling worker described in the HLD is replaced by a Kafka-based
+       pipeline: state-changing actions (decisions, delegation, comp-off
+       credit) write a domain event to a transactional outbox in the same
+       DB transaction as the business change, a publisher relays it onto the
+       `lms.notifications.v1` topic, and a consumer group fans it out into
+       per-recipient/per-channel rows for delivery. This is an internal
+       architecture change only — the client-facing contract
+       (`GET /notifications`, `GET /notification-queue`, etc.) is unchanged;
+       `NotificationQueueItem` gains read-only `sourceEventId` /
+       `kafkaTopic` / `kafkaPartition` / `kafkaOffset` fields purely for
+       HR-06/HR-07 traceability and replay/debugging.
+    9. **File uploads — now backed by blob storage (S3/Azure Blob/GCS).**
+       Every upload endpoint (leave-request attachments, avatar, holiday
+       import, employee import) still accepts the file the same way from
+       the client (`multipart/form-data`), but the API now streams it
+       straight into a blob-storage bucket instead of local disk and
+       persists only the resulting object metadata and a UI-fetchable link
+       — never the bytes — in Postgres. The `Attachment` schema gains
+       `storageProvider` and `blobUrl`; `downloadUrl` is a short-lived
+       presigned GET URL generated on read rather than served by the API
+       itself. A `POST /attachments/upload-url` endpoint is also added for
+       clients that want to upload directly to blob storage (recommended
+       for larger files, to avoid proxying bytes through the API tier).
+
+  contact:
+    name: LMS Engineering
+
+servers:
+  - url: /api/v1
+    description: Default (VITE_API_BASE_URL). Versioned per the HLD's API Design Conventions — confirmed by the team; the frontend's base URL is being updated to match.
+  - url: https://api.lms.example.com/api/v1
+    description: Production (placeholder host — replace with actual deployment domain)
+
+tags:
+  - name: Auth
+    description: Authentication, session refresh, and account recovery.
+  - name: Users
+    description: The authenticated user's own profile and credentials.
+  - name: Dashboard
+    description: Role-scoped summary widgets (Employee/Manager/HR dashboards).
+  - name: Leave Requests
+    description: Leave application lifecycle — submission, decisions, withdrawal.
+  - name: Comp-Off
+    description: Compensatory-off credit claims.
+  - name: Leave Ledger
+    description: Per-employee, per-category balance ledger (read-only; movements are system-generated).
+  - name: Delegations
+    description: Manager-to-delegate approval routing.
+  - name: Holidays
+    description: Organization/department holiday calendar.
+  - name: Leave Categories
+    description: HR-configured leave taxonomy (Casual, Sick, Earned, etc.).
+  - name: Leave Policies
+    description: HR-configured, versioned policy rules per category.
+  - name: Departments
+    description: Organizational units.
+  - name: Employees
+    description: HR administration of the employee master (app_users).
+  - name: Team
+    description: Manager-scoped team roster and calendar.
+  - name: Reports
+    description: Organization-wide / team-scoped analytics and exports.
+  - name: Audit Trail
+    description: Immutable log of state-changing actions.
+  - name: Notifications
+    description: The authenticated user's in-app notification inbox and preferences.
+  - name: Notification Queue
+    description: |
+      HR/Admin operational monitor for outbound email/in-app delivery. Rows
+      here are fanned out by a Kafka consumer from domain events published
+      on `lms.notifications.v1` (see the outbox-pattern note in the top-level
+      description) rather than written directly by request-handling code.
+  - name: Settings
+    description: Organization-wide system configuration (HR/Admin only).
+  - name: Lookups
+    description: Small reference/lookup lists (roles) used to populate form controls.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ============================================================ AUTH ============================================================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Self-register an account
+      description: |
+        x-assumption: true — inferred from the FE's existing `Register.jsx` page
+        and the "Employee Self Registration" toggle on HR-08 Settings
+        (`settings.systemPreferences.employeeSelfRegistration`).
+
+        **Gated by that setting, and OFF by default.** Before creating an
+        account, the server checks the current value of
+        `employeeSelfRegistration`. If it is `false` (the default), the request
+        is rejected with `403` and the exact user-facing message
+        `"Contact HR to get enabled."` — surfaced verbatim by the client, not
+        paraphrased. HR toggles this on/off from `PATCH /settings`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, email, password, departmentId]
+              properties:
+                fullName: { type: string, maxLength: 120 }
+                email: { type: string, format: email, maxLength: 150 }
+                password: { type: string, format: password, minLength: 8 }
+                departmentId: { type: integer }
+                employeeCode: { type: string, maxLength: 20 }
+      responses:
+        '201':
+          description: Account created (pending activation, depending on org policy).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403':
+          description: Self-registration is disabled for this organization (default state).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error:
+                  code: SELF_REGISTRATION_DISABLED
+                  message: "Contact HR to get enabled."
+                path: /auth/register
+                timestamp: "2026-08-19T09:00:00Z"
+        '409':
+          description: Email or employee code already in use.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      description: |
+        On success, sets an httpOnly, secure, SameSite refresh-token cookie and
+        returns a short-lived access token in the JSON body, matching
+        `AuthProvider.login()`. The frontend never reads or stores the refresh
+        token directly.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Authenticated.
+          headers:
+            Set-Cookie:
+              description: httpOnly refresh-token cookie.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Too many attempts — rate-limited at the gateway (login is throttled per source IP per the HLD security design).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Silently exchange the refresh-token cookie for a new access token
+      description: |
+        Reads the httpOnly refresh-token cookie automatically (`credentials:
+        'include'`); no request body. Matches `refreshTokenRequest()` /
+        `apiService.refreshToken()`, which try `/auth/refresh` (with a
+        `/refresh` fallback path also present in the FE's interceptor — that
+        fallback is not modeled as a first-class path here since `/auth/refresh`
+        is the documented primary contract).
+      security: []
+      responses:
+        '200':
+          description: New access token issued; refresh cookie rotated.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401':
+          description: Refresh token missing, expired, or revoked — client should redirect to login.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate the current session
+      description: Clears/revokes the refresh-token cookie server-side. Access token invalidation is left to natural expiry (stateless JWT).
+      responses:
+        '200':
+          description: Logged out.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+        '204':
+          description: Logged out (no content).
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password-reset OTP by email
+      description: |
+        Always returns 200 regardless of whether the email exists, per the
+        UI/UX doc's explicit anti-enumeration design note (AUTH-02).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: If an account exists for this email, a reset OTP has been sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "If an account exists for this email, a reset link has been sent." }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '429':
+          description: Rate-limited at the gateway.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Complete password reset using the emailed OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword]
+              properties:
+                email: { type: string, format: email }
+                otp: { type: string, minLength: 6, maxLength: 6, description: "6-digit one-time code, per AUTH-03." }
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  description: "Must satisfy the password policy: min 8 chars, 1 uppercase, 1 number, 1 special character (AUTH-03)."
+      responses:
+        '200':
+          description: Password reset; the user should sign in again.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+        '400':
+          description: Validation error, or OTP invalid/expired.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ============================================================ USERS / PROFILE ============================================================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get the authenticated user's profile
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [Users]
+      summary: Update the authenticated user's editable profile fields
+      description: |
+        Only self-editable fields per EMP-09 (Personal Information and Emergency
+        Contact cards). Employment fields (department, designation, manager) are
+        HR-managed only — see `PATCH /employees/{employeeId}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserProfileUpdate' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /users/me/password:
+    post:
+      tags: [Users]
+      summary: Change the authenticated user's password
+      description: EMP-09 "Change Password" form (current, new, confirm).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string, format: password }
+                newPassword: { type: string, format: password, minLength: 8 }
+      responses:
+        '200':
+          description: Password updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401':
+          description: Current password incorrect, or not authenticated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /users/me/avatar:
+    post:
+      tags: [Users]
+      summary: Upload/replace the authenticated user's profile photo
+      description: |
+        x-assumption: true — inferred from the "Change Photo" action on EMP-09.
+        Maximum file size: **10 MB**, enforced on both the client (pre-upload
+        check) and the server (hard limit; `400 FILE_TOO_LARGE` if exceeded).
+
+        The API stores the image in blob storage (`attachments` row with
+        `entityType: USER_AVATAR`) rather than on local disk, then updates
+        `app_users.avatar_url` to the resulting `blobUrl` so every screen
+        that already reads `User.avatarUrl` picks it up without change. For
+        avatars, the simple multipart path here is preferred over the
+        presigned-URL flow given the small, bounded file size.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "Image file. Max size: 10 MB (10,485,760 bytes)."
+      responses:
+        '200':
+          description: Uploaded to blob storage; profile updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl: { type: string, format: uri, description: "blobUrl of the newly stored attachments row; same value now on User.avatarUrl." }
+        '400':
+          description: Validation error, or file exceeds the 10 MB limit (`FILE_TOO_LARGE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ============================================================ DASHBOARD ============================================================
+  /dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Employee dashboard KPI cards
+      description: |
+        Matches `apiService.getDashboardSummary()`. Shape confirmed against
+        `mockSummary` in the FE (`availableLeave`, `usedLeave`, `pendingRequests`,
+        `compOffBalance`).
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dashboard/leave-trend:
+    get:
+      tags: [Dashboard]
+      summary: "Employee \"Leave Usage Trend\" line-chart series (This Year)"
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveTrendPoint' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dashboard/leave-distribution:
+    get:
+      tags: [Dashboard]
+      summary: "Employee \"Leave Distribution\" donut-chart series"
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveDistributionSlice' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /manager/dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Manager dashboard KPI cards (MGR-01)
+      description: |
+        CONFIRMED against `apiService.getManagerSummary()` and
+        `mockManagerSummary` in the shipped frontend (`ManagerDashboard.jsx`).
+        Note the path is under `/manager/...`, not `/dashboard/...` — the
+        manager and employee dashboards are separate route namespaces.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ManagerDashboardSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /manager/dashboard/leave-trend:
+    get:
+      tags: [Dashboard]
+      summary: "Manager \"Leave Trend (Last N Months)\" chart series"
+      description: Matches `apiService.getTeamLeaveTrend(months)`.
+      parameters:
+        - name: months
+          in: query
+          description: Trailing window size, in months.
+          schema: { type: integer, default: 6 }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveTrendPoint' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /manager/dashboard/leave-distribution:
+    get:
+      tags: [Dashboard]
+      summary: "Manager \"Leave by Type This Month\" donut-chart series"
+      description: Matches `apiService.getTeamLeaveDistribution()`.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveDistributionSlice' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /manager/approvals/pending:
+    get:
+      tags: [Dashboard]
+      summary: "Manager dashboard \"Pending Approvals\" widget (top-N preview)"
+      description: |
+        Matches `apiService.getPendingApprovals(limit)`. This is a lightweight,
+        dashboard-widget-sized preview — for the full paginated inbox with
+        tab counts (All/Pending/Approved/Rejected), see
+        `GET /approvals/inbox`.
+      parameters:
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PendingApprovalPreview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /manager/team/leave-overview:
+    get:
+      tags: [Team]
+      summary: "Manager dashboard \"Team Leave Overview\" table, grouped by department"
+      description: Matches `apiService.getTeamLeaveOverview()`.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TeamLeaveOverviewRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /manager/team/upcoming-leaves:
+    get:
+      tags: [Team]
+      summary: "Manager dashboard \"Upcoming Leaves\" widget"
+      description: Matches `apiService.getUpcomingTeamLeaves(limit)`.
+      parameters:
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/UpcomingTeamLeave' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /dashboard/hr-summary:
+    get:
+      tags: [Dashboard]
+      summary: HR dashboard KPI cards
+      description: "x-assumption: true — inferred from HR-01's KPI cards (Total/Active/On-Leave-Today/Inactive Employees)."
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEmployees: { type: integer }
+                  activeEmployees: { type: integer }
+                  onLeaveToday: { type: integer }
+                  inactiveEmployees: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ LEAVE REQUESTS ============================================================
+  /leave-requests:
+    get:
+      tags: [Leave Requests]
+      summary: List leave requests
+      description: |
+        Employees see only their own requests. Managers additionally see direct
+        reports' requests (and anything routed to them as an active delegate).
+        HR/Admin sees all. Matches `apiService.getRecentRequests()`
+        (`?limit=&sort=recent`) as a special case of this same endpoint.
+      parameters:
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/LeaveRequestStatus' }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: userId
+          in: query
+          description: Filter to a specific employee. Manager/HR only; ignored (forced to self) for Employee role.
+          schema: { type: integer }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          schema: { type: string, format: date }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [recent, oldest], default: recent }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LeaveRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Leave Requests]
+      summary: Submit a new leave request (EMP-02 Apply Leave)
+      description: |
+        Server validates balance and date-overlap, computes `totalDays`
+        excluding holidays/weekends, resolves the approver (delegate if an
+        active delegation exists), and sets `status` to `PENDING_L1`. Passing
+        `"status": "DRAFT"` saves without submitting (EMP-02 "Save Draft").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveRequestInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409':
+          description: Overlapping approved leave, or insufficient balance for the requested category.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/RequestIdPath'
+    get:
+      tags: [Leave Requests]
+      summary: Get a single leave request (EMP-04 / MGR-03 Request Details)
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequestDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Leave Requests]
+      summary: Edit a DRAFT leave request
+      description: Only permitted while `status = DRAFT` and the caller is the owner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveRequestInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Request is no longer in DRAFT status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}/submit:
+    post:
+      tags: [Leave Requests]
+      summary: Submit a DRAFT request for approval
+      description: "x-assumption: true — companion to “Save Draft” on EMP-02; moves DRAFT → PENDING_L1 and resolves the approver."
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Submitted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Request is not in DRAFT status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}/withdraw:
+    post:
+      tags: [Leave Requests]
+      summary: Withdraw a request (EMP-04 "Withdraw Request")
+      description: Only permitted before final approval, per EMP-04's design note. Sets `status = WITHDRAWN`.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Withdrawn.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Request has already reached a final decision and can no longer be withdrawn.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}/decisions:
+    patch:
+      tags: [Leave Requests]
+      summary: Record an approval decision (MGR-02/MGR-03 Approve/Reject, HR-level escalation review)
+      description: |
+        Matches the HLD's documented convention `PATCH /api/v1/leave-requests/{id}/decisions`.
+        Appends a row to the approval history rather than overwriting the
+        request. On the terminal decision this triggers the leave-ledger update,
+        a queued notification, and an audit-log entry (per HLD §05). If
+        `total_days` exceeds the department's policy threshold, a manager
+        APPROVED decision moves the request to `PENDING_L2` (HR/Admin) instead
+        of resolving directly to `APPROVED`; comments are mandatory on rejection.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveDecisionInput' }
+      responses:
+        '200':
+          description: Decision recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403':
+          description: Caller is not the current approver (or delegate) for this request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Request is not currently awaiting a decision from this caller.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}/approvals:
+    get:
+      tags: [Leave Requests]
+      summary: Approval history / timeline for a request
+      description: Backs the "Approval Timeline" stepper on EMP-04 and the "Approval History" panel on MGR-03.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveApproval' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leave-requests/{requestId}/comments:
+    get:
+      tags: [Leave Requests]
+      summary: Comment thread on a request (EMP-04 "Comments thread"; MGR-03 "Add Comment")
+      description: "x-assumption: true — inferred from the Comments thread/tab documented on EMP-04 and MGR-03."
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Comment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Leave Requests]
+      summary: Add a comment to a request
+      description: "x-assumption: true — see GET on this path."
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, maxLength: 2000 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leave-requests/{requestId}/attachments:
+    get:
+      tags: [Leave Requests]
+      summary: List attachments on a request
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Attachment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Leave Requests]
+      summary: Upload a supporting document (EMP-02 file attachment control)
+      description: |
+        RESOLVED (was an open question in UI/UX §10.3): maximum file size is
+        **10 MB per file**, enforced on both the client (pre-upload check,
+        EMP-02/EMP-04) and the server (hard limit; `400 FILE_TOO_LARGE` if
+        exceeded). Multiple files may be attached via repeated calls to this
+        endpoint, per EMP-02's "supporting multiple documents" note.
+
+        The API streams the multipart body straight into blob storage (it is
+        not written to local disk) and persists only the resulting
+        `Attachment` metadata row, including a `blobUrl`. For larger files,
+        prefer `POST /attachments/upload-url` + `PUT
+        /leave-requests/{requestId}/attachments/{attachmentId}/confirm`
+        instead, so bytes never transit the API tier at all.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "Max size: 10 MB (10,485,760 bytes) per file."
+      responses:
+        '201':
+          description: Uploaded; blob stored and metadata persisted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '400':
+          description: Validation error, or file exceeds the 10 MB limit (`FILE_TOO_LARGE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leave-requests/{requestId}/attachments/{attachmentId}:
+    get:
+      tags: [Leave Requests]
+      summary: Download an attachment
+      description: |
+        Issues a fresh, short-lived presigned GET URL against blob storage
+        and redirects to it (`302`), rather than proxying the file bytes
+        through the API. Clients that need the URL itself without following
+        the redirect can instead call `GET .../attachments` and use the
+        `downloadUrl` on the returned `Attachment`.
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '302':
+          description: Redirect to a short-lived presigned blob-storage GET URL.
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /attachments/upload-url:
+    post:
+      tags: [Leave Requests]
+      summary: Get a presigned URL to upload a file directly to blob storage
+      description: |
+        x-assumption: true — added alongside the blob-storage migration as
+        the preferred upload path (EMP-02 attachments, EMP-09 avatar, HR-04
+        holiday import, HR-01 employee import all funnel through this same
+        endpoint via their `entityType`). The client PUTs the raw file
+        directly to `uploadUrl`; the API never sees the bytes. A `PENDING`
+        `Attachment` row is created immediately so the client has an
+        `attachmentId` to confirm once the PUT succeeds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AttachmentUploadUrlInput' }
+      responses:
+        '201':
+          description: Presigned URL issued.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttachmentUploadUrl' }
+        '400':
+          description: Validation error, or requested size exceeds the 10 MB limit (`FILE_TOO_LARGE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /attachments/{attachmentId}/confirm:
+    post:
+      tags: [Leave Requests]
+      summary: Confirm a direct-to-blob-storage upload completed successfully
+      description: |
+        x-assumption: true — companion to `POST /attachments/upload-url`.
+        The server verifies the object exists in blob storage at the
+        expected key (and, where the provider supports it, that its size
+        matches), then flips the `Attachment` row from `PENDING` to
+        `ACTIVE` and populates `blobUrl`. If `entityId` wasn't known at
+        upload-url time (e.g. a not-yet-created leave request), it can be
+        supplied here to link the attachment to its parent.
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entityId: { type: integer }
+      responses:
+        '200':
+          description: Confirmed; attachment is now ACTIVE.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attachment' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: No object found in blob storage at the expected key (upload never completed, or expired).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-requests/{requestId}/pdf:
+    get:
+      tags: [Leave Requests]
+      summary: Download the request as a PDF (EMP-04 "Download as PDF")
+      description: "x-assumption: true — inferred from EMP-04's documented action."
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: PDF file.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /leave-requests/export:
+    get:
+      tags: [Leave Requests]
+      summary: Export the caller's filtered request list (EMP-03 "Export")
+      description: "x-assumption: true — inferred from the Export action on EMP-03; same filters as GET /leave-requests."
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/LeaveRequestStatus' }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: fromDate
+          in: query
+          schema: { type: string, format: date }
+        - name: toDate
+          in: query
+          schema: { type: string, format: date }
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, xlsx], default: csv }
+      responses:
+        '200':
+          description: File stream.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+
+  # ============================================================ APPROVAL INBOX (Manager) ============================================================
+  /approvals/inbox:
+    get:
+      tags: [Leave Requests]
+      summary: Manager/HR approval inbox (MGR-02), with per-tab counts
+      description: |
+        x-assumption: true (as a distinct convenience endpoint) — functionally a
+        filtered view of `GET /leave-requests` scoped to `currentApproverId =
+        me`, but returns the tab counts (All/Pending/Approved/Rejected) MGR-02
+        requires in one call rather than four.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ALL, PENDING, APPROVED, REJECTED]
+            default: PENDING
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - name: sort
+          in: query
+          schema: { type: string, enum: [newest, oldest], default: newest }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      counts:
+                        type: object
+                        properties:
+                          all: { type: integer }
+                          pending: { type: integer }
+                          approved: { type: integer }
+                          rejected: { type: integer }
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LeaveRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ COMP-OFF ============================================================
+  /comp-off-requests:
+    get:
+      tags: [Comp-Off]
+      summary: List comp-off claims (EMP-06 "My Requests" / "Earned History" tabs)
+      parameters:
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CompOffStatus' }
+        - name: userId
+          in: query
+          description: Manager/HR only.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CompOffRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Comp-Off]
+      summary: Claim a comp-off credit (EMP-06 "Request Comp-Off")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompOffRequestInput' }
+      responses:
+        '201':
+          description: Created, status PENDING.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompOffRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  /comp-off-requests/{compId}:
+    parameters:
+      - name: compId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Comp-Off]
+      summary: Get a single comp-off claim
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompOffRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Comp-Off]
+      summary: Withdraw a comp-off claim before it is actioned
+      description: "x-assumption: true — symmetric with leave-request withdraw; only permitted while status = PENDING."
+      responses:
+        '204':
+          description: Withdrawn.
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Claim already decided.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /comp-off-requests/{compId}/decisions:
+    patch:
+      tags: [Comp-Off]
+      summary: Approve/reject a comp-off claim
+      description: |
+        Single-level decision (manager only — comp-off does not escalate to HR
+        per HLD §05). On approval, credits `leave_ledger.accrued` with an
+        `expiry_date`, per the DB design's comp-off business rules.
+      parameters:
+        - name: compId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompOffDecisionInput' }
+      responses:
+        '200':
+          description: Decision recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompOffRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============================================================ LEAVE LEDGER ============================================================
+  /leave-ledger:
+    get:
+      tags: [Leave Ledger]
+      summary: Balance summary per leave category (EMP-05 "Leave Balance Summary" cards)
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+        - name: userId
+          in: query
+          description: Manager/HR only; defaults to the caller.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveLedgerSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /leave-ledger/transactions:
+    get:
+      tags: [Leave Ledger]
+      summary: Ledger transaction history (EMP-05 "Leave Transaction History" table)
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+        - name: userId
+          in: query
+          description: Manager/HR only; defaults to the caller.
+          schema: { type: integer }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LeaveLedgerTransaction' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /leave-ledger/export:
+    get:
+      tags: [Leave Ledger]
+      summary: Export the ledger (EMP-05 "Export")
+      description: "x-assumption: true — inferred from the Export action on EMP-05."
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, xlsx], default: csv }
+      responses:
+        '200':
+          description: File stream.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+
+  # ============================================================ DELEGATIONS ============================================================
+  /delegations:
+    get:
+      tags: [Delegations]
+      summary: List delegations (MGR-06 Active/Upcoming/Past tabs)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, UPCOMING, PAST] }
+        - name: delegatorId
+          in: query
+          description: HR/Admin only; defaults to the caller for Manager role.
+          schema: { type: integer }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Delegation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Delegations]
+      summary: Create a delegation (MGR-06 "Create Delegation")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DelegationInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409':
+          description: Overlapping active delegation already exists for this delegator/date range.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /delegations/{delegationId}:
+    parameters:
+      - name: delegationId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Delegations]
+      summary: Get a single delegation
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Delegations]
+      summary: Update a delegation (e.g. adjust its end date or scope)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DelegationInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /delegations/{delegationId}/revoke:
+    post:
+      tags: [Delegations]
+      summary: End a delegation early
+      description: Sets `is_active = false` ahead of `end_date`, per the DB design's early-revocation support.
+      parameters:
+        - name: delegationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Revoked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delegation' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============================================================ HOLIDAYS ============================================================
+  /holidays:
+    get:
+      tags: [Holidays]
+      summary: List holidays (EMP-07 read-only calendar; HR-04 admin table)
+      parameters:
+        - name: year
+          in: query
+          schema: { type: integer }
+        - name: month
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - name: departmentId
+          in: query
+          description: Filters to org-wide plus this department's holidays.
+          schema: { type: integer }
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/HolidayType' }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Holiday' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Holidays]
+      summary: Add a holiday (HR-04 "Add New Holiday")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HolidayInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Holiday' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /holidays/upcoming:
+    get:
+      tags: [Holidays]
+      summary: Upcoming holidays widget (EMP-01 dashboard mini-calendar)
+      description: Matches `apiService.getUpcomingHolidays(month, year)`.
+      parameters:
+        - name: month
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - name: year
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Holiday' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /holidays/{holidayId}:
+    parameters:
+      - name: holidayId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Holidays]
+      summary: Get a single holiday
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Holiday' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Holidays]
+      summary: Update a holiday
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HolidayInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Holiday' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Holidays]
+      summary: Remove a holiday
+      responses:
+        '204':
+          description: Deleted.
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /holidays/import:
+    post:
+      tags: [Holidays]
+      summary: Bulk-import holidays (HR-04 "Import Holidays")
+      description: |
+        x-assumption: true — inferred from HR-04's Quick Actions.
+        Maximum file size: **10 MB**, enforced on both the client and the
+        server (`400 FILE_TOO_LARGE` if exceeded).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "CSV/XLSX of holidays. Max size: 10 MB (10,485,760 bytes)."
+      responses:
+        '200':
+          description: Import summary.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+        '400':
+          description: Validation error, malformed file, or file exceeds the 10 MB limit (`FILE_TOO_LARGE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ LEAVE CATEGORIES ============================================================
+  /leave-categories:
+    get:
+      tags: [Leave Categories]
+      summary: List leave categories (HR-03; also feeds the Leave Type dropdown on EMP-02)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE] }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LeaveCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Leave Categories]
+      summary: Create a leave category (HR-03 "Add New Category")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveCategoryInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveCategory' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Category name already in use.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-categories/{categoryId}:
+    parameters:
+      - name: categoryId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Leave Categories]
+      summary: Get a single leave category
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveCategory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Leave Categories]
+      summary: Update a leave category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveCategoryInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveCategory' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Leave Categories]
+      summary: Deactivate a leave category
+      description: |
+        System-defined categories cannot be hard-deleted, only deactivated, per
+        HR-03's design note; this endpoint sets `status = INACTIVE` rather than
+        removing the row. Returns 409 if the category is a protected system
+        category and the caller attempted a request implying permanent removal.
+      responses:
+        '204':
+          description: Deactivated.
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============================================================ LEAVE POLICIES ============================================================
+  /leave-policies:
+    get:
+      tags: [Leave Policies]
+      summary: List leave policies (HR-02)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, DRAFT, ARCHIVED] }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/LeavePolicy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Leave Policies]
+      summary: Create a new policy version (HR-02 "Create New Policy")
+      description: |
+        Policies are versioned by `effective_from` rather than edited in place
+        (HLD/DB design principle), so this always creates a new row; it never
+        mutates a policy that has already governed approved requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeavePolicyInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeavePolicy' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /leave-policies/{policyId}:
+    parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Leave Policies]
+      summary: Get a single policy version
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeavePolicy' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Leave Policies]
+      summary: Update a DRAFT policy, or change an ACTIVE/DRAFT policy's status
+      description: |
+        Only non-effective-date fields and `status` transitions (DRAFT →
+        ACTIVE → ARCHIVED) are mutable once a policy has been used; the
+        server rejects (409) any attempt to change quota/threshold values on a
+        policy that already governs decided requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeavePolicyInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeavePolicy' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Policy already governs historical, decided requests and cannot be altered in place.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /leave-policies/{policyId}/history:
+    get:
+      tags: [Leave Policies]
+      summary: Version history for a policy's category/department (HR-02 "Policy History")
+      description: "x-assumption: true — inferred from HR-02's Quick Actions."
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeavePolicy' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============================================================ DEPARTMENTS ============================================================
+  /departments:
+    get:
+      tags: [Departments]
+      summary: List departments (used by department filters throughout HR/Manager screens)
+      parameters:
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Department' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Departments]
+      summary: Create a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DepartmentInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /departments/{departmentId}:
+    parameters:
+      - name: departmentId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Departments]
+      summary: Get a single department
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Departments]
+      summary: Update a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DepartmentInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Departments]
+      summary: Delete a department
+      description: Rejected (409) if any `app_users` row still references it, per the DB design's `ON DELETE RESTRICT` policy.
+      responses:
+        '204':
+          description: Deleted.
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Department still has member(s) or holidays scoped to it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ============================================================ EMPLOYEES (HR) ============================================================
+  /employees:
+    get:
+      tags: [Employees]
+      summary: List/search the employee master (HR-01)
+      parameters:
+        - name: q
+          in: query
+          description: Free-text search across name, employee code, email.
+          schema: { type: string }
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: designation
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/EmploymentStatus' }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Employee' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Employees]
+      summary: Onboard a new employee (HR-01 "Add Employee")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Email or employee code already in use.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /employees/{employeeId}:
+    parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Employees]
+      summary: Get a single employee record
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Employees]
+      summary: Update an employee record (role, department, manager, employment status, etc.)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeInput' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Employee' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Employees]
+      summary: Deactivate an employee
+      description: |
+        Sets `employment_status = SEPARATED` rather than deleting the row, since
+        `app_users` is referenced by historical leave/approval/audit records
+        under `ON DELETE RESTRICT` (DB design §05).
+      responses:
+        '204':
+          description: Deactivated.
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /employees/{employeeId}/leave-ledger:
+    get:
+      tags: [Employees]
+      summary: An employee's leave ledger, viewed by HR/manager
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: integer }
+        - $ref: '#/components/parameters/YearQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveLedgerSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /employees/{employeeId}/quota:
+    post:
+      tags: [Employees]
+      summary: Assign/adjust a leave quota override for one employee (HR-01 Quick Action "Assign Leave Quota")
+      description: "x-assumption: true — inferred from HR-01's Quick Actions list."
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [categoryId, fiscalYear, quota]
+              properties:
+                categoryId: { type: integer }
+                fiscalYear: { type: integer }
+                quota: { type: number, format: float }
+      responses:
+        '200':
+          description: Ledger opening/quota adjusted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaveLedgerSummary' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /employees/import:
+    post:
+      tags: [Employees]
+      summary: Bulk-import employees (HR-01 "Import Employees")
+      description: |
+        x-assumption: true — inferred from HR-01's Quick Actions.
+        Maximum file size: **10 MB**, enforced on both the client and the
+        server (`400 FILE_TOO_LARGE` if exceeded).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "CSV/XLSX of employees. Max size: 10 MB (10,485,760 bytes)."
+      responses:
+        '200':
+          description: Import summary.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+        '400':
+          description: Validation error, malformed file, or file exceeds the 10 MB limit (`FILE_TOO_LARGE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /employees/export:
+    get:
+      tags: [Employees]
+      summary: Export the employee list (MGR-05 "Export Member List")
+      description: "x-assumption: true — inferred from MGR-05's Quick Actions."
+      parameters:
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, xlsx], default: csv }
+      responses:
+        '200':
+          description: File stream.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ TEAM (Manager) ============================================================
+  /team/members:
+    get:
+      tags: [Team]
+      summary: The caller's direct-report roster (MGR-05 Team Members)
+      parameters:
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: q
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/TeamMember' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /team/calendar:
+    get:
+      tags: [Team]
+      summary: Team leave calendar (MGR-04)
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - name: year
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: showWeekends
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TeamCalendarDay' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /team/leave-summary:
+    get:
+      tags: [Team]
+      summary: "Team leave totals per type (MGR-01 \"Team Leave Overview\"; MGR-04/MGR-05 sidebars)"
+      description: "x-assumption: true — inferred from the repeated “team totals by type” widgets across MGR-01, MGR-04, MGR-05."
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+        - name: month
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 12 }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    categoryId: { type: integer }
+                    categoryName: { type: string }
+                    totalDays: { type: number, format: float }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ REPORTS ============================================================
+  /reports/summary:
+    get:
+      tags: [Reports]
+      summary: Org-wide (or team-scoped, for Manager) reporting KPIs (HR-05)
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+        - name: locationId
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/leave-trend:
+    get:
+      tags: [Reports]
+      summary: "\"Leave Trend Overview\" / \"Leaves by Month\" series (HR-05)"
+      parameters:
+        - $ref: '#/components/parameters/YearQuery'
+        - name: departmentId
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeaveTrendPoint' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/department-summary:
+    get:
+      tags: [Reports]
+      summary: "\"Department Wise Leave Summary\" table (HR-05)"
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    departmentId: { type: integer }
+                    departmentName: { type: string }
+                    totalEmployees: { type: integer }
+                    totalLeaveDays: { type: number, format: float }
+                    avgLeaveDaysPerEmployee: { type: number, format: float }
+                    approvalRate: { type: number, format: float }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/top-employees:
+    get:
+      tags: [Reports]
+      summary: "\"Top 5 Employees by Leaves Taken\" ranked list (HR-05)"
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 5, minimum: 1, maximum: 50 }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId: { type: integer }
+                    fullName: { type: string }
+                    departmentName: { type: string }
+                    totalDaysTaken: { type: number, format: float }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/export:
+    post:
+      tags: [Reports]
+      summary: Generate and export a report (HR-05 "Export Report")
+      description: |
+        x-assumption: true — modeled as an async job (`PENDING` → `READY` /
+        `FAILED`) since org-wide report generation can be long-running; poll
+        `GET /reports/export/{jobId}` for the download URL. If report generation
+        is fast enough to be synchronous in practice, this can be collapsed into
+        a single streaming GET, mirroring `/leave-requests/export`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportType]
+              properties:
+                reportType:
+                  type: string
+                  enum: [LEAVE_SUMMARY, DEPARTMENT_SUMMARY, TOP_EMPLOYEES, LEAVE_TREND]
+                dateFrom: { type: string, format: date }
+                dateTo: { type: string, format: date }
+                departmentId: { type: integer }
+                format: { type: string, enum: [csv, xlsx, pdf], default: xlsx }
+      responses:
+        '202':
+          description: Export job accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string }
+                  status: { type: string, enum: [PENDING] }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/export/{jobId}:
+    get:
+      tags: [Reports]
+      summary: Poll a report export job / retrieve its download URL
+      description: "x-assumption: true — see POST /reports/export."
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string }
+                  status: { type: string, enum: [PENDING, READY, FAILED] }
+                  downloadUrl: { type: string, format: uri, nullable: true }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ============================================================ AUDIT TRAIL ============================================================
+  /audit-log:
+    get:
+      tags: [Audit Trail]
+      summary: Search the audit trail (HR-06)
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date-time }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date-time }
+        - name: userId
+          in: query
+          schema: { type: integer }
+        - name: action
+          in: query
+          schema: { $ref: '#/components/schemas/AuditAction' }
+        - name: entityType
+          in: query
+          description: "\"Module\" filter on HR-06 (e.g. LEAVE_REQUEST, LEAVE_LEDGER, DELEGATION)."
+          schema: { type: string }
+        - name: q
+          in: query
+          description: Keyword search across description fields.
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditLogEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /audit-log/recent:
+    get:
+      tags: [Audit Trail]
+      summary: Recent activity feed (EMP-01 "Recent Activity")
+      description: Matches `apiService.getRecentActivity(limit)`.
+      parameters:
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditLogEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /audit-log/{auditId}:
+    get:
+      tags: [Audit Trail]
+      summary: Get a single audit entry, including before/after snapshots
+      parameters:
+        - name: auditId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditLogEntryDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /audit-log/export:
+    get:
+      tags: [Audit Trail]
+      summary: Export the audit log (HR-06 "Export Log")
+      description: "x-assumption: true — inferred from HR-06's Export Log action; same filters as GET /audit-log."
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date-time }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date-time }
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, xlsx], default: csv }
+      responses:
+        '200':
+          description: File stream.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ NOTIFICATIONS (in-app inbox) ============================================================
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: The caller's in-app notification inbox (EMP-08)
+      parameters:
+        - name: tab
+          in: query
+          schema: { type: string, enum: [all, unread, requests, approvals, system], default: all }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      unreadCount: { type: integer }
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Notification' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /notifications/{notificationId}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Notification' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications/mark-all-read:
+    post:
+      tags: [Notifications]
+      summary: "Bulk mark-as-read (EMP-08 \"Mark all as read\")"
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated: { type: integer }
+
+  /notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get the caller's per-category notification preferences (EMP-08)
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPreferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [Notifications]
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationPreferences' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPreferences' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  # ============================================================ NOTIFICATION QUEUE (HR ops) ============================================================
+  /notification-queue:
+    get:
+      tags: [Notification Queue]
+      summary: Operational monitor for outbound notifications (HR-07)
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/NotificationQueueStatus' }
+        - name: channel
+          in: query
+          schema: { $ref: '#/components/schemas/NotificationChannel' }
+        - name: templateCode
+          in: query
+          description: "\"Type\" filter on HR-07."
+          schema: { type: string }
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date-time }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date-time }
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PagedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/NotificationQueueItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /notification-queue/{notificationId}/retry:
+    post:
+      tags: [Notification Queue]
+      summary: Retry a single failed notification (HR-07 row action)
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Re-queued.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationQueueItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Notification has already reached the 3-retry cap noted on HR-07 and requires manual intervention."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /notification-queue/retry-failed:
+    post:
+      tags: [Notification Queue]
+      summary: "Bulk retry (HR-07 \"Retry Failed Notifications\")"
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requeued: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /notification-queue/{notificationId}/cancel:
+    post:
+      tags: [Notification Queue]
+      summary: "Cancel a scheduled/queued notification (HR-07 \"Cancel Scheduled\")"
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Cancelled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationQueueItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Notification has already been sent.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /notification-queue/export:
+    get:
+      tags: [Notification Queue]
+      summary: "Export queue logs (HR-07 \"Export Queue Logs\")"
+      description: "x-assumption: true — inferred from HR-07's Quick Actions."
+      parameters:
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date-time }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: File stream.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ SETTINGS ============================================================
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Get system-wide configuration (HR-08)
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    patch:
+      tags: [Settings]
+      summary: Update system-wide configuration
+      description: Partial update — only the tab(s)/fields being changed need be sent, per HR-08's per-tab "Save Changes" pattern.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SystemSettings' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemSettings' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ============================================================ LOOKUPS ============================================================
+  /roles:
+    get:
+      tags: [Lookups]
+      summary: List system roles (user_roles lookup)
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RoleLookup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+# ================================================================================================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer JWT issued by `POST /auth/login` / `POST /auth/refresh`, sent as
+        `Authorization: Bearer <token>` on every call except `/auth/login`,
+        `/auth/register`, `/auth/refresh`, `/auth/forgot-password`, and
+        `/auth/reset-password` (HLD §09 API Design Conventions). The refresh
+        token itself travels only as an httpOnly cookie and is never exposed to
+        this bearer scheme.
+
+  parameters:
+    PageQuery:
+      name: page
+      in: query
+      description: 1-based page number.
+      schema: { type: integer, minimum: 1, default: 1 }
+    LimitQuery:
+      name: limit
+      in: query
+      description: Page size.
+      schema: { type: integer, minimum: 1, maximum: 200, default: 20 }
+    YearQuery:
+      name: year
+      in: query
+      schema: { type: integer }
+    RequestIdPath:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    ValidationError:
+      description: Request failed field-level validation.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid/expired access token.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated, but the caller's role does not permit this action.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource does not exist, or is not visible to the caller.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    # ---------- Envelope / shared ----------
+    Error:
+      type: object
+      description: Standard error envelope (HLD §09 API Design Conventions).
+      required: [success, error, path, timestamp]
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: "VALIDATION_ERROR" }
+            message: { type: string, example: "The request could not be processed." }
+            fieldErrors:
+              type: array
+              description: Present on HTTP 400 field-level validation failures.
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+        path: { type: string, example: "/leave-requests" }
+        timestamp: { type: string, format: date-time }
+
+    PagedResponse:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 20 }
+        totalCount: { type: integer, example: 137 }
+        totalPages: { type: integer, example: 7 }
+
+    Comment:
+      type: object
+      properties:
+        id: { type: integer }
+        requestId: { type: integer }
+        authorId: { type: integer }
+        authorName: { type: string }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Attachment:
+      type: object
+      description: |
+        Metadata for a file held in blob storage. The API never returns raw
+        bytes for this resource except via the dedicated download endpoint —
+        `blobUrl`/`downloadUrl` are what the UI actually fetches/renders.
+      properties:
+        id: { type: integer }
+        entityType:
+          type: string
+          enum: [LEAVE_REQUEST, COMP_OFF_REQUEST, USER_AVATAR, EMPLOYEE_IMPORT, HOLIDAY_IMPORT]
+        entityId: { type: integer, nullable: true }
+        fileName: { type: string }
+        contentType: { type: string }
+        sizeBytes: { type: integer }
+        storageProvider:
+          type: string
+          enum: [S3, AZURE_BLOB, GCS]
+          readOnly: true
+          description: Which blob store the object lives in. Informational; clients never need to branch on this.
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, DELETED]
+          readOnly: true
+          description: PENDING until an upload started via the presigned-URL flow is confirmed; DELETED is a soft-delete.
+        blobUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: CDN URL, or the last-issued presigned GET URL — the link the UI uses to render/preview the file (e.g. an avatar `<img>` src).
+        downloadUrl:
+          type: string
+          format: uri
+          description: A freshly-issued, short-lived presigned GET URL for downloading this specific file, returned by GET .../attachments/{id}.
+        uploadedBy: { type: integer }
+        uploadedAt: { type: string, format: date-time }
+
+    AttachmentUploadUrlInput:
+      type: object
+      description: Request a presigned URL to upload a file directly to blob storage, bypassing the API tier for the bytes themselves.
+      required: [fileName, contentType, sizeBytes, entityType]
+      properties:
+        fileName: { type: string, maxLength: 255 }
+        contentType: { type: string, example: "application/pdf" }
+        sizeBytes:
+          type: integer
+          description: Must not exceed 10 MB (10,485,760 bytes); the server rejects larger requests with 400 FILE_TOO_LARGE before issuing a URL.
+        entityType:
+          type: string
+          enum: [LEAVE_REQUEST, COMP_OFF_REQUEST, USER_AVATAR, EMPLOYEE_IMPORT, HOLIDAY_IMPORT]
+        entityId:
+          type: integer
+          nullable: true
+          description: Omit when the parent record (e.g. a DRAFT leave request) doesn't exist yet; attach it afterward via the entity's own attachments endpoint.
+
+    AttachmentUploadUrl:
+      type: object
+      properties:
+        attachmentId:
+          type: integer
+          description: A PENDING Attachment row created for this upload; call PATCH on it (or it auto-activates) once the client-side PUT to uploadUrl succeeds.
+        uploadUrl:
+          type: string
+          format: uri
+          description: Presigned PUT URL. The client uploads the raw file bytes directly here with an HTTP PUT — this call does not go through the LMS API.
+        storageKey:
+          type: string
+          description: Internal object key, echoed back for reference; not required by the client.
+        expiresAt:
+          type: string
+          format: date-time
+          description: Upload URL validity window, typically 15 minutes.
+
+    # ---------- Enums ----------
+    Role:
+      type: string
+      enum: [EMPLOYEE, MANAGER, HR_ADMIN]
+    RoleLookup:
+      type: object
+      properties:
+        roleId: { type: integer }
+        roleCode: { $ref: '#/components/schemas/Role' }
+        roleDescription: { type: string }
+    EmploymentStatus:
+      type: string
+      enum: [ACTIVE, ON_LEAVE, SEPARATED]
+    LeaveRequestStatus:
+      type: string
+      enum: [DRAFT, PENDING_L1, PENDING_L2, APPROVED, REJECTED, CANCELLED, WITHDRAWN]
+    SessionType:
+      type: string
+      enum: [FULL_DAY, FIRST_HALF, SECOND_HALF]
+    CompOffStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED, EXPIRED]
+    HolidayType:
+      type: string
+      enum: [NATIONAL, FESTIVAL, OPTIONAL, COMPANY, RESTRICTED]
+    NotificationChannel:
+      type: string
+      enum: [EMAIL, IN_APP]
+    NotificationQueueStatus:
+      type: string
+      enum: [QUEUED, SENT, FAILED, IN_PROGRESS, CANCELLED]
+    AuditAction:
+      type: string
+      enum: [CREATE, UPDATE, APPROVE, REJECT, CANCEL, DELEGATE, DELETE]
+    ApprovalLevel:
+      type: integer
+      description: "1 = manager, 2 = HR/Admin (triggered above the department's policy threshold)."
+      enum: [1, 2]
+
+    # ---------- Auth / Users ----------
+    AuthResponse:
+      type: object
+      properties:
+        accessToken: { type: string, description: "Short-lived JWT; kept in memory by the client, never persisted to storage." }
+        tokenType: { type: string, example: "Bearer" }
+        expiresIn: { type: integer, description: "Access-token lifetime in seconds.", example: 900 }
+        user: { $ref: '#/components/schemas/User' }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1042 }
+        employeeCode: { type: string, example: "EMP-1042" }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        departmentId: { type: integer }
+        departmentName: { type: string }
+        designation: { type: string }
+        reportsTo:
+          type: integer
+          nullable: true
+          description: "user_id of the direct manager."
+        reportsToName: { type: string, nullable: true }
+        dateOfJoining: { type: string, format: date }
+        employmentStatus: { $ref: '#/components/schemas/EmploymentStatus' }
+        workLocation: { type: string }
+        employmentType: { type: string, example: "Full-Time" }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        gender: { type: string, nullable: true }
+        bloodGroup: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        emergencyContact:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            relationship: { type: string }
+            phone: { type: string }
+            email: { type: string, format: email }
+        lastLoginAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    UserProfileUpdate:
+      type: object
+      description: Self-editable subset of User (EMP-09 "Personal Information" and "Emergency Contact" cards).
+      properties:
+        phone: { type: string }
+        dateOfBirth: { type: string, format: date }
+        gender: { type: string }
+        bloodGroup: { type: string }
+        address: { type: string }
+        emergencyContact:
+          type: object
+          properties:
+            name: { type: string }
+            relationship: { type: string }
+            phone: { type: string }
+            email: { type: string, format: email }
+
+    Employee:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          description: Same shape as User; exposed under /employees for HR administration.
+
+    EmployeeInput:
+      type: object
+      required: [fullName, email, departmentId, role, dateOfJoining]
+      properties:
+        employeeCode: { type: string, maxLength: 20 }
+        fullName: { type: string, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 150 }
+        phone: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        departmentId: { type: integer }
+        designation: { type: string }
+        reportsTo: { type: integer, nullable: true }
+        dateOfJoining: { type: string, format: date }
+        employmentStatus: { $ref: '#/components/schemas/EmploymentStatus' }
+        workLocation: { type: string }
+        employmentType: { type: string }
+
+    # ---------- Dashboard ----------
+    DashboardSummary:
+      type: object
+      properties:
+        availableLeave: { type: number, format: float, example: 18.5 }
+        usedLeave: { type: number, format: float, example: 7.5 }
+        pendingRequests: { type: integer, example: 2 }
+        compOffBalance: { type: number, format: float, example: 1.0 }
+
+    LeaveTrendPoint:
+      type: object
+      properties:
+        month: { type: string, example: "Jan" }
+        days: { type: number, format: float, example: 4 }
+
+    LeaveDistributionSlice:
+      type: object
+      properties:
+        label: { type: string, example: "Casual Leave" }
+        value: { type: number, format: float, example: 6 }
+        color: { type: string, example: "#2563eb" }
+
+    ManagerDashboardSummary:
+      type: object
+      description: "CONFIRMED against `mockManagerSummary` in the shipped frontend."
+      properties:
+        totalTeamSize: { type: integer, example: 28 }
+        activeEmployees: { type: integer, example: 26 }
+        pendingApprovals: { type: integer, example: 5 }
+        pendingUrgent:
+          type: boolean
+          example: true
+          description: "Flags whether any pending item is at risk of breaching its SLA window, driving the urgency indicator on the KPI card."
+        leavesThisMonth: { type: integer, example: 18 }
+        leavesThisMonthChangePct:
+          type: number
+          format: float
+          example: 12
+          description: "Percentage change vs. the prior month; sign indicates increase/decrease."
+        availableBalanceAvg:
+          type: number
+          format: float
+          example: 16.2
+          description: "Average available leave balance across the team, in days."
+
+    PendingApprovalPreview:
+      type: object
+      description: "CONFIRMED against `mockPendingApprovals`. A condensed row for the dashboard widget — see LeaveRequest for the full resource."
+      properties:
+        id: { type: string, example: "LR-2024-201", description: "displayId of the underlying leave request." }
+        name: { type: string, example: "Priya Sharma", description: "Requesting employee's display name." }
+        type: { type: string, example: "Casual Leave" }
+        dateRange: { type: string, example: "20 May 2024", description: "Pre-formatted display string." }
+        days: { type: number, format: float, example: 1 }
+
+    TeamLeaveOverviewRow:
+      type: object
+      description: "CONFIRMED against `mockTeamLeaveOverview`. One row per department under the manager's org scope."
+      properties:
+        department: { type: string, example: "Engineering" }
+        totalMembers: { type: integer, example: 14 }
+        onLeaveToday: { type: integer, example: 2 }
+        leavesThisMonth: { type: integer, example: 8 }
+        availableBalanceAvg: { type: number, format: float, example: 15.6 }
+
+    UpcomingTeamLeave:
+      type: object
+      description: "CONFIRMED against `mockUpcomingTeamLeaves`."
+      properties:
+        day: { type: string, example: "27", description: "Day-of-month, pre-formatted 2-digit string for calendar-tile display." }
+        month: { type: string, example: "MAY", description: "3-letter month abbreviation, uppercase." }
+        name: { type: string, example: "Sneha Patel" }
+        type: { type: string, example: "Earned Leave" }
+        dateRange: { type: string, example: "27 May - 29 May 2024" }
+
+    # ---------- Leave Requests ----------
+    LeaveRequestInput:
+      type: object
+      required: [categoryId, startDate, endDate, sessionType, reason]
+      properties:
+        categoryId: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        sessionType: { $ref: '#/components/schemas/SessionType' }
+        reason: { type: string, maxLength: 2000 }
+        contactNumber: { type: string }
+        addressDuringLeave: { type: string }
+        handoverTo: { type: integer, nullable: true, description: "user_id of the coverage/handover contact." }
+        handoverNotes: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [DRAFT, PENDING_L1]
+          default: PENDING_L1
+          description: "Send DRAFT for “Save Draft”; omit or send PENDING_L1 to submit immediately."
+        attachmentIds:
+          type: array
+          items: { type: integer }
+          description: "IDs from prior POST /leave-requests/{requestId}/attachments calls, if attaching before the parent request exists is supported by the client flow; otherwise attach after creation."
+
+    LeaveRequest:
+      type: object
+      properties:
+        id: { type: integer, example: 10452 }
+        displayId: { type: string, example: "LR-2024-125" }
+        userId: { type: integer }
+        employeeName: { type: string }
+        categoryId: { type: integer }
+        categoryName: { type: string, example: "Casual Leave" }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        sessionType: { $ref: '#/components/schemas/SessionType' }
+        totalDays: { type: number, format: float, example: 3 }
+        reason: { type: string }
+        status: { $ref: '#/components/schemas/LeaveRequestStatus' }
+        currentApproverId: { type: integer, nullable: true }
+        currentApproverName: { type: string, nullable: true }
+        appliedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    LeaveRequestDetail:
+      allOf:
+        - $ref: '#/components/schemas/LeaveRequest'
+        - type: object
+          properties:
+            contactNumber: { type: string }
+            addressDuringLeave: { type: string }
+            handoverTo: { type: integer, nullable: true }
+            handoverToName: { type: string, nullable: true }
+            handoverNotes: { type: string, nullable: true }
+            employee: { $ref: '#/components/schemas/User' }
+            balanceAsOfRequestDate:
+              type: array
+              items: { $ref: '#/components/schemas/LeaveLedgerSummary' }
+            attachments:
+              type: array
+              items: { $ref: '#/components/schemas/Attachment' }
+            approvals:
+              type: array
+              items: { $ref: '#/components/schemas/LeaveApproval' }
+            teamImpact:
+              type: array
+              nullable: true
+              description: "MGR-03 “Team Impact” tab — overlapping team commitments and backup coverage, where available."
+              items:
+                type: object
+                properties:
+                  description: { type: string }
+                  backupPerson: { type: string, nullable: true }
+
+    LeaveDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [APPROVED, REJECTED] }
+        comments:
+          type: string
+          maxLength: 2000
+          description: Mandatory when decision = REJECTED (DB design's leave_approvals.comments note).
+
+    LeaveApproval:
+      type: object
+      properties:
+        id: { type: integer }
+        requestId: { type: integer }
+        approverId: { type: integer }
+        approverName: { type: string }
+        actingAsDelegateFor: { type: integer, nullable: true, description: "user_id of the manager being covered, if this decision was made by a delegate." }
+        level: { $ref: '#/components/schemas/ApprovalLevel' }
+        decision: { type: string, enum: [APPROVED, REJECTED] }
+        decidedAt: { type: string, format: date-time }
+        comments: { type: string, nullable: true }
+
+    # ---------- Comp-Off ----------
+    CompOffRequestInput:
+      type: object
+      required: [workedOn, reason, hoursWorked]
+      properties:
+        workedOn: { type: string, format: date, description: "The holiday/weekend date worked." }
+        reason: { type: string, maxLength: 2000 }
+        hoursWorked: { type: number, format: float, description: "Used by the server to derive daysCredited (typically 0.5 or 1.0) per policy." }
+
+    CompOffRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        displayId: { type: string, example: "CO-2024-014" }
+        userId: { type: integer }
+        employeeName: { type: string }
+        workedOn: { type: string, format: date }
+        reason: { type: string }
+        daysCredited: { type: number, format: float, example: 1.0 }
+        expiryDate: { type: string, format: date, nullable: true }
+        status: { $ref: '#/components/schemas/CompOffStatus' }
+        approverId: { type: integer, nullable: true }
+        approverName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    CompOffDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [APPROVED, REJECTED] }
+        comments: { type: string, maxLength: 2000 }
+
+    # ---------- Leave Ledger ----------
+    LeaveLedgerSummary:
+      type: object
+      properties:
+        categoryId: { type: integer }
+        categoryName: { type: string }
+        fiscalYear: { type: integer }
+        openingBalance: { type: number, format: float }
+        accrued: { type: number, format: float }
+        used: { type: number, format: float }
+        encashed: { type: number, format: float }
+        carriedForward: { type: number, format: float }
+        closingBalance: { type: number, format: float }
+        availableBalance: { type: number, format: float, description: "closingBalance, surfaced for UI clarity." }
+
+    LeaveLedgerTransaction:
+      type: object
+      properties:
+        id: { type: integer }
+        date: { type: string, format: date }
+        categoryId: { type: integer }
+        categoryName: { type: string }
+        description: { type: string }
+        credit: { type: number, format: float, nullable: true }
+        debit: { type: number, format: float, nullable: true }
+        runningBalance: { type: number, format: float }
+        referenceType: { type: string, example: "LEAVE_REQUEST" }
+        referenceId: { type: integer }
+
+    # ---------- Delegations ----------
+    DelegationInput:
+      type: object
+      required: [delegateId, startDate, endDate]
+      properties:
+        delegateId: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        departmentIds:
+          type: array
+          items: { type: integer }
+          description: "Scope by department; omit/empty for “All Departments” (MGR-06)."
+        categoryIds:
+          type: array
+          items: { type: integer }
+          description: "Scope by leave type; omit/empty for “All Types” (MGR-06)."
+
+    Delegation:
+      type: object
+      properties:
+        id: { type: integer }
+        delegatorId: { type: integer }
+        delegatorName: { type: string }
+        delegateId: { type: integer }
+        delegateName: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        isActive: { type: boolean }
+        computedStatus:
+          type: string
+          enum: [ACTIVE, UPCOMING, PAST, REVOKED]
+          description: Derived server-side from isActive + start/end date, for the MGR-06 tabs.
+        departmentIds:
+          type: array
+          items: { type: integer }
+        categoryIds:
+          type: array
+          items: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    # ---------- Holidays ----------
+    HolidayInput:
+      type: object
+      required: [holidayName, holidayDate, holidayType]
+      properties:
+        holidayName: { type: string, maxLength: 100 }
+        holidayDate: { type: string, format: date }
+        departmentId: { type: integer, nullable: true, description: "NULL = organization-wide." }
+        holidayType: { $ref: '#/components/schemas/HolidayType' }
+        isRestricted: { type: boolean, default: false, description: "Optional/floater holiday flag." }
+        location: { type: string, nullable: true }
+
+    Holiday:
+      type: object
+      properties:
+        id: { type: integer }
+        holidayName: { type: string }
+        holidayDate: { type: string, format: date }
+        day: { type: string, example: "Wed" }
+        departmentId: { type: integer, nullable: true }
+        holidayType: { $ref: '#/components/schemas/HolidayType' }
+        isRestricted: { type: boolean }
+        location: { type: string, nullable: true }
+
+    # ---------- Leave Categories ----------
+    LeaveCategoryInput:
+      type: object
+      required: [categoryName, isPaid]
+      properties:
+        categoryName: { type: string, maxLength: 50 }
+        categoryCode: { type: string, maxLength: 20 }
+        categoryType:
+          type: string
+          enum: [STANDARD, ACCRUAL, COMPENSATORY, SPECIAL, OTHER]
+        applicableTo:
+          type: string
+          enum: [ALL_EMPLOYEES, MALE, FEMALE, DEPARTMENT_SPECIFIC]
+          default: ALL_EMPLOYEES
+        isPaid: { type: boolean }
+        requiresDocument: { type: boolean, default: false }
+        defaultAnnualQuota: { type: number, format: float }
+        status: { type: string, enum: [ACTIVE, INACTIVE], default: ACTIVE }
+
+    LeaveCategory:
+      allOf:
+        - $ref: '#/components/schemas/LeaveCategoryInput'
+        - type: object
+          properties:
+            id: { type: integer }
+            isSystemCategory: { type: boolean, description: "System-defined categories can only be deactivated, never deleted (HR-03)." }
+
+    # ---------- Leave Policies ----------
+    LeavePolicyInput:
+      type: object
+      required: [categoryId, annualQuota, effectiveFrom]
+      properties:
+        policyName: { type: string }
+        policyCode: { type: string }
+        categoryId: { type: integer }
+        departmentId: { type: integer, nullable: true, description: "NULL = organization-wide." }
+        annualQuota: { type: number, format: float }
+        maxCarryForward: { type: number, format: float }
+        minNoticeDays: { type: integer }
+        maxConsecutiveDays: { type: integer }
+        accrualFrequency:
+          type: string
+          enum: [ANNUAL, MONTHLY, QUARTERLY]
+        effectiveFrom: { type: string, format: date }
+        status: { type: string, enum: [DRAFT, ACTIVE, ARCHIVED], default: DRAFT }
+
+    LeavePolicy:
+      allOf:
+        - $ref: '#/components/schemas/LeavePolicyInput'
+        - type: object
+          properties:
+            id: { type: integer }
+            categoryName: { type: string }
+            departmentName: { type: string, nullable: true }
+            createdAt: { type: string, format: date-time }
+
+    # ---------- Departments ----------
+    DepartmentInput:
+      type: object
+      required: [departmentName]
+      properties:
+        departmentName: { type: string, maxLength: 100 }
+        departmentHeadId: { type: integer, nullable: true }
+
+    Department:
+      allOf:
+        - $ref: '#/components/schemas/DepartmentInput'
+        - type: object
+          properties:
+            id: { type: integer }
+            departmentHeadName: { type: string, nullable: true }
+            memberCount: { type: integer }
+
+    # ---------- Team ----------
+    TeamMember:
+      type: object
+      properties:
+        id: { type: integer }
+        employeeCode: { type: string }
+        fullName: { type: string }
+        departmentId: { type: integer }
+        departmentName: { type: string }
+        designation: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        status:
+          type: string
+          enum: [AVAILABLE, ON_LEAVE]
+        avatarUrl: { type: string, format: uri, nullable: true }
+
+    TeamCalendarDay:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              userId: { type: integer }
+              fullName: { type: string }
+              avatarUrl: { type: string, format: uri, nullable: true }
+              categoryId: { type: integer }
+              categoryName: { type: string }
+              sessionType: { $ref: '#/components/schemas/SessionType' }
+
+    # ---------- Reports ----------
+    ReportSummary:
+      type: object
+      properties:
+        totalLeavesTaken: { type: number, format: float }
+        totalEmployees: { type: integer }
+        avgLeavePerEmployee: { type: number, format: float }
+        approvalRate: { type: number, format: float, description: "Percentage, 0-100." }
+        pendingRequests: { type: integer }
+        insights:
+          type: array
+          description: "Auto-generated “Insights & Observations” narrative bullets (HR-05)."
+          items: { type: string }
+
+    # ---------- Audit Trail ----------
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        entityType: { type: string, example: "LEAVE_REQUEST" }
+        entityId: { type: integer }
+        action: { $ref: '#/components/schemas/AuditAction' }
+        performedBy: { type: integer }
+        performedByName: { type: string }
+        description: { type: string }
+        module: { type: string, example: "Leave Requests" }
+        status: { type: string, enum: [SUCCESS, FAILED], default: SUCCESS }
+        ipAddress: { type: string }
+        performedAt: { type: string, format: date-time }
+
+    AuditLogEntryDetail:
+      allOf:
+        - $ref: '#/components/schemas/AuditLogEntry'
+        - type: object
+          properties:
+            beforeState:
+              type: object
+              additionalProperties: true
+              nullable: true
+            afterState:
+              type: object
+              additionalProperties: true
+              nullable: true
+
+    # ---------- Notifications ----------
+    Notification:
+      type: object
+      properties:
+        id: { type: integer }
+        category: { type: string, enum: [REQUESTS, APPROVALS, SYSTEM] }
+        title: { type: string }
+        description: { type: string }
+        isRead: { type: boolean }
+        relatedEntityType: { type: string, nullable: true }
+        relatedEntityId: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    NotificationPreferences:
+      type: object
+      properties:
+        leaveRequestUpdates: { type: boolean }
+        approvalNotifications: { type: boolean }
+        compOffUpdates: { type: boolean }
+        policyUpdates: { type: boolean }
+        systemNotifications: { type: boolean }
+        holidayReminders: { type: boolean }
+
+    NotificationQueueItem:
+      type: object
+      properties:
+        id: { type: integer }
+        recipientId: { type: integer }
+        recipientName: { type: string }
+        templateCode: { type: string, example: "LEAVE_APPROVED" }
+        subject: { type: string }
+        channel: { $ref: '#/components/schemas/NotificationChannel' }
+        status: { $ref: '#/components/schemas/NotificationQueueStatus' }
+        relatedEntityType: { type: string, nullable: true }
+        relatedEntityId: { type: integer, nullable: true }
+        retryCount: { type: integer, default: 0, description: "Auto-retries up to 3 times before requiring manual intervention (HR-07)." }
+        scheduledAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        sentAt: { type: string, format: date-time, nullable: true }
+        sourceEventId:
+          type: integer
+          nullable: true
+          readOnly: true
+          description: The outbox_events row (Kafka message) this row was fanned out from — lets HR trace a queue item back to the originating domain event.
+        kafkaTopic: { type: string, nullable: true, readOnly: true, example: "lms.notifications.v1" }
+        kafkaPartition: { type: integer, nullable: true, readOnly: true }
+        kafkaOffset: { type: integer, nullable: true, readOnly: true, description: "Offset within the partition, for replay/debugging by ops." }
+
+    # ---------- Settings ----------
+    SystemSettings:
+      type: object
+      description: "Maps to HR-08's tabbed sections; send only the section(s) being changed on PATCH."
+      properties:
+        general:
+          type: object
+          properties:
+            companyName: { type: string }
+            companyEmail: { type: string, format: email }
+            contactNumber: { type: string }
+            logoUrl: { type: string, format: uri, nullable: true }
+            dateFormat: { type: string, example: "DD/MM/YYYY" }
+            timeFormat: { type: string, example: "24h" }
+            timezone: { type: string, example: "Asia/Kolkata" }
+            language: { type: string, example: "en" }
+        leaveSettings:
+          type: object
+          properties:
+            maxLeaveDays: { type: integer }
+            advanceLeaveDays: { type: integer }
+            cancellationWindowDays: { type: integer }
+            minNoticePeriodDays: { type: integer }
+            probationAccessEnabled: { type: boolean }
+            carryForwardEnabled: { type: boolean }
+        approvalWorkflow:
+          type: object
+          properties:
+            twoStepApprovalEnabled:
+              type: boolean
+              description: "Whether HR review is required after manager approval, org-wide (per UI/UX §10.2 assumption that this is configurable, not mandatory)."
+            autoApproveSmallLeaves: { type: boolean }
+            backdatedLeaveRestricted: { type: boolean }
+        systemPreferences:
+          type: object
+          properties:
+            employeeSelfRegistration:
+              type: boolean
+              default: false
+              description: "Gates POST /auth/register. Off by default — while off, that endpoint returns 403 with the message \"Contact HR to get enabled.\""
+            leaveBalanceDisplayEnabled: { type: boolean }
+            weekendSelectionEnabled: { type: boolean }
+            holidayDisplayEnabled: { type: boolean }
+        notifications:
+          type: object
+          properties:
+            emailProvider: { type: string, example: "SendGrid" }
+            smsProvider: { type: string, example: "Twilio", nullable: true }
+        security:
+          type: object
+          properties:
+            passwordMinLength: { type: integer, default: 8 }
+            ssoGoogleEnabled: { type: boolean }
+            ssoMicrosoftEnabled: { type: boolean }
+        integrations:
+          type: object
+          properties:
+            calendarSyncProvider: { type: string, nullable: true, example: "Google" }
+            ssoProvider: { type: string, nullable: true, example: "Azure AD" }
+        systemInfo:
+          type: object
+          readOnly: true
+          properties:
+            version: { type: string }
+            environment: { type: string }
+            databaseVersion: { type: string }
+            lastUpdatedBy: { type: string }
+            lastUpdatedAt: { type: string, format: date-time }
