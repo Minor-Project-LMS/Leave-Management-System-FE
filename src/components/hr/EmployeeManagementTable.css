@@ -1,0 +1,143 @@
+.employee-table-wrap {
+  overflow-x: auto;
+}
+
+.employee-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.employee-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-light);
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.employee-table td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.employee-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.employee-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+.employee-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.employee-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.employee-name-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.employee-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.employee-joined {
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.employee-muted {
+  color: var(--text-secondary);
+}
+
+.employee-actions-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.employee-actions-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.employee-actions-btn:hover {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.employee-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 170px;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.employee-actions-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.employee-actions-menu button:hover {
+  background: var(--bg-light);
+}
+
+.employee-actions-menu button.danger {
+  color: #b91c1c;
+}
+
+.employee-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 0.25rem;
+}
+
+.employee-table-count {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}

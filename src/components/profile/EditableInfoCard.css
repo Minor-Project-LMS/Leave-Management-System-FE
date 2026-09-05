@@ -1,0 +1,97 @@
+.editable-info-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+}
+
+.editable-info-edit-btn:hover {
+  text-decoration: underline;
+}
+
+.editable-info-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.85rem;
+}
+
+.editable-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.editable-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.editable-info-row dt {
+  color: var(--text-light);
+  flex-shrink: 0;
+  min-width: 90px;
+}
+
+.editable-info-row dd {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  margin: 0;
+}
+
+.editable-info-row input,
+.editable-info-row select {
+  flex: 1;
+  max-width: 220px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.editable-info-row input:focus,
+.editable-info-row select:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+.editable-info-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.editable-info-btn {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+}
+
+.editable-info-btn.cancel {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.editable-info-btn.save {
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.editable-info-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

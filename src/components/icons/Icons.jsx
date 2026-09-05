@@ -278,3 +278,103 @@ export const UploadIcon = (props) => (
     <path d="M12 21V9M7 14l5-5 5 5M4 21h16" />
   </svg>
 );
+
+export const MoreVerticalIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const EditIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+export const ShieldIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6Z" />
+    <path d="M9.5 12l1.8 1.8L14.5 10" />
+  </svg>
+);
+
+export const CameraIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle cx="12" cy="14" r="3.5" />
+  </svg>
+);
+
+export const EyeOffIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+    <path d="M9.5 5.4A10.4 10.4 0 0 1 12 5c5 0 9 4.5 10 7-0.4 1-1.3 2.5-2.6 3.9M6.2 6.2C4 7.6 2.4 9.7 2 12c1 2.5 5 7 10 7 1.2 0 2.4-.2 3.4-.6" />
+  </svg>
+);
+
+export const ArrowLeftIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+
+export const MessageSquareIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+  </svg>
+);
+
+export const BuildingIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="4" y="2" width="16" height="20" rx="2" />
+    <path d="M9 2v20M15 2v20M4 10h16M4 16h16M8 6h2M14 6h2M8 12h2M14 12h2M8 18h2M14 18h2" />
+  </svg>
+);
+
+export const AlertCircleIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v4M12 16h.01" />
+  </svg>
+);
+
+export const SwapIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M7 3v14M7 3l-4 4M7 3l4 4" />
+    <path d="M17 21V7M17 21l-4-4M17 21l4-4" />
+  </svg>
+);
+
+export const ArchiveIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v10a1 1 0 001 1h12a1 1 0 001-1V8M10 13h4" />
+  </svg>
+);
+
+export const HelpCircleIcon = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+    <path d="M12 17h.01" />
+  </svg>
+);
+
+export const FileIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <path d="M14 2v6h6" />
+  </svg>
+);
+
+export const ImageIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="M21 15l-5-5L5 21" />
+  </svg>
+);

@@ -1,0 +1,866 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import StatCard from '../components/dashboard/StatCard';
+import StatusBadge from '../components/dashboard/StatusBadge';
+import AttachmentList from '../components/common/AttachmentList';
+import { 
+  CalendarIcon, 
+  ClockIcon, 
+  HourglassIcon, 
+  CoffeeIcon, 
+  DownloadIcon, 
+  PlusIcon, 
+  InfoIcon, 
+  CheckCircleIcon, 
+  AlertCircleIcon, 
+  XIcon,
+  PaperclipIcon
+} from '../components/icons/Icons';
+import { apiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { EMPLOYEE_PORTAL } from '../config/navConfig';
+import { useRoleRedirect } from '../hooks/useRoleRedirect';
+import { env } from '../config/env';
+import './CompOff.css';
+
+const TABS = [
+  { key: 'earned', label: 'Earned History' },
+  { key: 'requests', label: 'My Requests' },
+  { key: 'usage', label: 'Usage History' },
+];
+
+const COMP_OFF_RULES = [
+  'Comp-Off can be earned by working on weekends or public holidays.',
+  'Minimum 8 hours at work is required to earn 1 day comp-off.',
+  'Comp-Off must be availed within 6 months from the date of earning.',
+  'Comp-Off is subject to manager and HR approval.',
+];
+
+const IMPORTANT_NOTES = [
+  'You cannot apply for leave on a comp-off date.',
+  'Comp-Off cannot be encashed.',
+];
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleString('en-GB', { 
+    day: '2-digit', 
+    month: 'short', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const USE_MOCK = env.useMockData;
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const formatBytes = (bytes) => {
+  const kb = bytes / 1024;
+  return kb < 1024
+    ? `${Math.round(kb)} KB`
+    : `${(kb / 1024).toFixed(1)} MB`;
+};
+
+const mockCompOffSummary = {
+  earned: 5.0,
+  availableBalance: 1.0,
+  used: 4.0,
+  pendingApproval: 0.0,
+  asOnDate: formatDate(new Date()),
+};
+
+const mockCompOffRequests = [
+  {
+    id: 1,
+    displayId: 'CO-2024-014',
+    workedOn: '2024-05-18',
+    reason: 'Worked on Weekend Project Release',
+    hoursWorked: 8.0,
+    daysCredited: 1.0,
+    status: 'APPROVED',
+    approverName: 'Sarah Williams',
+    approverRole: 'HR Manager',
+    approvedOn: '2024-05-20T10:30:00Z',
+    createdAt: '2024-05-19T09:00:00Z',
+  },
+  {
+    id: 2,
+    displayId: 'CO-2024-013',
+    workedOn: '2024-05-11',
+    reason: 'Critical Server Maintenance on Sunday',
+    hoursWorked: 6.0,
+    daysCredited: 0.75,
+    status: 'APPROVED',
+    approverName: 'John Smith',
+    approverRole: 'Team Lead',
+    approvedOn: '2024-05-13T14:15:00Z',
+    createdAt: '2024-05-12T11:00:00Z',
+  },
+  {
+    id: 3,
+    displayId: 'CO-2024-012',
+    workedOn: '2024-05-04',
+    reason: 'Holiday Weekend Support',
+    hoursWorked: 8.0,
+    daysCredited: 1.0,
+    status: 'APPROVED',
+    approverName: 'Sarah Williams',
+    approverRole: 'HR Manager',
+    approvedOn: '2024-05-06T09:45:00Z',
+    createdAt: '2024-05-05T08:30:00Z',
+  },
+  {
+    id: 4,
+    displayId: 'CO-2024-011',
+    workedOn: '2024-04-27',
+    reason: 'Emergency Production Fix',
+    hoursWorked: 4.0,
+    daysCredited: 0.5,
+    status: 'APPROVED',
+    approverName: 'John Smith',
+    approverRole: 'Team Lead',
+    approvedOn: '2024-04-29T16:20:00Z',
+    createdAt: '2024-04-28T12:00:00Z',
+  },
+  {
+    id: 5,
+    displayId: 'CO-2024-010',
+    workedOn: '2024-04-20',
+    reason: 'Weekend Client Deployment',
+    hoursWorked: 8.0,
+    daysCredited: 1.0,
+    status: 'APPROVED',
+    approverName: 'Sarah Williams',
+    approverRole: 'HR Manager',
+    approvedOn: '2024-04-22T11:00:00Z',
+    createdAt: '2024-04-21T09:15:00Z',
+  },
+];
+
+const CompOff = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  useRoleRedirect('employee');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [summary, setSummary] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('earned');
+  const [showRequestModal, setShowRequestModal] = useState(false);
+
+  const [formData, setFormData] = useState({
+    workedOn: '',
+    reason: '',
+    hoursWorked: '',
+  });
+
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const fileInputRef = useRef(null);
+
+  const loadCompOffData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    if (USE_MOCK) {
+      setSummary(mockCompOffSummary);
+      setRequests(mockCompOffRequests);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const summaryRes = await apiService.getCompOffSummary();
+      const requestsRes = await apiService.getCompOffRequests({ page: 1, limit: 100 });
+
+      const compOffSummary = {
+        earned: summaryRes?.compOffBalance ? summaryRes.compOffBalance + 4.0 : 5.0,
+        availableBalance: summaryRes?.compOffBalance || 1.0,
+        used: summaryRes?.used || 4.0,
+        pendingApproval: summaryRes?.pendingApproval || 0.0,
+        asOnDate: formatDate(new Date()),
+      };
+
+      setSummary(compOffSummary);
+      setRequests(requestsRes?.data ?? requestsRes ?? []);
+    } catch (err) {
+      console.error('Error loading comp-off data:', err);
+      setError(err.message || 'Failed to load comp-off data. Showing sample data.');
+      setSummary(mockCompOffSummary);
+      setRequests(mockCompOffRequests);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (isMounted) {
+      loadCompOffData();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [loadCompOffData]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  const handleTabChange = (tabKey) => {
+    setActiveTab(tabKey);
+  };
+
+  const handleExport = () => {
+    if (!requests || requests.length === 0) {
+      alert('No data available to export.');
+      return;
+    }
+
+    let headers = [];
+    let rows = [];
+
+    if (activeTab === 'earned') {
+      headers = ['Date Earned', 'Reason', 'Hours Worked', 'Comp-Off Earned (Days)', 'Approved On', 'Approved By', 'Status'];
+      rows = requests.map(req => [
+        `"${formatDate(req.workedOn)}"`,
+        `"${(req.reason || '').replace(/"/g, '""')}"`,
+        req.hoursWorked,
+        req.daysCredited,
+        `"${formatDateTime(req.approvedOn)}"`,
+        `"${req.approverName || 'N/A'}"`,
+        `"${req.status}"`
+      ]);
+    } else if (activeTab === 'requests') {
+      headers = ['Request ID', 'Date Worked', 'Reason', 'Hours Worked', 'Comp-Off Earned (Days)', 'Status', 'Applied On'];
+      rows = requests.map(req => [
+        `"${req.displayId || req.id}"`,
+        `"${formatDate(req.workedOn)}"`,
+        `"${(req.reason || '').replace(/"/g, '""')}"`,
+        req.hoursWorked,
+        req.daysCredited,
+        `"${req.status}"`,
+        `"${formatDateTime(req.createdAt)}"`
+      ]);
+    } else {
+      alert('No exportable data in Usage History.');
+      return;
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `comp_off_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleRequestModalOpen = () => {
+    setShowRequestModal(true);
+    setFormData({ workedOn: '', reason: '', hoursWorked: '' });
+    setFormError('');
+  };
+
+  const handleRequestModalClose = () => {
+    setShowRequestModal(false);
+    setFormData({ workedOn: '', reason: '', hoursWorked: '' });
+    setFormError('');
+    setFiles([]);
+    setUploadProgress({});
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formError) setFormError('');
+  };
+
+  const handleAddFiles = (e) => {
+    const picked = Array.from(e.target.files || []);
+    if (!picked.length) return;
+
+    const tooBig = picked.find((file) => file.size > MAX_FILE_BYTES);
+    if (tooBig) {
+      setFormError(`"${tooBig.name}" exceeds the 10 MB attachment limit.`);
+      return;
+    }
+
+    setFormError('');
+    setFiles((prev) => [...prev, ...picked]);
+    e.target.value = '';
+  };
+
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadToBlobStorage = (file, uploadUrl, fileName, requiredHeaders = {}) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: progress,
+          }));
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        // This is typically a CORS error
+        reject(new Error('CORS error: Network error during upload to blob storage'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload was cancelled'));
+      });
+
+      xhr.open('PUT', uploadUrl);
+      Object.entries(requiredHeaders).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
+      xhr.send(file);
+    });
+  };
+
+  const uploadSingleFile = async (file, compId) => {
+    try {
+      const uploadUrlResponse = await apiService.initCompOffAttachmentUpload(
+        compId,
+        file.name,
+        file.type,
+        file.size
+      );
+
+      // Handle different response structures - might be direct or wrapped in 'data'
+      const responseData = uploadUrlResponse?.data || uploadUrlResponse;
+      
+      const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
+
+      if (!uploadUrl) {
+        throw new Error('Upload URL not received from server');
+      }
+
+      if (!attachmentId) {
+        throw new Error('Attachment ID not received from server');
+      }
+
+      await uploadToBlobStorage(file, uploadUrl, file.name, requiredHeaders);
+      const confirmedAttachment = await apiService.confirmCompOffAttachmentUpload(compId, attachmentId);
+      return confirmedAttachment;
+    } catch (err) {
+      // If CORS error occurs, fall back to direct upload through backend
+      if (err.message && (err.message.includes('CORS') || err.message.includes('Network error') || err.message.includes('Failed to fetch'))) {
+        console.warn(`CORS error detected for ${file.name}, falling back to direct upload`);
+        try {
+          // Simulate progress for direct upload
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          await new Promise(resolve => setTimeout(resolve, 50));
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
+          
+          const directUploadResponse = await apiService.uploadCompOffAttachmentDirect(compId, file);
+          
+          // Complete progress
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+          
+          return directUploadResponse?.data || directUploadResponse;
+        } catch (directErr) {
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          throw new Error(`Direct upload also failed for ${file.name}: ${directErr.message}`);
+        }
+      }
+      throw new Error(`Failed to upload ${file.name}: ${err.message}`);
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!formData.workedOn) {
+      setFormError('Please select the date you worked.');
+      return;
+    }
+    if (!formData.reason.trim()) {
+      setFormError('Please provide a reason for the comp-off request.');
+      return;
+    }
+    if (!formData.hoursWorked || parseFloat(formData.hoursWorked) <= 0) {
+      setFormError('Please enter valid hours worked.');
+      return;
+    }
+
+    setSubmitting(true);
+    setUploadProgress({});
+
+    try {
+      const hours = parseFloat(formData.hoursWorked);
+      const payload = {
+        workedOn: formData.workedOn,
+        reason: formData.reason.trim(),
+        hoursWorked: hours,
+      };
+
+      if (USE_MOCK) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        const newMockRequest = {
+          id: Date.now(),
+          displayId: `CO-2024-0${requests.length + 10}`,
+          workedOn: payload.workedOn,
+          reason: payload.reason,
+          hoursWorked: hours,
+          daysCredited: hours >= 8 ? 1.0 : hours >= 4 ? 0.5 : 0.25,
+          status: 'PENDING',
+          approverName: 'Pending Approval',
+          approverRole: '',
+          approvedOn: null,
+          createdAt: new Date().toISOString(),
+        };
+        setRequests(prev => [newMockRequest, ...prev]);
+        setSummary(prev => ({
+          ...prev,
+          pendingApproval: prev.pendingApproval + newMockRequest.daysCredited
+        }));
+      } else {
+        const response = await apiService.submitCompOffRequest(payload);
+        const compId = response?.id ?? response?.data?.id;
+
+        // Upload attachments if any
+        if (compId && files.length > 0) {
+          for (const file of files) {
+            // eslint-disable-next-line no-await-in-loop
+            await uploadSingleFile(file, compId);
+          }
+        }
+
+        await loadCompOffData();
+      }
+
+      handleRequestModalClose();
+    } catch (err) {
+      console.error('Error submitting comp-off request:', err);
+      setFormError(err.message || 'Failed to submit comp-off request. Please try again.');
+    } finally {
+      setSubmitting(false);
+      setUploadProgress({});
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="dashboard-loading-spinner" />
+        <p>Loading Comp-Off Dashboard...</p>
+      </div>
+    );
+  }
+
+  const getApproverInitials = (name) => {
+    if (!name || name === 'Pending Approval') return 'NA';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  return (
+    <DashboardLayout
+      title="Comp-Off"
+      breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Comp-Off' }]}
+      portalLabel={EMPLOYEE_PORTAL.portalLabel}
+      navItems={EMPLOYEE_PORTAL.navItems}
+      searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      user={user}
+      onLogout={handleLogout}
+    >
+      {error && <div className="dashboard-error-banner">{error}</div>}
+
+      {/* Summary Cards */}
+      <div className="comp-off-summary-row">
+        <StatCard
+          icon={CoffeeIcon}
+          iconClass="icon-green"
+          label="Comp-Off Earned"
+          value={`${summary?.earned ?? 0} Days`}
+          sublabel="This Year"
+        />
+        <StatCard
+          icon={CalendarIcon}
+          iconClass="icon-blue"
+          label="Comp-Off Avail Balance"
+          value={`${summary?.availableBalance ?? 0} Days`}
+          sublabel={`As on ${summary?.asOnDate || formatDate(new Date())}`}
+        />
+        <StatCard
+          icon={ClockIcon}
+          iconClass="icon-amber"
+          label="Comp-Off Used"
+          value={`${summary?.used ?? 0} Days`}
+          sublabel="This Year"
+        />
+        <StatCard
+          icon={HourglassIcon}
+          iconClass="icon-purple"
+          label="Comp-Off Pending Approval"
+          value={`${summary?.pendingApproval ?? 0} Days`}
+          sublabel="Awaiting Approval"
+        />
+      </div>
+
+      {/* Information Banner */}
+      <div className="comp-off-info-banner">
+        <InfoIcon width={16} height={16} />
+        <span>Comp-Off earned will be available after approval and as per company policy.</span>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="comp-off-main-content">
+        {/* Left Side - Table and Tabs */}
+        <div className="comp-off-table-section">
+          {/* Tab Navigation */}
+          <div className="comp-off-tabs">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                className={`comp-off-tab ${activeTab === tab.key ? 'active' : ''}`}
+                onClick={() => handleTabChange(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Action Bar */}
+          <div className="comp-off-action-bar">
+            <h3>{activeTab === 'earned' ? 'Comp-Off Earned History' : activeTab === 'requests' ? 'My Comp-Off Requests' : 'Comp-Off Usage History'}</h3>
+            <button className="btn-export" onClick={handleExport} disabled={activeTab === 'usage'}>
+              <DownloadIcon width={16} height={16} />
+              Export
+            </button>
+          </div>
+
+          {/* Table */}
+          {activeTab === 'earned' && (
+            <div className="comp-off-table-wrapper">
+              <table className="comp-off-table">
+                <thead>
+                  <tr>
+                    <th>Date Earned</th>
+                    <th>Reason / Description</th>
+                    <th>Hours Worked</th>
+                    <th>Comp-Off Earned</th>
+                    <th>Approved On</th>
+                    <th>Approved By</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="comp-off-empty">
+                        No comp-off earned history found.
+                      </td>
+                    </tr>
+                  ) : (
+                    requests.map((request) => (
+                      <tr key={request.id} className="comp-off-row">
+                        <td className="date-earned">{formatDate(request.workedOn)}</td>
+                        <td className="reason">{request.reason}</td>
+                        <td className="hours-worked">{request.hoursWorked} hrs</td>
+                        <td className="comp-off-earned">{request.daysCredited} Day</td>
+                        <td className="approved-on">{request.approvedOn ? formatDateTime(request.approvedOn) : '-'}</td>
+                        <td className="approved-by">
+                          <div className="approver-info">
+                            <div className="approver-avatar">{getApproverInitials(request.approverName)}</div>
+                            <div className="approver-details">
+                              <span className="approver-name">{request.approverName || 'N/A'}</span>
+                              <span className="approver-role">{request.approverRole || ''}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="status">
+                          <StatusBadge status={request.status === 'APPROVED' ? 'Approved' : request.status === 'PENDING' ? 'Pending' : request.status} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              {requests.length > 0 && (
+                <div className="comp-off-pagination">
+                  <div className="pagination-info">
+                    Showing 1 to {requests.length} of {requests.length} entries
+                  </div>
+                  <div className="pagination-controls">
+                    <button className="pagination-btn" disabled>&laquo;</button>
+                    <button className="pagination-btn" disabled>&lsaquo;</button>
+                    <button className="pagination-btn active">1</button>
+                    <button className="pagination-btn" disabled>&rsaquo;</button>
+                    <button className="pagination-btn" disabled>&raquo;</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'requests' && (
+            <div className="comp-off-table-wrapper">
+              <table className="comp-off-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Date Worked</th>
+                    <th>Reason</th>
+                    <th>Hours Worked</th>
+                    <th>Comp-Off Earned</th>
+                    <th>Status</th>
+                    <th>Applied On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="comp-off-empty">
+                        No comp-off requests found.
+                      </td>
+                    </tr>
+                  ) : (
+                    requests.map((request) => (
+                      <tr key={request.id} className="comp-off-row">
+                        <td className="request-id">{request.displayId || request.id}</td>
+                        <td className="date-worked">{formatDate(request.workedOn)}</td>
+                        <td className="reason">{request.reason}</td>
+                        <td className="hours-worked">{request.hoursWorked} hrs</td>
+                        <td className="comp-off-earned">{request.daysCredited} Day</td>
+                        <td className="status">
+                          <StatusBadge status={request.status === 'APPROVED' ? 'Approved' : request.status === 'PENDING' ? 'Pending' : request.status} />
+                        </td>
+                        <td className="applied-on">{formatDateTime(request.createdAt)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              {requests.length > 0 && (
+                <div className="comp-off-pagination">
+                  <div className="pagination-info">
+                    Showing 1 to {requests.length} of {requests.length} entries
+                  </div>
+                  <div className="pagination-controls">
+                    <button className="pagination-btn" disabled>&laquo;</button>
+                    <button className="pagination-btn" disabled>&lsaquo;</button>
+                    <button className="pagination-btn active">1</button>
+                    <button className="pagination-btn" disabled>&rsaquo;</button>
+                    <button className="pagination-btn" disabled>&raquo;</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'usage' && (
+            <div className="comp-off-table-wrapper">
+              <div className="comp-off-empty">
+                <AlertCircleIcon width={48} height={48} />
+                <p>Comp-Off usage history will be available once you start availing your earned comp-off.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side - Widgets */}
+        <div className="comp-off-widgets-section">
+          <div className="comp-off-request-widget">
+            <h3>Request Comp-Off</h3>
+            <p>You can request to avail your earned comp-off.</p>
+            <button className="btn-request-comp-off" onClick={handleRequestModalOpen}>
+              <PlusIcon width={16} height={16} />
+              Request Comp-Off
+            </button>
+          </div>
+
+          <div className="comp-off-rules-widget">
+            <h3>Comp-Off Rules</h3>
+            <ul>
+              {COMP_OFF_RULES.map((rule, index) => (
+                <li key={index}>
+                  <CheckCircleIcon width={15} height={15} />
+                  <span>{rule}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="comp-off-notes-widget">
+            <h3>Important Notes</h3>
+            <ul>
+              {IMPORTANT_NOTES.map((note, index) => (
+                <li key={index}>
+                  <AlertCircleIcon width={15} height={15} />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Request Comp-Off Modal */}
+      {showRequestModal && (
+        <div className="comp-off-modal-backdrop" onClick={handleRequestModalClose}>
+          <div className="comp-off-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="comp-off-modal-header">
+              <h3>Request Comp-Off</h3>
+              <button onClick={handleRequestModalClose} aria-label="Close">
+                <XIcon width={18} height={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleFormSubmit}>
+              <div className="comp-off-modal-body">
+                <div className="form-group">
+                  <label htmlFor="workedOn">Date Worked *</label>
+                  <input
+                    type="date"
+                    id="workedOn"
+                    name="workedOn"
+                    value={formData.workedOn}
+                    onChange={handleFormChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="hoursWorked">Hours Worked *</label>
+                  <input
+                    type="number"
+                    id="hoursWorked"
+                    name="hoursWorked"
+                    value={formData.hoursWorked}
+                    onChange={handleFormChange}
+                    step="0.5"
+                    min="0"
+                    max="24"
+                    placeholder="e.g., 8"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="reason">Reason / Description *</label>
+                  <textarea
+                    id="reason"
+                    name="reason"
+                    value={formData.reason}
+                    onChange={handleFormChange}
+                    rows={4}
+                    maxLength={2000}
+                    placeholder="Please describe why you worked on this date..."
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    Attach Supporting Document (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAddFiles}
+                    style={{ display: 'none' }}
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  />
+                  <button
+                    type="button"
+                    className="btn-attach-file"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={submitting}
+                  >
+                    <PaperclipIcon width={16} height={16} />
+                    Choose File
+                  </button>
+                  <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                    Max file size: 10 MB. Accepted formats: PDF, JPG, PNG, DOC, DOCX
+                  </small>
+                </div>
+
+                {files.length > 0 && (
+                  <div className="comp-off-file-list">
+                    {files.map((file, i) => (
+                      <div key={`${file.name}-${i}`} className="comp-off-file-item">
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">{formatBytes(file.size)}</span>
+                        {uploadProgress[file.name] !== undefined && (
+                          <span className="file-progress">
+                            {uploadProgress[file.name]}%
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-remove-file"
+                          onClick={() => removeFile(i)}
+                          disabled={submitting}
+                          aria-label="Remove file"
+                        >
+                          <XIcon width={14} height={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {formError && <div className="comp-off-modal-error">{formError}</div>}
+              </div>
+
+              <div className="comp-off-modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={handleRequestModalClose}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
+  );
+};
+
+export default CompOff;

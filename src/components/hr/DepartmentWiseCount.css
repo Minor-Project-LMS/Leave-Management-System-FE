@@ -1,0 +1,49 @@
+.department-wise-count-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.department-wise-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+.department-wise-count-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.department-wise-count-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-light);
+  overflow: hidden;
+}
+
+.department-wise-count-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.department-wise-count-link {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+}
+
+.department-wise-count-link:hover {
+  text-decoration: underline;
+}

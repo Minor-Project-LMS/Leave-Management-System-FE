@@ -53,7 +53,16 @@ class ApiService {
         data = await response.json();
       } else {
         const text = await response.text();
-        data = text ? { message: text } : { message: response.statusText || 'Request failed' };
+        // Some failure modes (a servlet-container error page, an API
+        // gateway timeout page, etc.) return a full HTML document with a
+        // text/plain or missing content-type. Never surface that raw
+        // markup as a user-facing message — fall back to the HTTP status
+        // text instead.
+        const looksLikeHtml = contentType.includes('text/html') || /^\s*<(!doctype|html)/i.test(text || '');
+        data =
+          !text || looksLikeHtml
+            ? { message: response.statusText || `Request failed (${response.status})` }
+            : { message: text };
       }
 
       if (!response.ok) {
@@ -109,6 +118,37 @@ class ApiService {
     return this.request('/users/me', {
       method: 'GET',
       headers: this.authHeaders(),
+    });
+  }
+
+  // EMP-09 Profile — Personal Information / Emergency Contact "Edit" cards.
+  // Only the self-editable subset (UserProfileUpdate) is sent.
+  async updateProfile(payload) {
+    return this.request('/users/me', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // EMP-09 "Change Password" form.
+  async changeMyPassword(currentPassword, newPassword) {
+    return this.request('/users/me/password', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  // EMP-09 "Change Photo" action. Legacy fallback - uploads via server-proxied multipart.
+  // Primary method should use initAvatarUpload + confirmAvatarUpload for direct-to-storage.
+  async uploadMyAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: formData,
     });
   }
 
@@ -208,6 +248,20 @@ class ApiService {
     });
   }
 
+  async getHolidays(params = {}) {
+    const { year, month, departmentId, type, page = 1, limit = 50 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (year != null) queryParams.set('year', year);
+    if (month != null) queryParams.set('month', month);
+    if (departmentId != null) queryParams.set('departmentId', departmentId);
+    if (type != null) queryParams.set('type', type);
+    const qs = queryParams.toString();
+    return this.request(`/holidays${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   async getRecentActivity(limit = 5) {
     return this.request(`/audit-log/recent?limit=${limit}`, {
       method: 'GET',
@@ -254,6 +308,168 @@ class ApiService {
   async getUpcomingTeamLeaves(limit = 5) {
     return this.request(`/manager/team/upcoming-leaves?limit=${limit}`, {
       method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Team Calendar (MGR-04) + Team Members (MGR-05) — paths confirmed
+  // against lms-openapi.yaml (/team/members, /team/calendar, /team/leave-summary).
+  async getTeamMembers({ departmentId, q, page = 1, limit = 8 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (departmentId) params.set('departmentId', departmentId);
+    if (q) params.set('q', q);
+    return this.request(`/team/members?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getTeamCalendar({ month, year, departmentId, categoryId, showWeekends = false }) {
+    const params = new URLSearchParams({ month, year, showWeekends });
+    if (departmentId) params.set('departmentId', departmentId);
+    if (categoryId) params.set('categoryId', categoryId);
+    return this.request(`/team/calendar?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getTeamLeaveSummary({ year = new Date().getFullYear(), month } = {}) {
+    const params = new URLSearchParams({ year });
+    if (month) params.set('month', month);
+    return this.request(`/team/leave-summary?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Used by department filter dropdowns (Team Calendar, Team Members).
+  async getDepartments({ page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    return this.request(`/departments?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Employee Management (HR-01) — paths/schema confirmed against lms-openapi.yaml.
+  async getEmployees({ q, departmentId, designation, status, page = 1, limit = 8 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (q) params.set('q', q);
+    if (departmentId) params.set('departmentId', departmentId);
+    if (designation) params.set('designation', designation);
+    if (status) params.set('status', status);
+    return this.request(`/employees?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createEmployee(payload) {
+    return this.request('/employees', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateEmployee(employeeId, payload) {
+    return this.request(`/employees/${employeeId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deactivateEmployee(employeeId) {
+    return this.request(`/employees/${employeeId}`, {
+      method: 'DELETE',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async assignEmployeeQuota(employeeId, payload) {
+    return this.request(`/employees/${employeeId}/quota`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Leave Policies (HR-02) — paths/schema confirmed against lms-openapi.yaml.
+  async getLeavePolicies({ status, categoryId, departmentId, page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    if (categoryId) params.set('categoryId', categoryId);
+    if (departmentId) params.set('departmentId', departmentId);
+    return this.request(`/leave-policies?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createLeavePolicy(payload) {
+    return this.request('/leave-policies', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateLeavePolicy(policyId, payload) {
+    return this.request(`/leave-policies/${policyId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeavePolicyHistory(policyId) {
+    return this.request(`/leave-policies/${policyId}/history`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Delegations (MGR-06) — paths/schema confirmed against lms-openapi.yaml.
+  // "Delegate To" candidates — HR admins only (mirrors the same HR routing
+  // the backend uses when a leave request escalates to PENDING_L2), not
+  // the manager's own team. See GET /delegations/eligible-delegates.
+  async getEligibleDelegates() {
+    return this.request('/delegations/eligible-delegates', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getDelegations({ status, page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    return this.request(`/delegations?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createDelegation(payload) {
+    return this.request('/delegations', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateDelegation(delegationId, payload) {
+    return this.request(`/delegations/${delegationId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async revokeDelegation(delegationId) {
+    return this.request(`/delegations/${delegationId}/revoke`, {
+      method: 'POST',
       headers: this.authHeaders(),
     });
   }
@@ -347,7 +563,17 @@ class ApiService {
     });
   }
 
-  async getLeavePolicies(categoryId) {
+  // NOTE: renamed from getLeavePolicies(categoryId) — it was a duplicate of
+  // the HR-02 getLeavePolicies({...}) method above. Two methods with the
+  // same name in one class silently collide (the second definition wins),
+  // so every HR-02 caller was actually invoking THIS one, passing its whole
+  // options object as `categoryId`. That produced a query string containing
+  // the literal text "[object Object]", which the backend's servlet
+  // container rejected with a raw HTML 400 page before reaching any
+  // controller logic. If you update this file directly, also update the
+  // one call site in ApplyLeave.jsx (~line 246):
+  //   .getLeavePolicies(categoryId)  →  .getLeavePolicyForCategory(categoryId)
+  async getLeavePolicyForCategory(categoryId) {
     const qs = categoryId != null ? `?categoryId=${categoryId}&status=ACTIVE` : '';
     return this.request(`/leave-policies${qs}`, {
       method: 'GET',
@@ -357,6 +583,28 @@ class ApiService {
 
   async getLeaveLedger(year = new Date().getFullYear()) {
     return this.request(`/leave-ledger?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveLedgerTransactions(params = {}) {
+    const { year, userId, categoryId, page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (year) queryParams.set('year', year);
+    if (userId) queryParams.set('userId', userId);
+    if (categoryId) queryParams.set('categoryId', categoryId);
+    const qs = queryParams.toString();
+    return this.request(`/leave-ledger/transactions${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async exportLeaveLedger(params = {}) {
+    const { year = new Date().getFullYear(), format = 'csv' } = params;
+    const qs = new URLSearchParams({ year, format }).toString();
+    return this.request(`/leave-ledger/export?${qs}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });
@@ -374,7 +622,7 @@ class ApiService {
 
   // Per spec: attachments are uploaded against an existing request id
   // (multipart/form-data), so this is called after submitLeaveRequest()
-  // resolves with the new request's id.
+  // resolves with the new request's id. This is the legacy fallback method.
   async uploadLeaveAttachment(requestId, file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -382,6 +630,282 @@ class ApiService {
       method: 'POST',
       headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
       body: formData,
+    });
+  }
+
+  // ============================================================
+  // LEGACY DIRECT UPLOAD METHODS (Fallback for pre-signed URL failures)
+  // ============================================================
+
+  // Direct upload for leave request attachments (fallback)
+  async uploadLeaveAttachmentDirect(requestId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // Direct upload for comp-off request attachments (fallback)
+  async uploadCompOffAttachmentDirect(compId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request(`/comp-off-requests/${compId}/attachments`, {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // Direct upload for user avatar (fallback)
+  async uploadAvatarDirect(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // ============================================================
+  // DIRECT-TO-STORAGE ATTACHMENT UPLOADS
+  // ============================================================
+
+  // Leave Request Attachments
+  async initLeaveRequestAttachmentUpload(requestId, fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request(`/leave-requests/${requestId}/attachments/init-upload`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmLeaveRequestAttachmentUpload(requestId, attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/leave-requests/${requestId}/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeaveRequestAttachment(requestId, attachmentId) {
+    return this.request(`/leave-requests/${requestId}/attachments/${attachmentId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Comp-Off Request Attachments
+  async initCompOffAttachmentUpload(compId, fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request(`/comp-off-requests/${compId}/attachments/init-upload`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmCompOffAttachmentUpload(compId, attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/comp-off-requests/${compId}/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getCompOffAttachment(compId, attachmentId) {
+    return this.request(`/comp-off-requests/${compId}/attachments/${attachmentId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getCompOffAttachments(compId) {
+    return this.request(`/comp-off-requests/${compId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // User Avatar Uploads
+  async initAvatarUpload(fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request('/users/me/avatar/init-upload', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmAvatarUpload(attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/users/me/avatar/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // My Requests (EMP-03) endpoints
+  async getLeaveRequests(params = {}) {
+    const { status, categoryId, userId, fromDate, toDate, page = 1, limit = 10, sort = 'recent' } = params;
+    const queryParams = new URLSearchParams({ page, limit, sort });
+    if (status) queryParams.set('status', status);
+    if (categoryId) queryParams.set('categoryId', categoryId);
+    if (userId) queryParams.set('userId', userId);
+    if (fromDate) queryParams.set('fromDate', fromDate);
+    if (toDate) queryParams.set('toDate', toDate);
+    const qs = queryParams.toString();
+    return this.request(`/leave-requests${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Request Details (EMP-04) endpoints
+  async withdrawLeaveRequest(requestId, payload = {}) {
+    return this.request(`/leave-requests/${requestId}/withdraw`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async addLeaveComment(requestId, payload) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeaveComments(requestId) {
+    return this.request(`/leave-requests/${requestId}/comments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveAttachments(requestId) {
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async listLeaveRequestAttachments(requestId) {
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getLeaveApprovals(requestId) {
+    return this.request(`/leave-requests/${requestId}/approvals`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async downloadRequestPDF(requestId) {
+    return this.request(`/leave-requests/${requestId}/pdf`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Comp-Off (EMP-06) endpoints
+  async getCompOffRequests(params = {}) {
+    const { status, userId, page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (status) queryParams.set('status', status);
+    if (userId) queryParams.set('userId', userId);
+    const qs = queryParams.toString();
+    return this.request(`/comp-off-requests${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getCompOffRequest(compId) {
+    return this.request(`/comp-off-requests/${compId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async submitCompOffRequest(payload) {
+    return this.request('/comp-off-requests', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async withdrawCompOffRequest(compId) {
+    return this.request(`/comp-off-requests/${compId}`, {
+      method: 'DELETE',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async decideCompOffRequest(compId, decision, comments) {
+    return this.request(`/comp-off-requests/${compId}/decisions`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ decision, comments }),
+    });
+  }
+
+  async getCompOffSummary() {
+    // This endpoint might not exist in the spec yet, but we'll add it for the dashboard
+    // For now, we'll derive it from the comp-off requests data
+    return this.request('/dashboard/summary', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getNotifications({ tab = 'all', page = 1, limit = 10 } = {}) {
+    const qs = new URLSearchParams({ tab, page, limit }).toString();
+    return this.request(`/notifications?${qs}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read', {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getNotificationPreferences() {
+    return this.request('/notifications/preferences', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateNotificationPreferences(preferences) {
+    return this.request('/notifications/preferences', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(preferences),
     });
   }
 }

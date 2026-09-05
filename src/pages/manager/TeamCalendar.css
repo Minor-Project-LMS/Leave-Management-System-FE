@@ -1,0 +1,119 @@
+.team-calendar-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.team-calendar-main {
+  min-width: 0;
+}
+
+.team-calendar-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.team-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.team-calendar-toolbar-left,
+.team-calendar-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-calendar-nav-btn,
+.team-calendar-today-btn,
+.team-calendar-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.team-calendar-nav-btn {
+  padding: 0.5rem;
+}
+
+.team-calendar-nav-btn:hover,
+.team-calendar-today-btn:hover,
+.team-calendar-filter-btn:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.team-calendar-month-label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.team-calendar-month-label:hover {
+  background: var(--bg-light);
+}
+
+.team-calendar-month-label input[type='month'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.team-calendar-view-toggle {
+  display: flex;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+}
+
+.team-calendar-view-toggle button {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.team-calendar-view-toggle button.active {
+  background: var(--bg-white);
+  color: var(--primary-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 1200px) {
+  .team-calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .team-calendar-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

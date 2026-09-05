@@ -1,0 +1,181 @@
+.delegation-table-wrap {
+  overflow-x: auto;
+}
+
+.delegation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.delegation-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-light);
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.delegation-table td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.delegation-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.delegation-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+.delegation-person-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+
+.delegation-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.delegation-person-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delegation-period-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.delegation-period-dates {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delegation-period-caption {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.delegation-scope-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 200px;
+}
+
+.delegation-scope-row {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.delegation-scope-label {
+  font-weight: 600;
+  color: var(--text-light);
+  margin-right: 0.3rem;
+}
+
+.delegation-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delegation-status-active { background: #d1fae5; color: #047857; }
+.delegation-status-upcoming { background: #fef3c7; color: #b45309; }
+.delegation-status-past { background: var(--bg-light); color: var(--text-secondary); }
+.delegation-status-revoked { background: #fee2e2; color: #b91c1c; }
+
+.delegation-actions-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.delegation-actions-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.delegation-actions-btn:hover {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.delegation-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 140px;
+  z-index: 20;
+  overflow: hidden;
+}
+
+.delegation-actions-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.delegation-actions-menu button:hover {
+  background: var(--bg-light);
+}
+
+.delegation-actions-menu button.danger {
+  color: #b91c1c;
+}
+
+.delegation-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 0.25rem;
+}
+
+.delegation-table-count {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
