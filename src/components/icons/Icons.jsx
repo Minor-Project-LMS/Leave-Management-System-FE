@@ -363,3 +363,18 @@ export const HelpCircleIcon = (props) => (
     <path d="M12 17h.01" />
   </svg>
 );
+
+export const FileIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <path d="M14 2v6h6" />
+  </svg>
+);
+
+export const ImageIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="M21 15l-5-5L5 21" />
+  </svg>
+);

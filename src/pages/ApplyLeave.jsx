@@ -25,7 +25,6 @@ const USE_MOCK =
   String(import.meta.env.VITE_USE_MOCK_DATA).toLowerCase() === 'true';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB threshold for direct upload
 const REASON_MAX_LEN = 500;
 
 const formatBytes = (bytes) => {
@@ -82,7 +81,7 @@ const ApplyLeave = () => {
   const [reason, setReason] = useState(draftData?.reason || '');
 
   const [files, setFiles] = useState([]);
-
+  const [uploadProgress, setUploadProgress] = useState({}); // { fileName: progressPercentage }
   const fileInputRef = useRef(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +89,6 @@ const ApplyLeave = () => {
 
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [uploadProgress, setUploadProgress] = useState({}); // { fileName: progressPercentage }
 
   const categoryCodeById = useMemo(
     () =>
@@ -311,48 +309,66 @@ const ApplyLeave = () => {
   };
 
   const uploadSingleFile = async (file, requestId) => {
-    // Use direct-to-blob-storage for large files, multipart for small files
-    if (file.size > LARGE_FILE_THRESHOLD) {
-      return uploadLargeFile(file, requestId);
-    } else {
-      return uploadSmallFile(file, requestId);
-    }
-  };
-
-  const uploadSmallFile = async (file, requestId) => {
-    try {
-      return await apiService.uploadLeaveAttachment(requestId, file);
-    } catch (err) {
-      throw new Error(`Failed to upload ${file.name}: ${err.message}`);
-    }
+    // Use direct-to-storage for all file uploads
+    return uploadLargeFile(file, requestId);
   };
 
   const uploadLargeFile = async (file, requestId) => {
     try {
-      // Step 1: Request presigned upload URL
-      const uploadUrlResponse = await apiService.requestAttachmentUploadUrl(
+      // Try pre-signed URL approach first
+      const uploadUrlResponse = await apiService.initLeaveRequestAttachmentUpload(
+        requestId,
         file.name,
         file.type,
-        file.size,
-        'LEAVE_REQUEST',
-        requestId
+        file.size
       );
 
-      const { attachmentId, uploadUrl } = uploadUrlResponse;
+      // Handle different response structures - might be direct or wrapped in 'data'
+      const responseData = uploadUrlResponse?.data || uploadUrlResponse;
+      
+      const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
+
+      if (!uploadUrl) {
+        throw new Error('Upload URL not received from server');
+      }
+
+      if (!attachmentId) {
+        throw new Error('Attachment ID not received from server');
+      }
 
       // Step 2: Upload directly to blob storage with progress tracking
-      await uploadToBlobStorage(file, uploadUrl, file.name);
+      await uploadToBlobStorage(file, uploadUrl, file.name, requiredHeaders);
 
       // Step 3: Confirm the upload
-      const confirmedAttachment = await apiService.confirmAttachmentUpload(attachmentId, requestId);
+      const confirmedAttachment = await apiService.confirmLeaveRequestAttachmentUpload(requestId, attachmentId);
 
       return confirmedAttachment;
     } catch (err) {
+      // If CORS error occurs, fall back to direct upload through backend
+      if (err.message && (err.message.includes('CORS') || err.message.includes('Network error') || err.message.includes('Failed to fetch'))) {
+        console.warn(`CORS error detected for ${file.name}, falling back to direct upload`);
+        try {
+          // Simulate progress for direct upload
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          await new Promise(resolve => setTimeout(resolve, 50));
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
+          
+          const directUploadResponse = await apiService.uploadLeaveAttachmentDirect(requestId, file);
+          
+          // Complete progress
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+          
+          return directUploadResponse?.data || directUploadResponse;
+        } catch (directErr) {
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          throw new Error(`Direct upload also failed for ${file.name}: ${directErr.message}`);
+        }
+      }
       throw new Error(`Failed to upload ${file.name}: ${err.message}`);
     }
   };
 
-  const uploadToBlobStorage = (file, uploadUrl, fileName) => {
+  const uploadToBlobStorage = (file, uploadUrl, fileName, requiredHeaders = {}) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
@@ -375,7 +391,8 @@ const ApplyLeave = () => {
       });
 
       xhr.addEventListener('error', () => {
-        reject(new Error('Network error during upload'));
+        // This is typically a CORS error
+        reject(new Error('CORS error: Network error during upload to blob storage'));
       });
 
       xhr.addEventListener('abort', () => {
@@ -383,7 +400,12 @@ const ApplyLeave = () => {
       });
 
       xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
+      
+      // Set required headers from the pre-signed URL response
+      Object.entries(requiredHeaders).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
+      
       xhr.send(file);
     });
   };

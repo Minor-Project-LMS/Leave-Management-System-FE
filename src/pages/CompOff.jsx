@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
 import StatusBadge from '../components/dashboard/StatusBadge';
+import AttachmentList from '../components/common/AttachmentList';
 import { 
   CalendarIcon, 
   ClockIcon, 
@@ -13,7 +14,8 @@ import {
   InfoIcon, 
   CheckCircleIcon, 
   AlertCircleIcon, 
-  XIcon 
+  XIcon,
+  PaperclipIcon
 } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -59,6 +61,14 @@ const formatDateTime = (dateStr) => {
 };
 
 const USE_MOCK = env.useMockData;
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const formatBytes = (bytes) => {
+  const kb = bytes / 1024;
+  return kb < 1024
+    ? `${Math.round(kb)} KB`
+    : `${(kb / 1024).toFixed(1)} MB`;
+};
 
 const mockCompOffSummary = {
   earned: 5.0,
@@ -157,6 +167,9 @@ const CompOff = () => {
 
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const fileInputRef = useRef(null);
 
   const loadCompOffData = useCallback(async () => {
     setLoading(true);
@@ -268,12 +281,122 @@ const CompOff = () => {
     setShowRequestModal(false);
     setFormData({ workedOn: '', reason: '', hoursWorked: '' });
     setFormError('');
+    setFiles([]);
+    setUploadProgress({});
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (formError) setFormError('');
+  };
+
+  const handleAddFiles = (e) => {
+    const picked = Array.from(e.target.files || []);
+    if (!picked.length) return;
+
+    const tooBig = picked.find((file) => file.size > MAX_FILE_BYTES);
+    if (tooBig) {
+      setFormError(`"${tooBig.name}" exceeds the 10 MB attachment limit.`);
+      return;
+    }
+
+    setFormError('');
+    setFiles((prev) => [...prev, ...picked]);
+    e.target.value = '';
+  };
+
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadToBlobStorage = (file, uploadUrl, fileName, requiredHeaders = {}) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: progress,
+          }));
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        // This is typically a CORS error
+        reject(new Error('CORS error: Network error during upload to blob storage'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload was cancelled'));
+      });
+
+      xhr.open('PUT', uploadUrl);
+      Object.entries(requiredHeaders).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
+      xhr.send(file);
+    });
+  };
+
+  const uploadSingleFile = async (file, compId) => {
+    try {
+      const uploadUrlResponse = await apiService.initCompOffAttachmentUpload(
+        compId,
+        file.name,
+        file.type,
+        file.size
+      );
+
+      // Handle different response structures - might be direct or wrapped in 'data'
+      const responseData = uploadUrlResponse?.data || uploadUrlResponse;
+      
+      const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
+
+      if (!uploadUrl) {
+        throw new Error('Upload URL not received from server');
+      }
+
+      if (!attachmentId) {
+        throw new Error('Attachment ID not received from server');
+      }
+
+      await uploadToBlobStorage(file, uploadUrl, file.name, requiredHeaders);
+      const confirmedAttachment = await apiService.confirmCompOffAttachmentUpload(compId, attachmentId);
+      return confirmedAttachment;
+    } catch (err) {
+      // If CORS error occurs, fall back to direct upload through backend
+      if (err.message && (err.message.includes('CORS') || err.message.includes('Network error') || err.message.includes('Failed to fetch'))) {
+        console.warn(`CORS error detected for ${file.name}, falling back to direct upload`);
+        try {
+          // Simulate progress for direct upload
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          await new Promise(resolve => setTimeout(resolve, 50));
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
+          
+          const directUploadResponse = await apiService.uploadCompOffAttachmentDirect(compId, file);
+          
+          // Complete progress
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+          
+          return directUploadResponse?.data || directUploadResponse;
+        } catch (directErr) {
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          throw new Error(`Direct upload also failed for ${file.name}: ${directErr.message}`);
+        }
+      }
+      throw new Error(`Failed to upload ${file.name}: ${err.message}`);
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -294,6 +417,7 @@ const CompOff = () => {
     }
 
     setSubmitting(true);
+    setUploadProgress({});
 
     try {
       const hours = parseFloat(formData.hoursWorked);
@@ -324,7 +448,17 @@ const CompOff = () => {
           pendingApproval: prev.pendingApproval + newMockRequest.daysCredited
         }));
       } else {
-        await apiService.submitCompOffRequest(payload);
+        const response = await apiService.submitCompOffRequest(payload);
+        const compId = response?.id ?? response?.data?.id;
+
+        // Upload attachments if any
+        if (compId && files.length > 0) {
+          for (const file of files) {
+            // eslint-disable-next-line no-await-in-loop
+            await uploadSingleFile(file, compId);
+          }
+        }
+
         await loadCompOffData();
       }
 
@@ -334,6 +468,7 @@ const CompOff = () => {
       setFormError(err.message || 'Failed to submit comp-off request. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploadProgress({});
     }
   };
 
@@ -649,6 +784,56 @@ const CompOff = () => {
                     required
                   />
                 </div>
+
+                <div className="form-group">
+                  <label>
+                    Attach Supporting Document (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAddFiles}
+                    style={{ display: 'none' }}
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  />
+                  <button
+                    type="button"
+                    className="btn-attach-file"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={submitting}
+                  >
+                    <PaperclipIcon width={16} height={16} />
+                    Choose File
+                  </button>
+                  <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                    Max file size: 10 MB. Accepted formats: PDF, JPG, PNG, DOC, DOCX
+                  </small>
+                </div>
+
+                {files.length > 0 && (
+                  <div className="comp-off-file-list">
+                    {files.map((file, i) => (
+                      <div key={`${file.name}-${i}`} className="comp-off-file-item">
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">{formatBytes(file.size)}</span>
+                        {uploadProgress[file.name] !== undefined && (
+                          <span className="file-progress">
+                            {uploadProgress[file.name]}%
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-remove-file"
+                          onClick={() => removeFile(i)}
+                          disabled={submitting}
+                          aria-label="Remove file"
+                        >
+                          <XIcon width={14} height={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {formError && <div className="comp-off-modal-error">{formError}</div>}
               </div>

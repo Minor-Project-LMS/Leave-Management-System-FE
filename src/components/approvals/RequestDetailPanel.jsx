@@ -41,7 +41,7 @@ const RequestDetailPanel = ({ detail, loading }) => {
 
   const handleDownloadAttachment = (attachment) => {
     // Guard for PENDING status - only allow download when attachment is ACTIVE
-    if (attachment.status === 'PENDING') {
+    if (attachment.uploadStatus === 'PENDING' || attachment.status === 'PENDING') {
       alert('Attachment upload is still in progress. Please wait for it to complete.');
       return;
     }
@@ -49,6 +49,8 @@ const RequestDetailPanel = ({ detail, loading }) => {
     // Use the download URL from the attachment (presigned blob-storage URL)
     if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
       window.open(attachment.downloadUrl, '_blank');
+    } else {
+      alert('Download URL not available for this attachment.');
     }
   };
 
@@ -114,9 +116,9 @@ const RequestDetailPanel = ({ detail, loading }) => {
                 <span className="request-detail-attachment-size">{formatFileSize(att.sizeBytes)}</span>
                 <button 
                   onClick={() => handleDownloadAttachment(att)}
-                  disabled={att.status === 'PENDING'}
+                  disabled={att.uploadStatus === 'PENDING' || att.status === 'PENDING'}
                   className="request-detail-download"
-                  title={att.status === 'PENDING' ? 'Upload in progress' : 'Download attachment'}
+                  title={att.uploadStatus === 'PENDING' || att.status === 'PENDING' ? 'Upload in progress' : 'Download attachment'}
                 >
                   <DownloadIcon width={14} height={14} />
                 </button>

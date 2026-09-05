@@ -140,7 +140,8 @@ class ApiService {
     });
   }
 
-  // EMP-09 "Change Photo" action.
+  // EMP-09 "Change Photo" action. Legacy fallback - uploads via server-proxied multipart.
+  // Primary method should use initAvatarUpload + confirmAvatarUpload for direct-to-storage.
   async uploadMyAvatar(file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -621,7 +622,7 @@ class ApiService {
 
   // Per spec: attachments are uploaded against an existing request id
   // (multipart/form-data), so this is called after submitLeaveRequest()
-  // resolves with the new request's id.
+  // resolves with the new request's id. This is the legacy fallback method.
   async uploadLeaveAttachment(requestId, file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -632,27 +633,119 @@ class ApiService {
     });
   }
 
-  // New direct-to-blob-storage upload flow
-  async requestAttachmentUploadUrl(fileName, contentType, sizeBytes, entityType, entityId = null) {
-    const payload = {
-      fileName,
-      contentType,
-      sizeBytes,
-      entityType,
-    };
-    if (entityId !== null) {
-      payload.entityId = entityId;
-    }
-    return this.request('/attachments/upload-url', {
+  // ============================================================
+  // LEGACY DIRECT UPLOAD METHODS (Fallback for pre-signed URL failures)
+  // ============================================================
+
+  // Direct upload for leave request attachments (fallback)
+  async uploadLeaveAttachmentDirect(requestId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // Direct upload for comp-off request attachments (fallback)
+  async uploadCompOffAttachmentDirect(compId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request(`/comp-off-requests/${compId}/attachments`, {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // Direct upload for user avatar (fallback)
+  async uploadAvatarDirect(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/users/me/avatar', {
+      method: 'POST',
+      headers: this.authHeaders(), // no Content-Type — browser sets the multipart boundary
+      body: formData,
+    });
+  }
+
+  // ============================================================
+  // DIRECT-TO-STORAGE ATTACHMENT UPLOADS
+  // ============================================================
+
+  // Leave Request Attachments
+  async initLeaveRequestAttachmentUpload(requestId, fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request(`/leave-requests/${requestId}/attachments/init-upload`, {
       method: 'POST',
       headers: this.authHeaders(),
       body: JSON.stringify(payload),
     });
   }
 
-  async confirmAttachmentUpload(attachmentId, entityId = null) {
-    const payload = entityId !== null ? { entityId } : {};
-    return this.request(`/attachments/${attachmentId}/confirm`, {
+  async confirmLeaveRequestAttachmentUpload(requestId, attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/leave-requests/${requestId}/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeaveRequestAttachment(requestId, attachmentId) {
+    return this.request(`/leave-requests/${requestId}/attachments/${attachmentId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Comp-Off Request Attachments
+  async initCompOffAttachmentUpload(compId, fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request(`/comp-off-requests/${compId}/attachments/init-upload`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmCompOffAttachmentUpload(compId, attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/comp-off-requests/${compId}/attachments/${attachmentId}/confirm`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getCompOffAttachment(compId, attachmentId) {
+    return this.request(`/comp-off-requests/${compId}/attachments/${attachmentId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getCompOffAttachments(compId) {
+    return this.request(`/comp-off-requests/${compId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // User Avatar Uploads
+  async initAvatarUpload(fileName, contentType, sizeBytes) {
+    const payload = { fileName, contentType, sizeBytes };
+    return this.request('/users/me/avatar/init-upload', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async confirmAvatarUpload(attachmentId, checksumSha256 = null) {
+    const payload = checksumSha256 ? { checksumSha256 } : {};
+    return this.request(`/users/me/avatar/${attachmentId}/confirm`, {
       method: 'POST',
       headers: this.authHeaders(),
       body: JSON.stringify(payload),
@@ -700,6 +793,13 @@ class ApiService {
   }
 
   async getLeaveAttachments(requestId) {
+    return this.request(`/leave-requests/${requestId}/attachments`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async listLeaveRequestAttachments(requestId) {
     return this.request(`/leave-requests/${requestId}/attachments`, {
       method: 'GET',
       headers: this.authHeaders(),

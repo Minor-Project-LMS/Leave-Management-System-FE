@@ -502,6 +502,98 @@
   cursor: not-allowed;
 }
 
+/* File Upload Styles */
+.btn-attach-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-attach-file:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-attach-file:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.comp-off-file-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comp-off-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.comp-off-file-item .file-name {
+  flex: 1;
+  color: #111827;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comp-off-file-item .file-size {
+  color: #6b7280;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.comp-off-file-item .file-progress {
+  color: #6366f1;
+  font-weight: 600;
+  font-size: 0.8rem;
+  min-width: 40px;
+  text-align: right;
+}
+
+.btn-remove-file {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-file:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-remove-file:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .comp-off-main-content {

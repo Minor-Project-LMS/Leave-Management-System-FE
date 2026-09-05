@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/dashboard/StatusBadge';
+import AttachmentList from '../components/common/AttachmentList';
 import { 
   ArrowLeftIcon,
   CalendarIcon, 
@@ -232,7 +233,7 @@ const RequestDetails = () => {
           sizeBytes: att.sizeBytes,
           size: att.sizeBytes ? `${(att.sizeBytes / 1024).toFixed(0)} KB` : (att.fileSize ? `${(att.fileSize / 1024).toFixed(0)} KB` : 'Unknown'),
           storageProvider: att.storageProvider,
-          status: att.status,
+          uploadStatus: att.uploadStatus || att.status || 'ACTIVE',
           blobUrl: att.blobUrl,
           downloadUrl: att.downloadUrl || att.url || '#',
           uploadedBy: att.uploadedBy,
@@ -312,22 +313,7 @@ const RequestDetails = () => {
     }
   };
 
-  const handleDownloadAttachment = (attachment) => {
-    // Guard for PENDING status - only allow download when attachment is ACTIVE
-    if (attachment.status === 'PENDING') {
-      setError('Attachment upload is still in progress. Please wait for it to complete.');
-      return;
-    }
 
-    // Use the download URL from the attachment (presigned blob-storage URL)
-    if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
-      window.open(attachment.downloadUrl, '_blank');
-    } else {
-      // Fallback: construct download URL based on attachment ID
-      const downloadUrl = `/leave-requests/${requestId}/attachments/${attachment.id}`;
-      window.open(downloadUrl, '_blank');
-    }
-  };
 
   const handleDownloadPDF = async () => {
     try {
@@ -544,32 +530,13 @@ const RequestDetails = () => {
               <div className="detail-card-header">
                 <h3>Attachments ({request.attachments?.length || 0})</h3>
               </div>
-              <div className="attachments-list">
-                {request.attachments && request.attachments.length > 0 ? (
-                  request.attachments.map((attachment) => (
-                    <div key={attachment.id} className="attachment-item">
-                      <div className="attachment-icon">
-                        <FileTextIcon width={18} height={18} />
-                      </div>
-                      <div className="attachment-info">
-                        <span className="attachment-name">{attachment.fileName}</span>
-                        <span className="attachment-size">{attachment.size}</span>
-                      </div>
-                      <button
-                        className="btn-download-attachment"
-                        onClick={() => handleDownloadAttachment(attachment)}
-                        aria-label={`Download ${attachment.fileName}`}
-                      >
-                        <DownloadIcon width={16} height={16} />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="attachments-empty">
-                    <span>No attachments</span>
-                  </div>
-                )}
-              </div>
+              <AttachmentList
+                attachments={request.attachments?.filter(att => att.uploadStatus === 'ACTIVE') || []}
+                entityType="leave-request"
+                entityId={requestId}
+                showDelete={false}
+                disabled={false}
+              />
             </div>
           </div>
 

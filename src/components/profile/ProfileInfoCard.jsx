@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { CameraIcon } from '../icons/Icons';
+import AvatarUpload from '../common/AvatarUpload';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
 import './ProfileInfoCard.css';
 
@@ -12,13 +11,10 @@ const formatDate = (iso) => {
 // self-editable, and there's no edit affordance in the design for this
 // card), so everything renders as a disabled/read-only field.
 const ProfileInfoCard = ({ profile, onChangePhoto, uploadingPhoto }) => {
-  const fileInputRef = useRef(null);
   const color = getAvatarColor(profile.fullName);
 
-  const handlePick = (e) => {
-    const file = e.target.files?.[0];
-    if (file) onChangePhoto?.(file);
-    e.target.value = '';
+  const handleAvatarUpload = async (file, localPreview) => {
+    await onChangePhoto?.(file);
   };
 
   return (
@@ -29,18 +25,12 @@ const ProfileInfoCard = ({ profile, onChangePhoto, uploadingPhoto }) => {
 
       <div className="profile-info-body">
         <div className="profile-info-photo-col">
-          {profile.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={profile.fullName} className="profile-info-avatar-img" />
-          ) : (
-            <div className="profile-info-avatar" style={{ background: color.bg, color: color.fg }}>
-              {getInitials(profile.fullName)}
-            </div>
-          )}
-          <button className="profile-info-change-photo" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}>
-            <CameraIcon width={14} height={14} />
-            {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePick} />
+          <AvatarUpload
+            currentAvatarUrl={profile.avatarUrl}
+            onUploadComplete={handleAvatarUpload}
+            disabled={uploadingPhoto}
+            size={120}
+          />
         </div>
 
         <div className="profile-info-grid">

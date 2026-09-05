@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProfileInfoCard from '../components/profile/ProfileInfoCard';
@@ -15,6 +15,8 @@ import { mockUserProfile } from '../utils/mockData';
 import './Profile.css';
 
 const USE_MOCK = env.useMockData;
+const MAX_AVATAR_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
 const getErrorMessage = (err, fallback) => {
   if (typeof err === 'string') return err;
@@ -182,7 +184,58 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const uploadToBlobStorage = (file, uploadUrl, requiredHeaders = {}) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          // Could add progress state here if needed
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        // This is typically a CORS error
+        reject(new Error('CORS error: Network error during upload to blob storage'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload was cancelled'));
+      });
+
+      xhr.open('PUT', uploadUrl);
+      
+      // Set required headers from the pre-signed URL response
+      Object.entries(requiredHeaders).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
+      
+      xhr.send(file);
+    });
+  };
+
   const handleChangePhoto = async (file) => {
+    // Validate file size
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError('Photo exceeds the 10 MB size limit.');
+      return;
+    }
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setError('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP).');
+      return;
+    }
+
     setUploadingPhoto(true);
 
     try {
@@ -194,20 +247,61 @@ const Profile = () => {
           avatarUrl: localUrl,
         }));
       } else {
-        const res = await apiService.uploadMyAvatar(file);
+        // Use direct-to-storage upload for avatars
+        const uploadUrlResponse = await apiService.initAvatarUpload(
+          file.name,
+          file.type,
+          file.size
+        );
+
+        // Handle different response structures - might be direct or wrapped in 'data'
+        const responseData = uploadUrlResponse?.data || uploadUrlResponse;
+        
+        const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
+
+        if (!uploadUrl) {
+          throw new Error('Upload URL not received from server');
+        }
+
+        if (!attachmentId) {
+          throw new Error('Attachment ID not received from server');
+        }
+
+        await uploadToBlobStorage(file, uploadUrl, requiredHeaders);
+        const confirmedAvatar = await apiService.confirmAvatarUpload(attachmentId);
 
         setProfile((prev) => ({
           ...prev,
           avatarUrl:
-            res?.avatarUrl ??
-            res?.data?.avatarUrl ??
+            confirmedAvatar?.avatarUrl ??
+            confirmedAvatar?.data?.avatarUrl ??
             prev.avatarUrl,
         }));
       }
     } catch (err) {
-      setError(
-        getErrorMessage(err, 'Failed to upload photo.')
-      );
+      // If CORS error occurs, fall back to direct upload through backend
+      if (err.message && (err.message.includes('CORS') || err.message.includes('Network error') || err.message.includes('Failed to fetch'))) {
+        console.warn('CORS error detected for avatar upload, falling back to direct upload');
+        try {
+          const directUploadResponse = await apiService.uploadAvatarDirect(file);
+          
+          setProfile((prev) => ({
+            ...prev,
+            avatarUrl:
+              directUploadResponse?.avatarUrl ??
+              directUploadResponse?.data?.avatarUrl ??
+              prev.avatarUrl,
+          }));
+        } catch (directErr) {
+          setError(
+            getErrorMessage(directErr, 'Failed to upload photo.')
+          );
+        }
+      } else {
+        setError(
+          getErrorMessage(err, 'Failed to upload photo.')
+        );
+      }
     } finally {
       setUploadingPhoto(false);
     }
