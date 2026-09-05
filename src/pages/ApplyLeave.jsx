@@ -243,7 +243,7 @@ const ApplyLeave = () => {
     }
 
     apiService
-      .getLeavePolicies(categoryId)
+      .getLeavePolicyForCategory(categoryId)
       .then((res) => {
         const list = res?.data ?? res ?? [];
 

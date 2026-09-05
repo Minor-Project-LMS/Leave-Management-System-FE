@@ -53,7 +53,16 @@ class ApiService {
         data = await response.json();
       } else {
         const text = await response.text();
-        data = text ? { message: text } : { message: response.statusText || 'Request failed' };
+        // Some failure modes (a servlet-container error page, an API
+        // gateway timeout page, etc.) return a full HTML document with a
+        // text/plain or missing content-type. Never surface that raw
+        // markup as a user-facing message — fall back to the HTTP status
+        // text instead.
+        const looksLikeHtml = contentType.includes('text/html') || /^\s*<(!doctype|html)/i.test(text || '');
+        data =
+          !text || looksLikeHtml
+            ? { message: response.statusText || `Request failed (${response.status})` }
+            : { message: text };
       }
 
       if (!response.ok) {
@@ -342,7 +351,96 @@ class ApiService {
     });
   }
 
+  // Employee Management (HR-01) — paths/schema confirmed against lms-openapi.yaml.
+  async getEmployees({ q, departmentId, designation, status, page = 1, limit = 8 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (q) params.set('q', q);
+    if (departmentId) params.set('departmentId', departmentId);
+    if (designation) params.set('designation', designation);
+    if (status) params.set('status', status);
+    return this.request(`/employees?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createEmployee(payload) {
+    return this.request('/employees', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateEmployee(employeeId, payload) {
+    return this.request(`/employees/${employeeId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deactivateEmployee(employeeId) {
+    return this.request(`/employees/${employeeId}`, {
+      method: 'DELETE',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async assignEmployeeQuota(employeeId, payload) {
+    return this.request(`/employees/${employeeId}/quota`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Leave Policies (HR-02) — paths/schema confirmed against lms-openapi.yaml.
+  async getLeavePolicies({ status, categoryId, departmentId, page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    if (categoryId) params.set('categoryId', categoryId);
+    if (departmentId) params.set('departmentId', departmentId);
+    return this.request(`/leave-policies?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createLeavePolicy(payload) {
+    return this.request('/leave-policies', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateLeavePolicy(policyId, payload) {
+    return this.request(`/leave-policies/${policyId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getLeavePolicyHistory(policyId) {
+    return this.request(`/leave-policies/${policyId}/history`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   // Delegations (MGR-06) — paths/schema confirmed against lms-openapi.yaml.
+  // "Delegate To" candidates — HR admins only (mirrors the same HR routing
+  // the backend uses when a leave request escalates to PENDING_L2), not
+  // the manager's own team. See GET /delegations/eligible-delegates.
+  async getEligibleDelegates() {
+    return this.request('/delegations/eligible-delegates', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   async getDelegations({ status, page = 1, limit = 50 } = {}) {
     const params = new URLSearchParams({ page, limit });
     if (status) params.set('status', status);
@@ -464,7 +562,17 @@ class ApiService {
     });
   }
 
-  async getLeavePolicies(categoryId) {
+  // NOTE: renamed from getLeavePolicies(categoryId) — it was a duplicate of
+  // the HR-02 getLeavePolicies({...}) method above. Two methods with the
+  // same name in one class silently collide (the second definition wins),
+  // so every HR-02 caller was actually invoking THIS one, passing its whole
+  // options object as `categoryId`. That produced a query string containing
+  // the literal text "[object Object]", which the backend's servlet
+  // container rejected with a raw HTML 400 page before reaching any
+  // controller logic. If you update this file directly, also update the
+  // one call site in ApplyLeave.jsx (~line 246):
+  //   .getLeavePolicies(categoryId)  →  .getLeavePolicyForCategory(categoryId)
+  async getLeavePolicyForCategory(categoryId) {
     const qs = categoryId != null ? `?categoryId=${categoryId}&status=ACTIVE` : '';
     return this.request(`/leave-policies${qs}`, {
       method: 'GET',

@@ -79,6 +79,7 @@
   font-weight: 500;
   transition: background var(--transition-fast), color var(--transition-fast);
   position: relative;
+  text-decoration: none;
 }
 
 .sidebar-nav-item:hover {
@@ -120,6 +121,10 @@
   opacity: 0.7;
 }
 
+/* =========================================
+   SIDEBAR FOOTER
+   ========================================= */
+
 .sidebar-footer {
   padding: 1rem 0.75rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -127,9 +132,9 @@
 
 .sidebar-help {
   margin-bottom: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: var(--radius-md);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .sidebar-help p {
@@ -168,6 +173,8 @@
   font-size: 0.9rem;
   font-weight: 500;
   transition: background var(--transition-fast), color var(--transition-fast);
+  border: none;
+  cursor: pointer;
 }
 
 .sidebar-logout:hover {
@@ -178,6 +185,262 @@
 .sidebar-backdrop {
   display: none;
 }
+
+/* =========================================
+   CONTACT SUPPORT MODAL
+   ========================================= */
+
+.contact-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 1rem;
+
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* Modal */
+
+.contact-modal {
+  width: min(100%, 385px);
+  background: #ffffff;
+  border-radius: 10px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 20px 45px rgba(15, 23, 42, 0.2),
+    0 8px 20px rgba(15, 23, 42, 0.1);
+
+  animation: contactModalIn 0.18s ease-out;
+}
+
+@keyframes contactModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+
+.contact-modal-header {
+  height: 57px;
+  padding: 0 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contact-modal-header h2 {
+  margin: 0;
+
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.contact-modal-close {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 5px;
+
+  background: transparent;
+  color: #64748b;
+
+  font-size: 22px;
+  font-weight: 400;
+
+  cursor: pointer;
+}
+
+.contact-modal-close:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Divider */
+
+.contact-modal-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 19px;
+}
+
+/* Description */
+
+.contact-modal-description {
+  margin: 17px 19px 15px;
+
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* =========================================
+   SUPPORT TEAM CARDS
+   ========================================= */
+
+.contact-team-card {
+  min-height: 59px;
+
+  margin: 0 19px 9px;
+  padding: 10px 11px 10px 13px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: #f8fafc;
+
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+
+  box-sizing: border-box;
+}
+
+.contact-team-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-team-label {
+  color: #64748b;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  letter-spacing: 0.4px;
+}
+
+.contact-team-info a {
+  color: #2563eb;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+}
+
+.contact-team-info a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   COPY BUTTON
+   ========================================= */
+
+.contact-copy-btn {
+  flex-shrink: 0;
+
+  height: 27px;
+
+  padding: 0 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  background: #ffffff;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+
+  color: #334155;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.contact-copy-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.contact-copy-btn:active {
+  transform: translateY(1px);
+}
+
+.copy-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* =========================================
+   MODAL FOOTER
+   ========================================= */
+
+.contact-modal-footer {
+  margin: 15px 19px 0;
+  padding-top: 16px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  border-top: 1px solid #e2e8f0;
+}
+
+.contact-close-btn {
+  min-width: 70px;
+  height: 37px;
+
+  padding: 0 14px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+
+  background: #f8fafc;
+
+  color: #334155;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.contact-close-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* =========================================
+   TABLET / MOBILE SIDEBAR
+   ========================================= */
 
 @media (max-width: 1024px) {
   .sidebar {
@@ -195,5 +458,39 @@
     inset: 0;
     background: rgba(15, 23, 42, 0.5);
     z-index: 35;
+  }
+}
+
+/* =========================================
+   MOBILE CONTACT MODAL
+   ========================================= */
+
+@media (max-width: 480px) {
+  .contact-modal-overlay {
+    padding: 15px;
+  }
+
+  .contact-modal {
+    width: 100%;
+    max-width: 385px;
+  }
+
+  .contact-modal-description {
+    margin-left: 15px;
+    margin-right: 15px;
+  }
+
+  .contact-team-card {
+    margin-left: 15px;
+    margin-right: 15px;
+  }
+
+  .contact-modal-footer {
+    margin-left: 15px;
+    margin-right: 15px;
+  }
+
+  .contact-team-info a {
+    font-size: 11px;
   }
 }

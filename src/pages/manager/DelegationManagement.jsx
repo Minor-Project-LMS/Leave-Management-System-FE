@@ -18,7 +18,7 @@ import {
   mockDelegations,
   mockDepartments,
   mockLeaveSummaryCategories,
-  mockTeamMembers,
+  mockEligibleDelegates,
 } from '../../utils/mockData';
 import './DelegationManagement.css';
 
@@ -46,7 +46,7 @@ const DelegationManagement = () => {
   const [allDelegations, setAllDelegations] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
+  const [eligibleDelegates, setEligibleDelegates] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -55,29 +55,30 @@ const DelegationManagement = () => {
   const [editingDelegation, setEditingDelegation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reference data (departments, leave types, team member list for the
-  // "Delegate To" selector) only needs to load once.
+  // Reference data (departments, leave types, and eligible-delegate list —
+  // HR admins, per GET /delegations/eligible-delegates — for the "Delegate
+  // To" selector) only needs to load once.
   useEffect(() => {
     if (USE_MOCK) {
       setDepartments(mockDepartments);
       setCategories(mockLeaveSummaryCategories);
-      setTeamMembers(mockTeamMembers);
+      setEligibleDelegates(mockEligibleDelegates);
       return;
     }
     Promise.all([
       apiService.getDepartments({ limit: 50 }),
       apiService.getLeaveCategories('ACTIVE'),
-      apiService.getTeamMembers({ limit: 100 }),
+      apiService.getEligibleDelegates(),
     ])
-      .then(([deptRes, catRes, membersRes]) => {
+      .then(([deptRes, catRes, delegatesRes]) => {
         setDepartments(deptRes?.data ?? []);
         setCategories(catRes?.data ?? catRes ?? []);
-        setTeamMembers(membersRes?.data ?? []);
+        setEligibleDelegates(delegatesRes?.data ?? delegatesRes ?? []);
       })
       .catch(() => {
         setDepartments(mockDepartments);
         setCategories(mockLeaveSummaryCategories);
-        setTeamMembers(mockTeamMembers);
+        setEligibleDelegates(mockEligibleDelegates);
       });
   }, []);
 
@@ -153,7 +154,7 @@ const DelegationManagement = () => {
     setError('');
     try {
       if (USE_MOCK) {
-        const delegate = teamMembers.find((m) => m.id === payload.delegateId);
+        const delegate = eligibleDelegates.find((m) => m.id === payload.delegateId);
         if (editingDelegation) {
           setAllDelegations((prev) =>
             prev.map((d) => (d.id === editingDelegation.id ? { ...d, ...payload } : d))
@@ -165,7 +166,7 @@ const DelegationManagement = () => {
               id: Date.now(),
               delegatorId: 501,
               delegatorName: user?.name || 'You',
-              delegateName: delegate?.fullName || 'Team Member',
+              delegateName: delegate?.name || 'HR Admin',
               computedStatus: 'UPCOMING',
               isActive: true,
               createdAt: new Date().toISOString(),
@@ -271,7 +272,7 @@ const DelegationManagement = () => {
 
       {modalOpen && (
         <CreateDelegationModal
-          teamMembers={teamMembers}
+          eligibleDelegates={eligibleDelegates}
           departments={departments}
           categories={categories}
           editing={editingDelegation}

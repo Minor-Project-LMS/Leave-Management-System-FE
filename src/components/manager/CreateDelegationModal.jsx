@@ -5,7 +5,7 @@ import './CreateDelegationModal.css';
 const toDateInput = (iso) => (iso ? iso.slice(0, 10) : '');
 
 // editing: an existing Delegation to prefill (omit for create mode).
-const CreateDelegationModal = ({ teamMembers = [], departments = [], categories = [], editing, onCancel, onSubmit, submitting }) => {
+const CreateDelegationModal = ({ eligibleDelegates = [], departments = [], categories = [], editing, onCancel, onSubmit, submitting }) => {
   const [delegateId, setDelegateId] = useState(editing?.delegateId ? String(editing.delegateId) : '');
   const [startDate, setStartDate] = useState(toDateInput(editing?.startDate));
   const [endDate, setEndDate] = useState(toDateInput(editing?.endDate));
@@ -61,10 +61,10 @@ const CreateDelegationModal = ({ teamMembers = [], departments = [], categories 
         <div className="form-field">
           <label>Delegate To</label>
           <select value={delegateId} onChange={(e) => setDelegateId(e.target.value)} disabled={!!editing}>
-            <option value="">Select a team member</option>
-            {teamMembers.map((m) => (
+            <option value="">Select Delegator</option>
+            {eligibleDelegates.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.fullName} {m.designation ? `— ${m.designation}` : ''}
+                {m.name} {m.designation ? `— ${m.designation}` : ''}
               </option>
             ))}
           </select>

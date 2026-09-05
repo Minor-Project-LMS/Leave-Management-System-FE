@@ -23,6 +23,9 @@ import TeamCalendar from './pages/manager/TeamCalendar'
 import TeamMembers from './pages/manager/TeamMembers'
 import DelegationManagement from './pages/manager/DelegationManagement'
 import HRDashboard from './pages/HRDashboard'
+import HREmployeeManagement from './pages/HREmployeeManagement'
+import HRLeavePolicies from './pages/HRLeavePolicies'
+import HRLeaveCategories from './pages/HRLeaveCategories'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
 import CompOff from './pages/CompOff'
@@ -113,7 +116,7 @@ function App() {
             }
           />
           <Route
-              path="/Profile"
+              path="/profile"
               element={
                 <ProtectedRoute>
                   <Profile />
@@ -159,9 +162,30 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/hr/employees" element={guardedPlaceholder('Employee Management', HR_PORTAL)} />
-          <Route path="/hr/leave-policies" element={guardedPlaceholder('Leave Policies', HR_PORTAL)} />
-          <Route path="/hr/leave-categories" element={guardedPlaceholder('Leave Categories', HR_PORTAL)} />
+          <Route
+            path="/hr/employees"
+            element={
+              <ProtectedRoute>
+                <HREmployeeManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/leave-policies"
+            element={
+              <ProtectedRoute>
+                <HRLeavePolicies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/leave-categories"
+            element={
+              <ProtectedRoute>
+                <HRLeaveCategories />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/hr/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', HR_PORTAL)} />
           <Route path="/hr/reports" element={guardedPlaceholder('Reports & Analytics', HR_PORTAL)} />
           <Route path="/hr/audit-trail" element={guardedPlaceholder('Audit Trail', HR_PORTAL)} />

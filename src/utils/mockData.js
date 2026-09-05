@@ -193,6 +193,14 @@ export const mockTeamMembers = [
   { id: 8, employeeCode: 'EMP0021', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 89665 43120', status: 'AVAILABLE', avatarUrl: null },
 ];
 
+// GET /delegations/eligible-delegates — the org's HR admin(s), used for the
+// Delegation "Delegate To" picker. Shape is UserDto as returned by that
+// endpoint: { id, name, designation, role } — note `name`, not `fullName`
+// like mockTeamMembers above; these are genuinely different DTO shapes.
+export const mockEligibleDelegates = [
+  { id: 501, name: 'Anita Desai', designation: 'HR Manager', role: 'HR_ADMIN' },
+];
+
 // --- Delegations (MGR-06) mock ---
 // designation/employeeCode on delegateName aren't part of the Delegation
 // schema — enriched client-side from mockTeamMembers where possible, same
@@ -305,6 +313,165 @@ export const mockUserProfile = {
   createdAt: '2022-01-15T10:30:00Z',
   updatedAt: '2024-05-20T00:00:00Z',
 };
+
+// --- Employee Management (HR-01) mock ---
+
+export const mockEmployeeStats = {
+  totalEmployees: 128,
+  activeEmployees: 118,
+  onLeaveToday: 16,
+  inactiveEmployees: 10,
+  newJoinersThisMonth: 6,
+};
+
+export const mockEmployees = [
+  { id: 1, employeeCode: 'EMP0047', fullName: 'Rahul Verma', departmentId: 1, departmentName: 'Engineering', designation: 'Senior Developer', email: 'rahul.verma@lms.com', phone: '+91 98765 43210', employmentStatus: 'ACTIVE', dateOfJoining: '2020-01-15', avatarUrl: null },
+  { id: 2, employeeCode: 'EMP0045', fullName: 'Priya Sharma', departmentId: 2, departmentName: 'Product', designation: 'Team Lead', email: 'priya.sharma@lms.com', phone: '+91 91234 56789', employmentStatus: 'ACTIVE', dateOfJoining: '2021-03-01', avatarUrl: null },
+  { id: 3, employeeCode: 'EMP0039', fullName: 'Sneha Patel', departmentId: 3, departmentName: 'Design', designation: 'UI/UX Designer', email: 'sneha.patel@lms.com', phone: '+91 98887 66554', employmentStatus: 'ON_LEAVE', dateOfJoining: '2021-07-10', avatarUrl: null },
+  { id: 4, employeeCode: 'EMP0031', fullName: 'Vikram Singh', departmentId: 2, departmentName: 'Product', designation: 'Product Manager', email: 'vikram.singh@lms.com', phone: '+91 90311 22334', employmentStatus: 'ACTIVE', dateOfJoining: '2019-11-20', avatarUrl: null },
+  { id: 5, employeeCode: 'EMP0025', fullName: 'Anjali Mehta', departmentId: 4, departmentName: 'QA', designation: 'QA Engineer', email: 'anjali.mehta@lms.com', phone: '+91 93555 77889', employmentStatus: 'ON_LEAVE', dateOfJoining: '2022-02-15', avatarUrl: null },
+  { id: 6, employeeCode: 'EMP0022', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 93455 78901', employmentStatus: 'ACTIVE', dateOfJoining: '2020-02-28', avatarUrl: null },
+  { id: 7, employeeCode: 'EMP0018', fullName: 'Neha Gupta', departmentId: 5, departmentName: 'Business Analysis', designation: 'Business Analyst', email: 'neha.gupta@lms.com', phone: '+91 87654 32109', employmentStatus: 'ACTIVE', dateOfJoining: '2023-09-18', avatarUrl: null },
+  { id: 8, employeeCode: 'EMP0011', fullName: 'Arjun Kumar', departmentId: 1, departmentName: 'Engineering', designation: 'DevOps Engineer', email: 'arjun.kumar@lms.com', phone: '+91 88997 71233', employmentStatus: 'SEPARATED', dateOfJoining: '2020-04-11', avatarUrl: null },
+];
+
+// --- Leave Policies (HR-02) mock ---
+
+export const mockPolicyStats = {
+  totalPolicies: 6,
+  activePolicies: 5,
+  draftPolicies: 1,
+  archivedPolicies: 0,
+};
+
+export const mockHRLeavePolicies = [
+  {
+    id: 1,
+    policyName: 'Casual Leave Policy',
+    policyCode: 'PCL-CL-001',
+    isDefault: true,
+    categoryId: 1,
+    categoryName: 'Casual Leave',
+    categoryCode: 'CL',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'All Employees',
+    annualQuota: 12,
+    accrualFrequency: 'MONTHLY',
+    accrualCaption: '1.5 days/month',
+    maxCarryForward: 5,
+    carryForwardCaption: 'Max 5 days',
+    minNoticeDays: 1,
+    maxConsecutiveDays: 3,
+    status: 'ACTIVE',
+    effectiveFrom: '2024-01-21',
+  },
+  {
+    id: 2,
+    policyName: 'Sick Leave Policy',
+    policyCode: 'PCL-SL-001',
+    isDefault: true,
+    categoryId: 2,
+    categoryName: 'Sick Leave',
+    categoryCode: 'SL',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'All Employees',
+    annualQuota: 10,
+    accrualFrequency: 'MONTHLY',
+    accrualCaption: '1.2 days/month',
+    maxCarryForward: 10,
+    carryForwardCaption: 'Max 10 days',
+    minNoticeDays: 0,
+    maxConsecutiveDays: 7,
+    status: 'ACTIVE',
+    effectiveFrom: '2024-01-21',
+  },
+  {
+    id: 3,
+    policyName: 'Earned Leave Policy',
+    policyCode: 'PCL-EL-001',
+    isDefault: true,
+    categoryId: 3,
+    categoryName: 'Earned Leave',
+    categoryCode: 'EL',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'All Employees',
+    annualQuota: 21,
+    accrualFrequency: 'MONTHLY',
+    accrualCaption: '1.75 days/month',
+    maxCarryForward: 15,
+    carryForwardCaption: 'Max 15 days',
+    minNoticeDays: 7,
+    maxConsecutiveDays: 15,
+    status: 'ACTIVE',
+    effectiveFrom: '2024-01-21',
+  },
+  {
+    id: 4,
+    policyName: 'Comp-Off Policy',
+    policyCode: 'PCL-CO-001',
+    isDefault: true,
+    categoryId: 4,
+    categoryName: 'Comp-Off',
+    categoryCode: 'CO',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'All Employees',
+    annualQuota: null,
+    accrualFrequency: 'QUARTERLY',
+    accrualCaption: 'As and when earned',
+    maxCarryForward: 0,
+    carryForwardCaption: 'Must be used within 3 months',
+    minNoticeDays: 0,
+    maxConsecutiveDays: 2,
+    status: 'ACTIVE',
+    effectiveFrom: '2024-01-21',
+  },
+  {
+    id: 5,
+    policyName: 'Paternity Leave Policy',
+    policyCode: 'PCL-PL-001',
+    isDefault: false,
+    categoryId: 5,
+    categoryName: 'Paternity Leave',
+    categoryCode: 'PL',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'Male Employees',
+    annualQuota: 5,
+    accrualFrequency: 'ANNUAL',
+    accrualCaption: '5 days/year',
+    maxCarryForward: 0,
+    carryForwardCaption: 'Non-cumulative',
+    minNoticeDays: 15,
+    maxConsecutiveDays: 5,
+    status: 'ACTIVE',
+    effectiveFrom: '2024-04-21',
+  },
+  {
+    id: 6,
+    policyName: 'Maternity Leave Policy',
+    policyCode: 'PCL-ML-001',
+    isDefault: false,
+    categoryId: 6,
+    categoryName: 'Maternity Leave',
+    categoryCode: 'ML',
+    departmentId: null,
+    departmentName: null,
+    applicableTo: 'Female Employees',
+    annualQuota: 180,
+    accrualFrequency: 'ANNUAL',
+    accrualCaption: '180 days/year',
+    maxCarryForward: 0,
+    carryForwardCaption: 'Non-cumulative',
+    minNoticeDays: 30,
+    maxConsecutiveDays: 180,
+    status: 'DRAFT',
+    effectiveFrom: '2024-04-21',
+  },
+];
 
 // --- HR Dashboard mocks ---
 
@@ -493,12 +660,12 @@ export const mockApprovalDetails = {
       designation: 'Product Analyst',
     },
     attachments: [
-      { 
-        id: 1, 
+      {
+        id: 1,
         entityType: 'LEAVE_REQUEST',
         entityId: 4001,
-        fileName: 'Personal_Work_Details.pdf', 
-        contentType: 'application/pdf', 
+        fileName: 'Personal_Work_Details.pdf',
+        contentType: 'application/pdf',
         sizeBytes: 204800,
         storageProvider: 'S3',
         status: 'ACTIVE',
@@ -530,6 +697,8 @@ export const mockLeaveCategories = [
   { id: 2, categoryName: 'Sick Leave', categoryCode: 'SL', categoryType: 'STANDARD', isPaid: true, requiresDocument: true },
   { id: 3, categoryName: 'Earned Leave', categoryCode: 'EL', categoryType: 'ACCRUAL', isPaid: true, requiresDocument: false },
   { id: 4, categoryName: 'Comp-Off', categoryCode: 'CO', categoryType: 'COMPENSATORY', isPaid: true, requiresDocument: false },
+  { id: 5, categoryName: 'Paternity Leave', categoryCode: 'PL', categoryType: 'STANDARD', isPaid: true, requiresDocument: false },
+  { id: 6, categoryName: 'Maternity Leave', categoryCode: 'ML', categoryType: 'STANDARD', isPaid: true, requiresDocument: false },
 ];
 
 // Keyed by categoryId — matches LeavePolicy shape.

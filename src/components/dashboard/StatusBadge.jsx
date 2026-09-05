@@ -18,6 +18,11 @@ const STATUS_CLASS = {
   WITHDRAWN: 'status-withdrawn',
   REQUESTED: 'status-requested',
   EXPIRED: 'status-expired',
+  // Employee Management (employmentStatus) + Leave Policies (status)
+  Active: 'status-available',
+  Inactive: 'status-rejected',
+  Draft: 'status-halfday',
+  Archived: 'status-default',
 };
 
 // showDot: renders a small leading dot indicator — used on the Team Members

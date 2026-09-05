@@ -349,6 +349,13 @@ export const SwapIcon = (props) => (
   </svg>
 );
 
+export const ArchiveIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v10a1 1 0 001 1h12a1 1 0 001-1V8M10 13h4" />
+  </svg>
+);
+
 export const HelpCircleIcon = (props) => (
   <svg {...base} {...props}>
     <circle cx="12" cy="12" r="9" />

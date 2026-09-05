@@ -1,0 +1,135 @@
+.policy-toolbar-top {
+  display: flex;
+  align-items: stretch;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.policy-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.policy-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--primary-blue);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.policy-create-btn:hover {
+  background: var(--primary-dark);
+}
+
+.policy-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.policy-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  color: var(--text-light);
+}
+
+.policy-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.policy-filter-select {
+  appearance: none;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.policy-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.policy-filter-btn:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.policy-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.policy-main {
+  min-width: 0;
+}
+
+.policy-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .policy-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .policy-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .policy-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .policy-toolbar-top {
+    flex-direction: column;
+  }
+
+  .policy-create-btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+}
