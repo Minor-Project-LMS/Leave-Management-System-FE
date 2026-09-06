@@ -153,6 +153,7 @@ export const AuthProvider = ({ children }) => {
 
         if (newToken) {
           setAccessTokenState(newToken);
+          // Preserve avatar fields from profile
           setUser(profile);
           return true;
         }
@@ -207,6 +208,7 @@ export const AuthProvider = ({ children }) => {
       safeSessionStorage.removeItem('hasLoggedOut');
       
       setAccessTokenState(token);
+      // Ensure avatar fields are preserved in the user profile
       setUser(profile);
       
       // Broadcast login event to other tabs
@@ -239,6 +241,34 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   }, []);
+
+  // Refresh user avatar URL when it expires (valid for 15 minutes)
+  const refreshUserAvatar = useCallback(async () => {
+    try {
+      const resp = await refreshTokenRequest();
+      const profile = resp?.data?.user || resp?.data?.profile || null;
+      if (profile) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          avatarUrl: profile.avatarUrl || null,
+          avatarAttachmentId: profile.avatarAttachmentId || null,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to refresh user avatar:', error);
+    }
+  }, []);
+
+  // Refresh avatar URL every 14 minutes (before the 15-minute expiration)
+  useEffect(() => {
+    if (!user?.avatarAttachmentId) return;
+
+    const refreshInterval = setInterval(() => {
+      refreshUserAvatar();
+    }, 14 * 60 * 1000); // 14 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.avatarAttachmentId, refreshUserAvatar]);
 
   const apiCall = useCallback(async (config) => {
     // config: { url, method, params, data }

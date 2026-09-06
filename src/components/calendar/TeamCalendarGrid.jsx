@@ -63,8 +63,28 @@ const TeamCalendarGrid = ({ year, month, daysByDate = {}, showWeekends = true })
                     const color = getAvatarColor(entry.fullName);
                     return (
                       <div key={`${entry.userId}-${entry.categoryId}`} className={`team-calendar-entry ${CODE_CLASS[code] || 'day-entry-default'}`}>
-                        <span className="team-calendar-entry-avatar" style={{ background: color.bg, color: color.fg }}>
-                          {getInitials(entry.fullName)}
+                        <span 
+                          className="team-calendar-entry-avatar" 
+                          style={{ 
+                            background: entry.avatarUrl ? 'transparent' : color.bg, 
+                            color: entry.avatarUrl ? 'transparent' : color.fg 
+                          }}
+                        >
+                          {entry.avatarUrl ? (
+                            <img 
+                              src={entry.avatarUrl} 
+                              alt={entry.fullName} 
+                              className="team-calendar-entry-avatar-image"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.style.background = color.bg;
+                                e.target.parentElement.style.color = color.fg;
+                                e.target.parentElement.textContent = getInitials(entry.fullName);
+                              }}
+                            />
+                          ) : (
+                            getInitials(entry.fullName)
+                          )}
                         </span>
                         <span className="team-calendar-entry-name">{entry.fullName}</span>
                         <span className="team-calendar-entry-code">{code}</span>

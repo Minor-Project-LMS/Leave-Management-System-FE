@@ -96,8 +96,28 @@ const EmployeeManagementTable = ({
               <tr key={emp.id}>
                 <td>
                   <div className="employee-name-cell">
-                    <span className="employee-avatar" style={{ background: color.bg, color: color.fg }}>
-                      {getInitials(emp.fullName)}
+                    <span 
+                      className="employee-avatar" 
+                      style={{ 
+                        background: emp.avatarUrl ? 'transparent' : color.bg, 
+                        color: emp.avatarUrl ? 'transparent' : color.fg 
+                      }}
+                    >
+                      {emp.avatarUrl ? (
+                        <img 
+                          src={emp.avatarUrl} 
+                          alt={emp.fullName} 
+                          className="employee-avatar-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.style.background = color.bg;
+                            e.target.parentElement.style.color = color.fg;
+                            e.target.parentElement.textContent = getInitials(emp.fullName);
+                          }}
+                        />
+                      ) : (
+                        getInitials(emp.fullName)
+                      )}
                     </span>
                     <div className="employee-name-info">
                       <span className="employee-name">{emp.fullName}</span>

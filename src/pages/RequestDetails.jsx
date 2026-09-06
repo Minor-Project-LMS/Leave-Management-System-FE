@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { mockRequestDetails } from '../utils/mockData';
+import { getAvatarColor } from '../utils/avatarColor';
 import './RequestDetails.css';
 
 const formatDate = (dateStr) => {
@@ -173,6 +174,7 @@ const RequestDetails = () => {
         approverRole: requestData.approverRole || requestData.approver?.role || 'Approver',
         approverInitials: requestData.currentApproverName || requestData.approver?.name ? 
           (requestData.currentApproverName || requestData.approver?.name).split(' ').map(n => n[0]).join('').toUpperCase() : 'NA',
+        approverAvatarUrl: requestData.currentApproverAvatarUrl || requestData.approver?.avatarUrl || null,
         
         // Employee details - use fetched employee data or fallback
         employee: {
@@ -217,6 +219,7 @@ const RequestDetails = () => {
           id: approval.id,
           level: approval.level || approval.approvalLevel || 1,
           approverName: approval.approverName || approval.approver || approval.name || 'Unknown',
+          approverAvatarUrl: approval.approverAvatarUrl || approval.avatarUrl || null,
           decision: approval.decision || approval.status || approval.action || 'PENDING',
           decidedAt: approval.decidedAt || approval.approvedAt || approval.timestamp,
           decidedAtFormatted: approval.decidedAt || approval.approvedAt || approval.timestamp 
@@ -559,7 +562,33 @@ const RequestDetails = () => {
                   <div className="timeline-body">
                     <div className="timeline-title title-green">Submitted</div>
                     <div className="timeline-person">
-                      {request.employeeName || 'You'}{request.employee?.designation ? ` (${request.employee.designation})` : ' (You)'}
+                      <div className="timeline-person-info">
+                        <div 
+                          className="timeline-avatar"
+                          style={{ 
+                            background: request.employee?.avatarUrl ? 'transparent' : getAvatarColor(request.employee?.fullName || request.employeeName || 'User').bg,
+                            color: request.employee?.avatarUrl ? 'transparent' : getAvatarColor(request.employee?.fullName || request.employeeName || 'User').fg
+                          }}
+                        >
+                          {request.employee?.avatarUrl ? (
+                            <img 
+                              src={request.employee.avatarUrl} 
+                              alt={request.employee?.fullName || request.employeeName || 'User'} 
+                              className="timeline-avatar-image"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const color = getAvatarColor(request.employee?.fullName || request.employeeName || 'User');
+                                e.target.parentElement.style.background = color.bg;
+                                e.target.parentElement.style.color = color.fg;
+                                e.target.parentElement.textContent = (request.employee?.fullName || request.employeeName || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+                              }}
+                            />
+                          ) : (
+                            (request.employee?.fullName || request.employeeName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()
+                          )}
+                        </div>
+                        <span>{request.employeeName || 'You'}{request.employee?.designation ? ` (${request.employee.designation})` : ' (You)'}</span>
+                      </div>
                     </div>
                     <div className="timeline-date">
                       {request.appliedOnFormatted || formatDateTime(request.appliedAt || request.appliedOn)}
@@ -599,7 +628,33 @@ const RequestDetails = () => {
                           }
                         </div>
                         <div className="timeline-person">
-                          {approval.approverName} {approval.level ? `(${approval.level === 1 ? 'Team Lead' : 'HR Manager'})` : ''}
+                          <div className="timeline-person-info">
+                            <div 
+                              className="timeline-avatar"
+                              style={{ 
+                                background: approval.approverAvatarUrl ? 'transparent' : getAvatarColor(approval.approverName || 'User').bg,
+                                color: approval.approverAvatarUrl ? 'transparent' : getAvatarColor(approval.approverName || 'User').fg
+                              }}
+                            >
+                              {approval.approverAvatarUrl ? (
+                                <img 
+                                  src={approval.approverAvatarUrl} 
+                                  alt={approval.approverName || 'User'} 
+                                  className="timeline-avatar-image"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    const color = getAvatarColor(approval.approverName || 'User');
+                                    e.target.parentElement.style.background = color.bg;
+                                    e.target.parentElement.style.color = color.fg;
+                                    e.target.parentElement.textContent = (approval.approverName || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+                                  }}
+                                />
+                              ) : (
+                                (approval.approverName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()
+                              )}
+                            </div>
+                            <span>{approval.approverName} {approval.level ? `(${approval.level === 1 ? 'Team Lead' : 'HR Manager'})` : ''}</span>
+                          </div>
                         </div>
                         {approval.decidedAt && (
                           <div className="timeline-date">
@@ -653,7 +708,30 @@ const RequestDetails = () => {
                 <div className="comments-list">
                   {request.comments && request.comments.map((comment) => (
                     <div key={comment.id} className="comment-item">
-                      <div className="comment-avatar">{comment.authorInitials}</div>
+                      <div 
+                        className="comment-avatar"
+                        style={{ 
+                          background: comment.authorAvatarUrl ? 'transparent' : getAvatarColor(comment.author || 'User').bg,
+                          color: comment.authorAvatarUrl ? 'transparent' : getAvatarColor(comment.author || 'User').fg
+                        }}
+                      >
+                        {comment.authorAvatarUrl ? (
+                          <img 
+                            src={comment.authorAvatarUrl} 
+                            alt={comment.author || 'User'} 
+                            className="comment-avatar-image"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              const color = getAvatarColor(comment.author || 'User');
+                              e.target.parentElement.style.background = color.bg;
+                              e.target.parentElement.style.color = color.fg;
+                              e.target.parentElement.textContent = comment.authorInitials;
+                            }}
+                          />
+                        ) : (
+                          comment.authorInitials
+                        )}
+                      </div>
                       <div className="comment-content">
                         <div className="comment-header">
                           <span className="comment-author">{comment.author}</span>
@@ -667,8 +745,29 @@ const RequestDetails = () => {
                   ))}
                 </div>
                 <div className="comment-input-wrapper">
-                  <div className="comment-input-avatar">
-                    {(user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
+                  <div 
+                    className="comment-input-avatar"
+                    style={{ 
+                      background: user?.avatarUrl ? 'transparent' : getAvatarColor(user?.name || 'User').bg,
+                      color: user?.avatarUrl ? 'transparent' : getAvatarColor(user?.name || 'User').fg
+                    }}
+                  >
+                    {user?.avatarUrl ? (
+                      <img 
+                        src={user.avatarUrl} 
+                        alt={user?.name || 'User'} 
+                        className="comment-avatar-image"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const color = getAvatarColor(user?.name || 'User');
+                          e.target.parentElement.style.background = color.bg;
+                          e.target.parentElement.style.color = color.fg;
+                          e.target.parentElement.textContent = (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+                        }}
+                      />
+                    ) : (
+                      (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase()
+                    )}
                   </div>
                   <div className="comment-input-container">
                     <textarea
@@ -701,9 +800,30 @@ const RequestDetails = () => {
               </div>
               <div className="employee-details-content">
                 <div className="employee-header-row">
-                  <div className="employee-avatar-large">
-                    {request.employee?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 
-                     request.employeeName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  <div 
+                    className="employee-avatar-large"
+                    style={{ 
+                      background: request.employee?.avatarUrl ? 'transparent' : getAvatarColor(request.employee?.fullName || request.employeeName || 'User').bg,
+                      color: request.employee?.avatarUrl ? 'transparent' : getAvatarColor(request.employee?.fullName || request.employeeName || 'User').fg
+                    }}
+                  >
+                    {request.employee?.avatarUrl ? (
+                      <img 
+                        src={request.employee.avatarUrl} 
+                        alt={request.employee?.fullName || request.employeeName || 'User'} 
+                        className="employee-avatar-image"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const color = getAvatarColor(request.employee?.fullName || request.employeeName || 'User');
+                          e.target.parentElement.style.background = color.bg;
+                          e.target.parentElement.style.color = color.fg;
+                          e.target.parentElement.textContent = (request.employee?.fullName || request.employeeName || 'U').split(' ').map(n => n[0]).join('').toUpperCase();
+                        }}
+                      />
+                    ) : (
+                      (request.employee?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 
+                       request.employeeName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U')
+                    )}
                   </div>
                   <div className="employee-info">
                     <h4 className="employee-name">{request.employee?.fullName || request.employeeName || 'N/A'}</h4>

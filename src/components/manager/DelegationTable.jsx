@@ -112,8 +112,28 @@ const DelegationTable = ({
               <tr key={d.id}>
                 <td>
                   <div className="delegation-person-cell">
-                    <span className="delegation-avatar" style={{ background: color.bg, color: color.fg }}>
-                      {getInitials(d.delegateName)}
+                    <span 
+                      className="delegation-avatar" 
+                      style={{ 
+                        background: d.delegateAvatarUrl ? 'transparent' : color.bg, 
+                        color: d.delegateAvatarUrl ? 'transparent' : color.fg 
+                      }}
+                    >
+                      {d.delegateAvatarUrl ? (
+                        <img 
+                          src={d.delegateAvatarUrl} 
+                          alt={d.delegateName} 
+                          className="delegation-avatar-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.style.background = color.bg;
+                            e.target.parentElement.style.color = color.fg;
+                            e.target.parentElement.textContent = getInitials(d.delegateName);
+                          }}
+                        />
+                      ) : (
+                        getInitials(d.delegateName)
+                      )}
                     </span>
                     <span className="delegation-person-name">{d.delegateName}</span>
                   </div>

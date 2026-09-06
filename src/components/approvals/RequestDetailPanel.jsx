@@ -61,8 +61,28 @@ const RequestDetailPanel = ({ detail, loading }) => {
       </div>
 
       <div className="request-detail-employee">
-        <span className="request-detail-avatar" style={{ background: color.bg, color: color.fg }}>
-          {getInitials(employeeName)}
+        <span 
+          className="request-detail-avatar" 
+          style={{ 
+            background: detail.avatarUrl ? 'transparent' : color.bg, 
+            color: detail.avatarUrl ? 'transparent' : color.fg 
+          }}
+        >
+          {detail.avatarUrl ? (
+            <img 
+              src={detail.avatarUrl} 
+              alt={employeeName} 
+              className="request-detail-avatar-image"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.style.background = color.bg;
+                e.target.parentElement.style.color = color.fg;
+                e.target.parentElement.textContent = getInitials(employeeName);
+              }}
+            />
+          ) : (
+            getInitials(employeeName)
+          )}
         </span>
         <div>
           <span className="request-detail-name">{employeeName || '—'}</span>

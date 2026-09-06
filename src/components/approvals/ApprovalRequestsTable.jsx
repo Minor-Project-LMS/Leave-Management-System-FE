@@ -66,9 +66,26 @@ const ApprovalRequestsTable = ({
                   <div className="approval-table-employee">
                     <span
                       className="approval-table-avatar"
-                      style={{ background: color.bg, color: color.fg }}
+                      style={{ 
+                        background: req.avatarUrl ? 'transparent' : color.bg, 
+                        color: req.avatarUrl ? 'transparent' : color.fg 
+                      }}
                     >
-                      {getInitials(employeeName)}
+                      {req.avatarUrl ? (
+                        <img 
+                          src={req.avatarUrl} 
+                          alt={employeeName} 
+                          className="approval-table-avatar-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.style.background = color.bg;
+                            e.target.parentElement.style.color = color.fg;
+                            e.target.parentElement.textContent = getInitials(employeeName);
+                          }}
+                        />
+                      ) : (
+                        getInitials(employeeName)
+                      )}
                     </span>
                     <div className="approval-table-employee-info">
                       <span className="approval-table-name">{employeeName || '—'}</span>

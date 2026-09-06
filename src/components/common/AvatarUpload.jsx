@@ -14,11 +14,18 @@ const AvatarUpload = ({
   const [previewUrl, setPreviewUrl] = useState(currentAvatarUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     setPreviewUrl(currentAvatarUrl);
+    setImageError(false);
   }, [currentAvatarUrl]);
+
+  const handleImageError = () => {
+    console.warn('Avatar URL failed to load, showing placeholder');
+    setImageError(true);
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -121,11 +128,12 @@ const AvatarUpload = ({
         className="avatar-upload-preview"
         style={{ width: size, height: size }}
       >
-        {previewUrl ? (
+        {previewUrl && !imageError ? (
           <img
             src={previewUrl}
             alt="Profile avatar"
             style={{ width: size, height: size }}
+            onError={handleImageError}
           />
         ) : (
           <div

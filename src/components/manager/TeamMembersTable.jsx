@@ -75,8 +75,28 @@ const TeamMembersTable = ({ members = [], page, totalPages, totalCount, onPageCh
               <tr key={m.id}>
                 <td>
                   <div className="team-members-name-cell">
-                    <span className="team-members-avatar" style={{ background: color.bg, color: color.fg }}>
-                      {getInitials(m.fullName)}
+                    <span 
+                      className="team-members-avatar" 
+                      style={{ 
+                        background: m.avatarUrl ? 'transparent' : color.bg, 
+                        color: m.avatarUrl ? 'transparent' : color.fg 
+                      }}
+                    >
+                      {m.avatarUrl ? (
+                        <img 
+                          src={m.avatarUrl} 
+                          alt={m.fullName} 
+                          className="team-members-avatar-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.style.background = color.bg;
+                            e.target.parentElement.style.color = color.fg;
+                            e.target.parentElement.textContent = getInitials(m.fullName);
+                          }}
+                        />
+                      ) : (
+                        getInitials(m.fullName)
+                      )}
                     </span>
                     <span className="team-members-name">{m.fullName}</span>
                   </div>

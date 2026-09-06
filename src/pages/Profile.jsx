@@ -161,6 +161,10 @@ const Profile = () => {
           userData.managerName ||
           userData.reportsToName ||
           '—',
+
+        // Preserve avatar fields from API response
+        avatarUrl: userData.avatarUrl || null,
+        avatarAttachmentId: userData.avatarAttachmentId || null,
       };
 
       setProfile(normalizedProfile);
@@ -175,9 +179,36 @@ const Profile = () => {
     }
   }, []);
 
+  // Refresh avatar URL when it expires (valid for 15 minutes)
+  const refreshAvatarUrl = useCallback(async () => {
+    try {
+      const res = await apiService.getCurrentUser();
+      const userData = res?.data || {};
+
+      setProfile((prev) => ({
+        ...prev,
+        avatarUrl: userData.avatarUrl || null,
+        avatarAttachmentId: userData.avatarAttachmentId || null,
+      }));
+    } catch (err) {
+      console.error('Failed to refresh avatar URL:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Refresh avatar URL every 14 minutes (before the 15-minute expiration)
+  useEffect(() => {
+    if (!profile?.avatarAttachmentId) return;
+
+    const refreshInterval = setInterval(() => {
+      refreshAvatarUrl();
+    }, 14 * 60 * 1000); // 14 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [profile?.avatarAttachmentId]);
 
   const handleLogout = async () => {
     await logout();
@@ -276,6 +307,10 @@ const Profile = () => {
             confirmedAvatar?.avatarUrl ??
             confirmedAvatar?.data?.avatarUrl ??
             prev.avatarUrl,
+          avatarAttachmentId:
+            confirmedAvatar?.avatarAttachmentId ??
+            confirmedAvatar?.data?.avatarAttachmentId ??
+            attachmentId,
         }));
       }
     } catch (err) {
@@ -291,6 +326,10 @@ const Profile = () => {
               directUploadResponse?.avatarUrl ??
               directUploadResponse?.data?.avatarUrl ??
               prev.avatarUrl,
+            avatarAttachmentId:
+              directUploadResponse?.avatarAttachmentId ??
+              directUploadResponse?.data?.avatarAttachmentId ??
+              prev.avatarAttachmentId,
           }));
         } catch (directErr) {
           setError(
