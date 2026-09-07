@@ -5,6 +5,7 @@ import StatCard from '../components/dashboard/StatCard';
 import EmployeeManagementTable from '../components/hr/EmployeeManagementTable';
 import EmployeeFormModal from '../components/hr/EmployeeFormModal';
 import EmployeeQuickActions from '../components/hr/EmployeeQuickActions';
+import ManageRolesAccessModal from '../components/hr/ManageRolesAccessModal';
 import DepartmentWiseCount from '../components/hr/DepartmentWiseCount';
 import TeamOverviewList from '../components/manager/TeamOverviewList';
 import {
@@ -58,6 +59,7 @@ const HREmployeeManagement = () => {
   const [error, setError] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,18 +109,50 @@ const HREmployeeManagement = () => {
     }
 
     try {
-      const res = await apiService.getEmployees({
-        q: search.trim() || undefined,
-        departmentId,
-        designation: designation || undefined,
-        status: status || undefined,
-        page,
-        limit: LIMIT,
-      });
-      const data = res?.data ?? [];
+      // No dedicated employee-stats endpoint exists on the backend, so the
+      // 4 top stat cards are derived from real counts via 3 lightweight
+      // status-filtered calls (limit=1, we only need page.totalCount from
+      // each) run alongside the actual filtered/paginated list. Summing
+      // active+onLeave+separated also gives the true org-wide total,
+      // independent of whatever filters are currently applied to the main
+      // list call.
+      const [employeesRes, activeRes, onLeaveRes, inactiveRes] = await Promise.all([
+        apiService.getEmployees({
+          q: search.trim() || undefined,
+          departmentId,
+          designation: designation || undefined,
+          status: status || undefined,
+          page,
+          limit: LIMIT,
+        }),
+        apiService.getEmployees({ status: 'ACTIVE', limit: 1 }),
+        apiService.getEmployees({ status: 'ON_LEAVE', limit: 1 }),
+        apiService.getEmployees({ status: 'SEPARATED', limit: 1 }),
+      ]);
+
+      // Backend's UserDto uses `name`, not `fullName` like the rest of this
+      // page/mock data — normalize here so EmployeeManagementTable,
+      // EmployeeFormModal etc. don't need to special-case the real API.
+      // Pagination is also nested under `page` (PaginatedResponse.page ->
+      // PageResponse{ totalCount, totalPages }), not top-level.
+      const data = (employeesRes?.data ?? []).map((e) => ({ ...e, fullName: e.fullName ?? e.name }));
       setEmployees(data);
-      setTotalCount(res?.totalCount ?? data.length);
-      setTotalPages(res?.totalPages ?? 1);
+      setTotalCount(employeesRes?.page?.totalCount ?? data.length);
+      setTotalPages(employeesRes?.page?.totalPages ?? 1);
+
+      const activeCount = activeRes?.page?.totalCount ?? 0;
+      const onLeaveCount = onLeaveRes?.page?.totalCount ?? 0;
+      const inactiveCount = inactiveRes?.page?.totalCount ?? 0;
+      setStats({
+        totalEmployees: activeCount + onLeaveCount + inactiveCount,
+        activeEmployees: activeCount,
+        onLeaveToday: onLeaveCount,
+        inactiveEmployees: inactiveCount,
+        // No backend endpoint exposes this yet (would need a joined-date
+        // range filter on GET /employees) — left at 0 rather than showing
+        // a fabricated number.
+        newJoinersThisMonth: 0,
+      });
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load employees.'));
       setEmployees(mockEmployees.slice(0, LIMIT));
@@ -361,7 +395,7 @@ const HREmployeeManagement = () => {
               onAddEmployee={openAddModal}
               onImport={() => {}}
               onBulkUpdate={() => {}}
-              onManageRoles={() => {}}
+              onManageRoles={() => setRolesModalOpen(true)}
               onDocuments={() => {}}
             />
           </div>
@@ -383,6 +417,13 @@ const HREmployeeManagement = () => {
             setEditingEmployee(null);
           }}
           onSubmit={handleSubmitEmployee}
+        />
+      )}
+
+      {rolesModalOpen && (
+        <ManageRolesAccessModal
+          onClose={() => setRolesModalOpen(false)}
+          onChanged={loadEmployees}
         />
       )}
     </DashboardLayout>
