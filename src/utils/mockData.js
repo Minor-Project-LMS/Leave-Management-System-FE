@@ -324,15 +324,21 @@ export const mockEmployeeStats = {
   newJoinersThisMonth: 6,
 };
 
+export const mockRoles = [
+  { id: 1, roleCode: 'EMPLOYEE', roleDescription: 'Regular employee with standard leave access' },
+  { id: 2, roleCode: 'MANAGER', roleDescription: 'Manager with team approval and reporting capabilities' },
+  { id: 3, roleCode: 'HR_ADMIN', roleDescription: 'HR administrator with full system access' },
+];
+
 export const mockEmployees = [
-  { id: 1, employeeCode: 'EMP0047', fullName: 'Rahul Verma', departmentId: 1, departmentName: 'Engineering', designation: 'Senior Developer', email: 'rahul.verma@lms.com', phone: '+91 98765 43210', employmentStatus: 'ACTIVE', dateOfJoining: '2020-01-15', avatarUrl: null },
-  { id: 2, employeeCode: 'EMP0045', fullName: 'Priya Sharma', departmentId: 2, departmentName: 'Product', designation: 'Team Lead', email: 'priya.sharma@lms.com', phone: '+91 91234 56789', employmentStatus: 'ACTIVE', dateOfJoining: '2021-03-01', avatarUrl: null },
-  { id: 3, employeeCode: 'EMP0039', fullName: 'Sneha Patel', departmentId: 3, departmentName: 'Design', designation: 'UI/UX Designer', email: 'sneha.patel@lms.com', phone: '+91 98887 66554', employmentStatus: 'ON_LEAVE', dateOfJoining: '2021-07-10', avatarUrl: null },
-  { id: 4, employeeCode: 'EMP0031', fullName: 'Vikram Singh', departmentId: 2, departmentName: 'Product', designation: 'Product Manager', email: 'vikram.singh@lms.com', phone: '+91 90311 22334', employmentStatus: 'ACTIVE', dateOfJoining: '2019-11-20', avatarUrl: null },
-  { id: 5, employeeCode: 'EMP0025', fullName: 'Anjali Mehta', departmentId: 4, departmentName: 'QA', designation: 'QA Engineer', email: 'anjali.mehta@lms.com', phone: '+91 93555 77889', employmentStatus: 'ON_LEAVE', dateOfJoining: '2022-02-15', avatarUrl: null },
-  { id: 6, employeeCode: 'EMP0022', fullName: 'Karan Mehta', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 93455 78901', employmentStatus: 'ACTIVE', dateOfJoining: '2020-02-28', avatarUrl: null },
-  { id: 7, employeeCode: 'EMP0018', fullName: 'Neha Gupta', departmentId: 5, departmentName: 'Business Analysis', designation: 'Business Analyst', email: 'neha.gupta@lms.com', phone: '+91 87654 32109', employmentStatus: 'ACTIVE', dateOfJoining: '2023-09-18', avatarUrl: null },
-  { id: 8, employeeCode: 'EMP0011', fullName: 'Arjun Kumar', departmentId: 1, departmentName: 'Engineering', designation: 'DevOps Engineer', email: 'arjun.kumar@lms.com', phone: '+91 88997 71233', employmentStatus: 'SEPARATED', dateOfJoining: '2020-04-11', avatarUrl: null },
+  { id: 1, employeeCode: 'EMP0047', fullName: 'Rahul Verma', role: 'EMPLOYEE', departmentId: 1, departmentName: 'Engineering', designation: 'Senior Developer', email: 'rahul.verma@lms.com', phone: '+91 98765 43210', employmentStatus: 'ACTIVE', dateOfJoining: '2020-01-15', avatarUrl: null },
+  { id: 2, employeeCode: 'EMP0045', fullName: 'Priya Sharma', role: 'MANAGER', departmentId: 2, departmentName: 'Product', designation: 'Team Lead', email: 'priya.sharma@lms.com', phone: '+91 91234 56789', employmentStatus: 'ACTIVE', dateOfJoining: '2021-03-01', avatarUrl: null },
+  { id: 3, employeeCode: 'EMP0039', fullName: 'Sneha Patel', role: 'EMPLOYEE', departmentId: 3, departmentName: 'Design', designation: 'UI/UX Designer', email: 'sneha.patel@lms.com', phone: '+91 98887 66554', employmentStatus: 'ON_LEAVE', dateOfJoining: '2021-07-10', avatarUrl: null },
+  { id: 4, employeeCode: 'EMP0031', fullName: 'Vikram Singh', role: 'MANAGER', departmentId: 2, departmentName: 'Product', designation: 'Product Manager', email: 'vikram.singh@lms.com', phone: '+91 90311 22334', employmentStatus: 'ACTIVE', dateOfJoining: '2019-11-20', avatarUrl: null },
+  { id: 5, employeeCode: 'EMP0025', fullName: 'Anjali Mehta', role: 'EMPLOYEE', departmentId: 4, departmentName: 'QA', designation: 'QA Engineer', email: 'anjali.mehta@lms.com', phone: '+91 93555 77889', employmentStatus: 'ON_LEAVE', dateOfJoining: '2022-02-15', avatarUrl: null },
+  { id: 6, employeeCode: 'EMP0022', fullName: 'Karan Mehta', role: 'EMPLOYEE', departmentId: 1, departmentName: 'Engineering', designation: 'Backend Developer', email: 'karan.mehta@lms.com', phone: '+91 93455 78901', employmentStatus: 'ACTIVE', dateOfJoining: '2020-02-28', avatarUrl: null },
+  { id: 7, employeeCode: 'EMP0018', fullName: 'Neha Gupta', role: 'EMPLOYEE', departmentId: 5, departmentName: 'Business Analysis', designation: 'Business Analyst', email: 'neha.gupta@lms.com', phone: '+91 87654 32109', employmentStatus: 'ACTIVE', dateOfJoining: '2023-09-18', avatarUrl: null },
+  { id: 8, employeeCode: 'EMP0011', fullName: 'Arjun Kumar', role: 'EMPLOYEE', departmentId: 1, departmentName: 'Engineering', designation: 'DevOps Engineer', email: 'arjun.kumar@lms.com', phone: '+91 88997 71233', employmentStatus: 'SEPARATED', dateOfJoining: '2020-04-11', avatarUrl: null },
 ];
 
 // --- Leave Policies (HR-02) mock ---
@@ -519,6 +525,73 @@ export const mockHRPendingApprovals = [
   { id: 'LR-2024-301', name: 'Amit Joshi', type: 'Earned', days: 3 },
   { id: 'LR-2024-302', name: 'Riya Shah', type: 'Casual', days: 2 },
   { id: 'LR-2024-303', name: 'Manoj Kumar', type: 'Sick', days: 1 },
+];
+
+// --- Reports & Analytics (HR-05) mocks ---
+
+export const mockReportsSummary = {
+  totalLeavesTaken: 1248,
+  totalEmployees: 128,
+  avgLeavePerEmployee: 9.75,
+  approvalRate: 96.4,
+  pendingRequests: 23,
+  insights: [
+    'Casual Leave (CL) is the most utilized leave type, with 34.8% of total leaves.',
+    'Engineering department has the highest leave utilization at 10.4%.',
+    'Leave approval rate has improved by 2.1% compared to last year.',
+    'June shows the highest leave count — plan resources accordingly.',
+  ],
+};
+
+// Matches LeaveTrendPoint { month, days } — powers "Leave by Month (Summary)".
+export const mockMonthlyLeaveTrend = [
+  { month: 'Jan', days: 82 },
+  { month: 'Feb', days: 74 },
+  { month: 'Mar', days: 96 },
+  { month: 'Apr', days: 88 },
+  { month: 'May', days: 104 },
+  { month: 'Jun', days: 132 },
+  { month: 'Jul', days: 118 },
+  { month: 'Aug', days: 122 },
+  { month: 'Sep', days: 96 },
+  { month: 'Oct', days: 90 },
+  { month: 'Nov', days: 78 },
+  { month: 'Dec', days: 68 },
+];
+
+// No backend endpoint breaks leave trend down by category (LeaveTrendPoint
+// is just { month, days } — a single aggregate) — this 4-line breakdown is
+// mock-only until such an endpoint exists.
+export const mockCategoryTrend = [
+  { month: 'Jan', casual: 28, sick: 20, earned: 24, compOff: 10 },
+  { month: 'Feb', casual: 24, sick: 18, earned: 22, compOff: 10 },
+  { month: 'Mar', casual: 32, sick: 22, earned: 28, compOff: 14 },
+  { month: 'Apr', casual: 30, sick: 20, earned: 26, compOff: 12 },
+  { month: 'May', casual: 36, sick: 24, earned: 30, compOff: 14 },
+  { month: 'Jun', casual: 46, sick: 28, earned: 40, compOff: 18 },
+  { month: 'Jul', casual: 40, sick: 26, earned: 36, compOff: 16 },
+  { month: 'Aug', casual: 42, sick: 28, earned: 36, compOff: 16 },
+  { month: 'Sep', casual: 32, sick: 22, earned: 28, compOff: 14 },
+  { month: 'Oct', casual: 30, sick: 20, earned: 28, compOff: 12 },
+  { month: 'Nov', casual: 26, sick: 18, earned: 24, compOff: 10 },
+  { month: 'Dec', casual: 22, sick: 16, earned: 20, compOff: 10 },
+];
+
+export const mockReportsDistribution = [
+  { label: 'Casual Leave (CL)', value: 434, color: '#2563eb' },
+  { label: 'Sick Leave (SL)', value: 356, color: '#10b981' },
+  { label: 'Earned Leave (EL)', value: 300, color: '#f59e0b' },
+  { label: 'Comp-Off (CO)', value: 158, color: '#7c3aed' },
+];
+export const mockReportsDistributionTotal = 1248;
+
+// Matches /reports/top-employees: { userId, fullName, departmentName, totalDaysTaken }
+export const mockTopEmployees = [
+  { userId: 1, fullName: 'Rahul Verma', departmentName: 'Engineering', totalDaysTaken: 28 },
+  { userId: 3, fullName: 'Sneha Patel', departmentName: 'Design', totalDaysTaken: 26 },
+  { userId: 4, fullName: 'Vikram Singh', departmentName: 'Product', totalDaysTaken: 24 },
+  { userId: 5, fullName: 'Anjali Mehta', departmentName: 'QA', totalDaysTaken: 22 },
+  { userId: 6, fullName: 'Karan Mehta', departmentName: 'Engineering', totalDaysTaken: 20 },
 ];
 
 // --- Approval Inbox mocks ---

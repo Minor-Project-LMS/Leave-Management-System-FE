@@ -352,6 +352,16 @@ class ApiService {
     });
   }
 
+  // System roles lookup (EMPLOYEE/MANAGER/HR_ADMIN + description) — powers
+  // the "Manage Roles & Access" panel and the role dropdown in
+  // EmployeeFormModal.
+  async getRoles() {
+    return this.request('/roles', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   // Employee Management (HR-01) — paths/schema confirmed against lms-openapi.yaml.
   async getEmployees({ q, departmentId, designation, status, page = 1, limit = 8 } = {}) {
     const params = new URLSearchParams({ page, limit });
@@ -490,8 +500,10 @@ class ApiService {
     });
   }
 
-  async getHRLeaveTrend(year = new Date().getFullYear()) {
-    return this.request(`/reports/leave-trend?year=${year}`, {
+  async getHRLeaveTrend({ year = new Date().getFullYear(), departmentId } = {}) {
+    const params = new URLSearchParams({ year });
+    if (departmentId) params.set('departmentId', departmentId);
+    return this.request(`/reports/leave-trend?${params.toString()}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });
@@ -507,6 +519,16 @@ class ApiService {
 
   async getHRPendingApprovals(limit = 5) {
     return this.request(`/manager/approvals/pending?limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getTopEmployees({ dateFrom, dateTo, limit = 5 } = {}) {
+    const params = new URLSearchParams({ limit });
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    return this.request(`/reports/top-employees?${params.toString()}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });

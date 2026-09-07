@@ -1,0 +1,44 @@
+.quick-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.quick-reports-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.quick-reports-item:hover:not(:disabled) {
+  background: var(--bg-light);
+  color: var(--primary-blue);
+}
+
+.quick-reports-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quick-reports-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.quick-reports-item svg:first-child {
+  color: var(--primary-blue);
+  flex-shrink: 0;
+}
+
+.quick-reports-item > svg:last-child {
+  color: var(--text-light);
+  flex-shrink: 0;
+}

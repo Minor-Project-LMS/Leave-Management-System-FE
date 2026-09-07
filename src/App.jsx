@@ -23,6 +23,7 @@ import TeamCalendar from './pages/manager/TeamCalendar'
 import TeamMembers from './pages/manager/TeamMembers'
 import DelegationManagement from './pages/manager/DelegationManagement'
 import HRDashboard from './pages/HRDashboard'
+import HRReportsAnalytics from './pages/HRReportsAnalytics'
 import HREmployeeManagement from './pages/HREmployeeManagement'
 import HRLeavePolicies from './pages/HRLeavePolicies'
 import HRLeaveCategories from './pages/HRLeaveCategories'
@@ -187,7 +188,14 @@ function App() {
             }
           />
           <Route path="/hr/holiday-calendar" element={guardedPlaceholder('Holiday Calendar', HR_PORTAL)} />
-          <Route path="/hr/reports" element={guardedPlaceholder('Reports & Analytics', HR_PORTAL)} />
+          <Route
+            path="/hr/reports"
+            element={
+              <ProtectedRoute>
+                <HRReportsAnalytics />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/hr/audit-trail" element={guardedPlaceholder('Audit Trail', HR_PORTAL)} />
           <Route path="/hr/notification-queue" element={guardedPlaceholder('Notification Queue', HR_PORTAL)} />
           <Route path="/hr/settings" element={guardedPlaceholder('Settings', HR_PORTAL)} />
