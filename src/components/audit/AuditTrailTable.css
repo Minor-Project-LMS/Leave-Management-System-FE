@@ -1,0 +1,299 @@
+.audit-table-wrap {
+  width: 100%;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.audit-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.audit-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.audit-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+
+.audit-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.audit-table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+
+/* Date Cell */
+.audit-date-cell {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* User Cell */
+.audit-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.audit-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-user-name {
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.audit-user-code {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Action Badge */
+.audit-action-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Module Cell */
+.audit-module-cell {
+  color: #475569;
+  font-size: 13px;
+}
+
+/* Description Cell */
+.audit-description-cell {
+  max-width: 250px;
+}
+
+.audit-description-text {
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.audit-entity-id {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* IP Cell */
+.audit-ip-cell {
+  color: #64748b;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+/* Actions Menu */
+.audit-actions-wrap {
+  position: relative;
+}
+
+.audit-actions-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audit-actions-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.audit-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 140px;
+  padding: 4px;
+}
+
+.audit-actions-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.audit-actions-menu button:hover {
+  background: #f1f5f9;
+}
+
+/* Table Footer */
+.audit-table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.audit-table-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.audit-table-count {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.audit-page-size-select {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #475569;
+  background: white;
+  cursor: pointer;
+}
+
+/* Loading State */
+.audit-table-loading {
+  padding: 40px 20px;
+}
+
+.audit-table-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audit-skeleton-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+
+.audit-skeleton-cell {
+  height: 40px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Empty State */
+.audit-table-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.audit-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.audit-table-empty h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.audit-table-empty p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .audit-table {
+    font-size: 12px;
+  }
+  
+  .audit-table th,
+  .audit-table td {
+    padding: 10px 12px;
+  }
+  
+  .audit-description-cell {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .audit-table-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .audit-table-info {
+    justify-content: space-between;
+  }
+}

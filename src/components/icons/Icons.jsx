@@ -273,6 +273,12 @@ export const PlusIcon = (props) => (
   </svg>
 );
 
+export const MinusIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M5 12h14" />
+  </svg>
+);
+
 export const UploadIcon = (props) => (
   <svg {...base} {...props}>
     <path d="M12 21V9M7 14l5-5 5 5M4 21h16" />
@@ -376,5 +382,21 @@ export const ImageIcon = (props) => (
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <path d="M21 15l-5-5L5 21" />
+  </svg>
+);
+
+export const DatabaseIcon = (props) => (
+  <svg {...base} {...props}>
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+);
+
+export const RefreshCwIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M23 4v6h-6" />
+    <path d="M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
   </svg>
 );

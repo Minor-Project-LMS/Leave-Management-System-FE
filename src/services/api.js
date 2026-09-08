@@ -269,6 +269,43 @@ class ApiService {
     });
   }
 
+async getAuditLogs(params = {}) {
+  const { page = 1, limit = 10, dateFrom, dateTo, action, entityType, q, userId } = params;
+  const queryParams = new URLSearchParams({ page, limit });
+  if (dateFrom) queryParams.set('dateFrom', dateFrom);
+  if (dateTo) queryParams.set('dateTo', dateTo);
+  if (action) queryParams.set('action', action);
+  if (entityType) queryParams.set('entityType', entityType);
+  if (q) queryParams.set('q', q);
+  if (userId) queryParams.set('userId', userId);
+
+  return this.request(`/audit-log?${queryParams.toString()}`, {
+    method: 'GET',
+    headers: this.authHeaders(),
+  });
+}
+
+async getAuditLogDetail(auditId) {
+  return this.request(`/audit-log/${auditId}`, {
+    method: 'GET',
+    headers: this.authHeaders(),
+  });
+}
+
+async exportAuditLogs(params = {}) {
+  const { dateFrom, dateTo, action, entityType, format = 'csv' } = params;
+  const queryParams = new URLSearchParams({ format });
+  if (dateFrom) queryParams.set('dateFrom', dateFrom);
+  if (dateTo) queryParams.set('dateTo', dateTo);
+  if (action) queryParams.set('action', action);
+  if (entityType) queryParams.set('entityType', entityType);
+
+  return this.request(`/audit-log/export?${queryParams.toString()}`, {
+    method: 'GET',
+    headers: this.authHeaders(),
+  });
+}
+
   // Manager dashboard endpoints (/api/manager/...)
   async getManagerSummary() {
     return this.request('/manager/dashboard/summary', {
