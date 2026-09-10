@@ -858,6 +858,22 @@ async exportAuditLogs(params = {}) {
     });
   }
 
+  // Settings (HR-08) endpoints - Get and update system-wide configuration
+  async getSettings() {
+    return this.request('/settings', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateSettings(payload) {
+    return this.request('/settings', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
   async listLeaveRequestAttachments(requestId) {
     return this.request(`/leave-requests/${requestId}/attachments`, {
       method: 'GET',

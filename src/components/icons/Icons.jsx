@@ -129,6 +129,12 @@ export const XCircleIcon = (props) => (
   </svg>
 );
 
+export const TrashIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+  </svg>
+);
+
 export const UsersIcon = (props) => (
   <svg {...base} {...props}>
     <circle cx="9" cy="8" r="3.5" />

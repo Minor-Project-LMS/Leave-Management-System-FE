@@ -360,7 +360,10 @@ const AuditTrail = () => {
     <DashboardLayout
       title="Audit Trail"
       subtitle="Track and monitor all system activities and changes"
-      breadcrumbs={['HR Dashboard', 'Audit Trail']}
+      breadcrumbs={[
+        { label: 'HR Dashboard', path: '/hr/dashboard' },
+        { label: 'Audit Trail' }
+      ]}
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
