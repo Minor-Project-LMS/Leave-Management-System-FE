@@ -26,6 +26,38 @@ const getErrorMessage = (err, fallback) => {
   return fallback;
 };
 
+const ACCRUAL_DIVISOR = { MONTHLY: 12, QUARTERLY: 4, ANNUAL: 1 };
+
+// Real GET /leave-policies nests category/department info under
+// `category`/`department` sub-objects (LeavePolicyDto's actual shape) and
+// has no accrualCaption/carryForwardCaption/isDefault fields at all — this
+// flattens+derives what LeavePolicyTable/the modal expect, the same way
+// HREmployeeManagement normalizes `name` -> `fullName`.
+const normalizeLeavePolicy = (raw) => {
+  const annualQuota = raw.annualQuota ?? 0;
+  const divisor = ACCRUAL_DIVISOR[raw.accrualFrequency] || 1;
+  const accrualCaption =
+    raw.accrualFrequency === 'ANNUAL' || !raw.accrualFrequency
+      ? `${annualQuota} days/year`
+      : `${(annualQuota / divisor).toFixed(2)} days/${raw.accrualFrequency === 'MONTHLY' ? 'month' : 'quarter'}`;
+
+  return {
+    ...raw,
+    id: raw.policyId ?? raw.id,
+    categoryId: raw.category?.id,
+    categoryName: raw.category?.categoryName ?? raw.category?.name,
+    categoryCode: raw.category?.categoryCode,
+    departmentId: raw.department?.id ?? null,
+    departmentName: raw.department?.departmentName ?? raw.department?.name ?? null,
+    applicableTo: raw.category?.applicableTo,
+    accrualCaption,
+    carryForwardCaption: raw.maxCarryForward > 0 ? `Max ${raw.maxCarryForward} days` : 'Non-cumulative',
+    // Not exposed by the API — no way to tell a seeded system policy from
+    // an HR-created one, so this always reads as "Custom" for real data.
+    isDefault: raw.isDefault ?? false,
+  };
+};
+
 const HRLeavePolicies = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -79,7 +111,7 @@ const HRLeavePolicies = () => {
       // and the donut chart reflect everything, then filter/search/paginate
       // client-side — mirrors the Delegation Management page's approach.
       const res = await apiService.getLeavePolicies({ limit: 100 });
-      setAllPolicies(res?.data ?? []);
+      setAllPolicies((res?.data ?? []).map(normalizeLeavePolicy));
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load leave policies.'));
       setAllPolicies(mockHRLeavePolicies);
