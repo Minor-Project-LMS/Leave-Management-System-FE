@@ -997,6 +997,55 @@ async exportAuditLogs(params = {}) {
       body: JSON.stringify(preferences),
     });
   }
+
+  // Notification Queue (HR-07) endpoints
+  async getNotificationQueue(params = {}) {
+    const { status, channel, templateCode, dateFrom, dateTo, page = 1, limit = 10 } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (status) queryParams.set('status', status);
+    if (channel) queryParams.set('channel', channel);
+    if (templateCode) queryParams.set('templateCode', templateCode);
+    if (dateFrom) queryParams.set('dateFrom', dateFrom);
+    if (dateTo) queryParams.set('dateTo', dateTo);
+    const qs = queryParams.toString();
+    return this.request(`/notification-queue${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async retryNotification(notificationId) {
+    return this.request(`/notification-queue/${notificationId}/retry`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async retryFailedNotifications() {
+    return this.request('/notification-queue/retry-failed', {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async cancelNotification(notificationId) {
+    return this.request(`/notification-queue/${notificationId}/cancel`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async exportNotificationQueue(params = {}) {
+    const { dateFrom, dateTo } = params;
+    const queryParams = new URLSearchParams();
+    if (dateFrom) queryParams.set('dateFrom', dateFrom);
+    if (dateTo) queryParams.set('dateTo', dateTo);
+    const qs = queryParams.toString();
+    return this.request(`/notification-queue/export${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
 }
 
 export const apiService = new ApiService();

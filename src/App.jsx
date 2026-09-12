@@ -33,6 +33,7 @@ import CompOff from './pages/CompOff'
 import HolidayCalendar from './pages/HolidayCalendar'
 import Notifications from './pages/Notifications'
 import AuditTrail from './pages/AuditTrail'
+import NotificationQueue from './pages/NotificationQueue'
 import HRSettings from './pages/HRSettings'
 
 // Wraps a placeholder page in the route guard + correct portal shell
@@ -206,7 +207,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/hr/notification-queue" element={guardedPlaceholder('Notification Queue', HR_PORTAL)} />
+          <Route
+            path="/hr/notification-queue"
+            element={
+              <ProtectedRoute>
+                <NotificationQueue />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/hr/settings"
             element={
