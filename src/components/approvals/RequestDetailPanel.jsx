@@ -92,6 +92,15 @@ const RequestDetailPanel = ({ detail, loading }) => {
         </div>
       </div>
 
+      {detail.lopDays > 0 && (
+        <div className="request-detail-lop-banner">
+          <InfoIcon width={15} height={15} />
+          <span>
+            This request includes <strong>{detail.lopDays} day{Number(detail.lopDays) === 1 ? '' : 's'} of Loss of Pay</strong> — approving it will not deduct those days from the employee's leave balance, and they'll be unpaid.
+          </span>
+        </div>
+      )}
+
       <dl className="request-detail-fields">
         <div>
           <dt>Leave Type</dt>
@@ -109,7 +118,25 @@ const RequestDetailPanel = ({ detail, loading }) => {
         </div>
         <div>
           <dt>Total Days</dt>
-          <dd>{detail.totalDays}</dd>
+          <dd>
+            {detail.totalDays}
+            {detail.lopDays > 0 && (
+              <span
+                title={`${detail.lopDays} day(s) will be Loss of Pay (unpaid) if approved`}
+                style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#b45309',
+                  background: '#fef3c7',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                }}
+              >
+                {detail.lopDays} LOP
+              </span>
+            )}
+          </dd>
         </div>
         <div>
           <dt>Reason</dt>

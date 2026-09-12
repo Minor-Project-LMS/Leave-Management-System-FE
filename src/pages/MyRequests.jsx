@@ -108,6 +108,7 @@ const MyRequests = () => {
         endDate: req.endDate,
         dateRange: `${formatDate(req.startDate)} - ${formatDate(req.endDate)} (${req.totalDays} Days)`,
         totalDays: req.totalDays,
+        lopDays: req.lopDays || 0,
         status: req.status === 'DRAFT' || req.status === 'Draft' ? 'Draft' :
                 req.status === 'PENDING_L1' || req.status === 'PENDING_L2' ? 'Pending' :
                 req.status === 'APPROVED' ? 'Approved' :
@@ -371,7 +372,25 @@ const MyRequests = () => {
                           {request.type}
                         </td>
                         <td className="duration">{request.dateRange}</td>
-                        <td className="total-days">{request.totalDays}</td>
+                        <td className="total-days">
+                          {request.totalDays}
+                          {request.lopDays > 0 && (
+                            <span
+                              title={`${request.lopDays} day(s) Loss of Pay`}
+                              style={{
+                                marginLeft: '6px',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                color: '#b45309',
+                                background: '#fef3c7',
+                                borderRadius: '4px',
+                                padding: '1px 5px',
+                              }}
+                            >
+                              LOP {request.lopDays}
+                            </span>
+                          )}
+                        </td>
                         <td className="status">
                           <StatusBadge status={request.status} />
                         </td>

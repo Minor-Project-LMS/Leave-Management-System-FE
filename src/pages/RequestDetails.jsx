@@ -128,28 +128,29 @@ const RequestDetails = () => {
           ? `${formatDate(requestData.startDate)} - ${formatDate(requestData.endDate)}`
           : formatDate(requestData.startDate || requestData.fromDate || ''),
         totalDays: requestData.totalDays || requestData.days || 0,
+        lopDays: requestData.lopDays || 0,
         status: (() => {
           const apiStatus = requestData.status;
-          
+
           if (apiStatus === 'PENDING_L1' || apiStatus === 'PENDING_L2') return 'Pending';
           if (apiStatus === 'APPROVED') return 'Approved';
           if (apiStatus === 'REJECTED') return 'Rejected';
           if (apiStatus === 'WITHDRAWN') return 'Withdrawn';
           if (apiStatus === 'CANCELLED') return 'Cancelled';
           if (apiStatus === 'DRAFT') return 'Draft';
-          
+
           // If status is already in display format, return it
           if (['Pending', 'Approved', 'Rejected', 'Withdrawn', 'Cancelled', 'Draft'].includes(apiStatus)) {
             return apiStatus;
           }
-          
+
           // Fallback - check if there's a final approval decision
           const hasRejectedApproval = approvalsData?.some(a => a.decision === 'REJECTED');
           if (hasRejectedApproval) return 'Rejected';
-          
+
           const hasApprovedApproval = approvalsData?.some(a => a.decision === 'APPROVED');
           if (hasApprovedApproval) return 'Approved';
-          
+
           return apiStatus || 'Pending';
         })(),
         reason: requestData.reason || requestData.purpose || 'No reason provided',
@@ -158,24 +159,24 @@ const RequestDetails = () => {
         appliedOnFormatted: formatDateTime(requestData.appliedAt || requestData.createdAt || requestData.submittedAt || ''),
         updatedAt: requestData.updatedAt,
         updatedAtFormatted: formatDateTime(requestData.updatedAt),
-        
+
         // Contact and handover details - not in current API response
         contactNumber: requestData.contactNumber || employeeData?.data?.phone || '',
         addressDuringLeave: requestData.addressDuringLeave || employeeData?.data?.address || '',
         handoverTo: requestData.handoverTo,
         handoverToName: requestData.handoverToName,
         handoverNotes: requestData.handoverNotes,
-        
+
         // Employee name from API
         employeeName: requestData.userName || requestData.employeeName || employeeData?.data?.name || user?.name || 'N/A',
-        
+
         // Current approver
         approverName: requestData.currentApproverName || requestData.approver?.name || 'Not Assigned',
         approverRole: requestData.approverRole || requestData.approver?.role || 'Approver',
-        approverInitials: requestData.currentApproverName || requestData.approver?.name ? 
+        approverInitials: requestData.currentApproverName || requestData.approver?.name ?
           (requestData.currentApproverName || requestData.approver?.name).split(' ').map(n => n[0]).join('').toUpperCase() : 'NA',
         approverAvatarUrl: requestData.currentApproverAvatarUrl || requestData.approver?.avatarUrl || null,
-        
+
         // Employee details - use fetched employee data or fallback
         employee: {
           fullName: employeeData?.data?.name || employeeData?.data?.fullName || user?.fullName || requestData.userName || requestData.employeeName || 'N/A',
@@ -187,7 +188,7 @@ const RequestDetails = () => {
           phone: employeeData?.data?.phone || user?.phone || requestData.contactNumber || 'Not provided',
           managerName: employeeData?.data?.managerName || employeeData?.data?.reportsToName || user?.managerName || user?.reportsToName || requestData.managerName || 'N/A',
         },
-        
+
         // Leave balance at time of request (from fetched balance data)
         leaveBalance: (() => {
           if (balanceData && balanceData.length > 0) {
@@ -202,7 +203,7 @@ const RequestDetails = () => {
               };
             }
           }
-          
+
           // Fallback to default values
           return {
             available: 0,
@@ -210,10 +211,10 @@ const RequestDetails = () => {
             total: 0,
           };
         })(),
-        
+
         // Full balance array for Leave Balance card
         balanceAsOfRequestDate: balanceData || [],
-        
+
         // Approval timeline - use fetched approvals data
         approvals: (approvalsData || []).map(approval => ({
           id: approval.id,
@@ -222,8 +223,8 @@ const RequestDetails = () => {
           approverAvatarUrl: approval.approverAvatarUrl || approval.avatarUrl || null,
           decision: approval.decision || approval.status || approval.action || 'PENDING',
           decidedAt: approval.decidedAt || approval.approvedAt || approval.timestamp,
-          decidedAtFormatted: approval.decidedAt || approval.approvedAt || approval.timestamp 
-            ? formatDateTime(approval.decidedAt || approval.approvedAt || approval.timestamp) 
+          decidedAtFormatted: approval.decidedAt || approval.approvedAt || approval.timestamp
+            ? formatDateTime(approval.decidedAt || approval.approvedAt || approval.timestamp)
             : null,
           comments: approval.comments || approval.remarks || approval.note,
         })),
@@ -251,16 +252,16 @@ const RequestDetails = () => {
           timestamp: comment.createdAt || comment.timestamp || comment.postedAt,
           timestampFormatted: formatDateTime(comment.createdAt || comment.timestamp || comment.postedAt),
         })),
-        
+
         // Team impact information (optional, for manager view)
         teamImpact: requestData.teamImpact || null,
       };
-      
+
       setRequest(transformedRequest);
     } catch (err) {
       console.error('Error loading request details:', err);
       setError(err.message || 'Failed to load request details.');
-      
+
       // Fallback to mock data for demonstration
       const mockData = mockRequestDetails[requestId] || mockRequestDetails['LR-2024-119'];
       setRequest(mockData);
@@ -456,6 +457,11 @@ const RequestDetails = () => {
           <div className="strip-section">
             <span className="strip-label">Total Days</span>
             <span className="strip-value strip-value-large">{Number(request.totalDays).toFixed(1)} Days</span>
+            {request.lopDays > 0 && (
+              <span className="strip-sub" style={{ color: '#b45309' }}>
+                incl. {request.lopDays} LOP
+              </span>
+            )}
           </div>
           <div className="strip-section">
             <span className="strip-label">Status</span>
@@ -493,6 +499,15 @@ const RequestDetails = () => {
                   <span className="detail-colon">:</span>
                   <span className="detail-value">{request.totalDays} Days</span>
                 </div>
+                {request.lopDays > 0 && (
+                  <div className="detail-line">
+                    <span className="detail-label">Loss of Pay</span>
+                    <span className="detail-colon">:</span>
+                    <span className="detail-value" style={{ color: '#b45309', fontWeight: 600 }}>
+                      {request.lopDays} {Number(request.lopDays) === 1 ? 'Day' : 'Days'} (unpaid)
+                    </span>
+                  </div>
+                )}
                 <div className="detail-line">
                   <span className="detail-label">Apply For</span>
                   <span className="detail-colon">:</span>

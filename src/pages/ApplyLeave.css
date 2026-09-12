@@ -28,6 +28,17 @@
   color: #047857;
 }
 
+.apply-leave-lop-note {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .apply-leave-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -90,7 +101,6 @@
 
 .comp-off-expiry-warning svg {
   flex-shrink: 0;
-}
   font-weight: 600;
   color: var(--text-primary);
 }

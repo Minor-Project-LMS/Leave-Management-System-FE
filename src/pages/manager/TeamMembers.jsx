@@ -6,6 +6,7 @@ import TeamOverviewList from '../../components/manager/TeamOverviewList';
 import LeaveSummaryList from '../../components/manager/LeaveSummaryList';
 import TeamMembersQuickActions from '../../components/manager/TeamMembersQuickActions';
 import NoteCard from '../../components/manager/NoteCard';
+import EmployeeProfileModal from '../../components/hr/EmployeeProfileModal';
 import { UsersIcon, HourglassIcon, CheckCircleIcon, ClipboardListIcon, FilterIcon, PlusIcon, ChevronDownIcon } from '../../components/icons/Icons';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +18,7 @@ import {
   mockTeamMembers,
   mockTeamMembersStats,
   mockLeaveSummaryCategories,
+  mockLeaveLedger,
 } from '../../utils/mockData';
 import './TeamMembers.css';
 
@@ -58,6 +60,14 @@ const TeamMembers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileMember, setProfileMember] = useState(null);
+
+  const [leaveYear, setLeaveYear] = useState(new Date().getFullYear());
+  const [leaveLedger, setLeaveLedger] = useState([]);
+  const [leaveLedgerLoading, setLeaveLedgerLoading] = useState(false);
+  const [leaveLedgerError, setLeaveLedgerError] = useState('');
+
   useEffect(() => {
     if (USE_MOCK) {
       setDepartments(mockDepartments);
@@ -94,7 +104,15 @@ const TeamMembers = () => {
         apiService.getTeamMembers({ departmentId, page, limit: LIMIT }),
         apiService.getTeamLeaveSummary({}),
       ]);
-      const data = membersRes?.data ?? [];
+      const raw = membersRes?.data ?? [];
+      // Normalize backend TeamMemberDto (userId/department) to the shape
+      // the table and mock data both use (id/departmentName), so Employee
+      // ID, Department, and View Profile (which needs `id`) all work.
+      const data = raw.map((m) => ({
+        ...m,
+        id: m.id ?? m.userId,
+        departmentName: m.departmentName ?? m.department,
+      }));
       setMembers(data);
       setStats(computeStatsFromMembers(data));
       setTotalCount(membersRes?.totalCount ?? data.length);
@@ -125,6 +143,49 @@ const TeamMembers = () => {
     setDepartmentId(value ? Number(value) : null);
     setPage(1);
   };
+
+  const openViewProfile = (member) => {
+    // Managers can't call the HR-only single-employee endpoint, but the
+    // team members list already carries everything the profile view
+    // needs, so we just use the row data directly rather than refetching.
+    setProfileMember(member);
+    setProfileOpen(true);
+    setLeaveYear(new Date().getFullYear());
+  };
+
+  const closeViewProfile = () => {
+    setProfileOpen(false);
+    setProfileMember(null);
+    setLeaveLedger([]);
+    setLeaveLedgerError('');
+  };
+
+  const loadLeaveLedgerFor = useCallback(async (memberId, year) => {
+    setLeaveLedgerError('');
+
+    if (USE_MOCK) {
+      setLeaveLedger(mockLeaveLedger);
+      return;
+    }
+
+    setLeaveLedgerLoading(true);
+    try {
+      const res = await apiService.getEmployeeLeaveLedger(memberId, year);
+      const data = res?.data ?? res ?? [];
+      setLeaveLedger(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setLeaveLedgerError(getErrorMessage(err, 'Failed to load leave balance for this member.'));
+      setLeaveLedger([]);
+    } finally {
+      setLeaveLedgerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (profileOpen && profileMember?.id) {
+      loadLeaveLedgerFor(profileMember.id, leaveYear);
+    }
+  }, [profileOpen, profileMember?.id, leaveYear, loadLeaveLedgerFor]);
 
   return (
     <DashboardLayout
@@ -191,6 +252,7 @@ const TeamMembers = () => {
               totalPages={totalPages}
               totalCount={totalCount}
               onPageChange={setPage}
+              onViewProfile={openViewProfile}
             />
           )}
         </div>
@@ -219,6 +281,18 @@ const TeamMembers = () => {
           </div>
         </div>
       </div>
+
+      {profileOpen && (
+        <EmployeeProfileModal
+          employee={profileMember}
+          leaveLedger={leaveLedger}
+          leaveLedgerLoading={leaveLedgerLoading}
+          leaveLedgerError={leaveLedgerError}
+          leaveYear={leaveYear}
+          onLeaveYearChange={setLeaveYear}
+          onClose={closeViewProfile}
+        />
+      )}
     </DashboardLayout>
   );
 };

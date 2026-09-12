@@ -97,7 +97,25 @@ const ApprovalRequestsTable = ({
                   <LeaveTypeBadge categoryCode={req.categoryCode} categoryName={req.categoryName} />
                 </td>
                 <td className="approval-table-dates">{formatDateRange(req.startDate, req.endDate)}</td>
-                <td>{req.totalDays}</td>
+                <td>
+                  {req.totalDays}
+                  {req.lopDays > 0 && (
+                    <span
+                      title={`${req.lopDays} day(s) Loss of Pay`}
+                      style={{
+                        marginLeft: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: '#b45309',
+                        background: '#fef3c7',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                      }}
+                    >
+                      LOP
+                    </span>
+                  )}
+                </td>
                 <td className="approval-table-reason" title={req.reason}>
                   {req.reason}
                 </td>

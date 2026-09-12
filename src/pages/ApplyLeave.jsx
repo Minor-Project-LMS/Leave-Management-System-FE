@@ -149,6 +149,10 @@ const ApplyLeave = () => {
       return startDate ? 0.5 : 0;
     }
 
+    // Sandwich Leave policy: a continuous leave request that spans a
+    // weekend counts those weekend days too, rather than excluding them —
+    // so this is just plain inclusive calendar-day counting, matching the
+    // backend's calculateTotalDays() exactly.
     return daysBetweenInclusive(startDate, endDate);
   }, [applyFor, startDate, endDate]);
 
@@ -285,10 +289,10 @@ const ApplyLeave = () => {
       try {
         const summaryRes = await apiService.getCompOffSummary();
         const requestsRes = await apiService.getCompOffRequests({ status: 'APPROVED', page: 1, limit: 100 });
-        
+
         const approvedRequests = requestsRes?.data ?? requestsRes ?? [];
         const today = new Date();
-        
+
         // Filter for active (not expired) comp-off credits
         const activeCredits = approvedRequests.filter(req => {
           const expiryDate = new Date(req.expiryDate);
@@ -297,12 +301,12 @@ const ApplyLeave = () => {
 
         // Calculate total available balance
         const totalAvailable = activeCredits.reduce((sum, req) => sum + (req.daysCredited || 0), 0);
-        
+
         // Find the earliest expiry date for warning
         const sortedByExpiry = activeCredits
           .filter(req => req.expiryDate)
           .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-        
+
         const earliestExpiry = sortedByExpiry.length > 0 ? sortedByExpiry[0].expiryDate : null;
 
         setCompOffBalance({
@@ -394,7 +398,7 @@ const ApplyLeave = () => {
 
       // Handle different response structures - might be direct or wrapped in 'data'
       const responseData = uploadUrlResponse?.data || uploadUrlResponse;
-      
+
       const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
 
       if (!uploadUrl) {
@@ -421,12 +425,12 @@ const ApplyLeave = () => {
           setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
           await new Promise(resolve => setTimeout(resolve, 50));
           setUploadProgress((prev) => ({ ...prev, [file.name]: 50 }));
-          
+
           const directUploadResponse = await apiService.uploadLeaveAttachmentDirect(requestId, file);
-          
+
           // Complete progress
           setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
-          
+
           return directUploadResponse?.data || directUploadResponse;
         } catch (directErr) {
           setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
@@ -469,12 +473,12 @@ const ApplyLeave = () => {
       });
 
       xhr.open('PUT', uploadUrl);
-      
+
       // Set required headers from the pre-signed URL response
       Object.entries(requiredHeaders).forEach(([key, value]) => {
         xhr.setRequestHeader(key, value);
       });
-      
+
       xhr.send(file);
     });
   };
@@ -532,7 +536,7 @@ const ApplyLeave = () => {
       if (totalDays > compOffBalance.available) {
         return `Insufficient Comp-Off balance. You have ${compOffBalance.available} day(s) available, but you're requesting ${totalDays} day(s).`;
       }
-      
+
       // Validate that the requested dates don't conflict with expired credits
       // This ensures users can't claim comp-off for dates after their credits expire
       if (compOffBalance.activeCredits && compOffBalance.activeCredits.length > 0) {
@@ -540,7 +544,7 @@ const ApplyLeave = () => {
         const latestExpiry = compOffBalance.activeCredits
           .map(req => new Date(req.expiryDate))
           .reduce((max, date) => date > max ? date : max, new Date(0));
-        
+
         if (requestDate > latestExpiry) {
           return `Cannot claim Comp-Off for dates after your credit expiry. Your latest Comp-Off credit expires on ${formatDate(latestExpiry)}.`;
         }
@@ -675,6 +679,17 @@ const ApplyLeave = () => {
 
   const maxAllowedDays = policy?.maxConsecutiveDays || policy?.maxContinuousDays || 0;
   const isExceedingLimit = maxAllowedDays > 0 && totalDays > maxAllowedDays;
+
+  // How many available days the selected category has left, and how many
+  // of the requested days would spill over into Loss of Pay. The backend
+  // makes the same calculation (and re-checks it again at approval time,
+  // since the balance can shift between submission and approval) — this is
+  // just a heads-up so the employee isn't surprised after submitting.
+  const selectedLedgerEntry = ledger.find((l) => l.categoryId === Number(categoryId));
+  const availableBalance = selectedLedgerEntry?.availableBalance ?? selectedLedgerEntry?.closingBalance ?? null;
+  const lopDays = availableBalance != null && totalDays > availableBalance
+    ? Math.round((totalDays - Math.max(availableBalance, 0)) * 100) / 100
+    : 0;
 
   return (
     <DashboardLayout
@@ -848,6 +863,12 @@ const ApplyLeave = () => {
               {isExceedingLimit && (
                 <small style={{ color: '#d32f2f', marginTop: '4px', display: 'block' }}>
                   Exceeds limit of {maxAllowedDays} days.
+                </small>
+              )}
+              {!isExceedingLimit && lopDays > 0 && (
+                <small className="apply-leave-lop-note">
+                  Only {availableBalance} day{availableBalance === 1 ? '' : 's'} available for {selectedCategory?.categoryName || 'this leave type'} —
+                  {' '}{lopDays} day{lopDays === 1 ? '' : 's'} will be <strong>Loss of Pay</strong> (unpaid) if this request is approved.
                 </small>
               )}
             </div>
