@@ -412,6 +412,20 @@ async exportAuditLogs(params = {}) {
     });
   }
 
+  async getEmployee(employeeId) {
+    return this.request(`/employees/${employeeId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getEmployeeLeaveLedger(employeeId, year = new Date().getFullYear()) {
+    return this.request(`/employees/${employeeId}/leave-ledger?year=${year}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   async createEmployee(payload) {
     return this.request('/employees', {
       method: 'POST',

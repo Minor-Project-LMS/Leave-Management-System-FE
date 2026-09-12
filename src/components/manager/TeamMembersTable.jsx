@@ -33,12 +33,6 @@ const RowActionsMenu = ({ member, onViewProfile }) => {
           <button onClick={() => { onViewProfile?.(member); setOpen(false); }}>
             <EyeIcon width={14} height={14} /> View Profile
           </button>
-          <button onClick={() => setOpen(false)}>
-            <BookIcon width={14} height={14} /> Leave Ledger
-          </button>
-          <button onClick={() => setOpen(false)}>
-            <CalendarIcon width={14} height={14} /> Assign Quota
-          </button>
         </div>
       )}
     </div>

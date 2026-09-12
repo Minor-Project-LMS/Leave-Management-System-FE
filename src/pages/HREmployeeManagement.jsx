@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
 import EmployeeManagementTable from '../components/hr/EmployeeManagementTable';
 import EmployeeFormModal from '../components/hr/EmployeeFormModal';
+import EmployeeProfileModal from '../components/hr/EmployeeProfileModal';
 import EmployeeQuickActions from '../components/hr/EmployeeQuickActions';
 import ManageRolesAccessModal from '../components/hr/ManageRolesAccessModal';
 import DepartmentWiseCount from '../components/hr/DepartmentWiseCount';
@@ -22,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
-import { mockEmployees, mockEmployeeStats, mockDepartments, mockDepartmentSummary } from '../utils/mockData';
+import { mockEmployees, mockEmployeeStats, mockDepartments, mockDepartmentSummary, mockLeaveLedger } from '../utils/mockData';
 import './HREmployeeManagement.css';
 
 const USE_MOCK = env.useMockData;
@@ -62,6 +63,16 @@ const HREmployeeManagement = () => {
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileEmployee, setProfileEmployee] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  const [leaveYear, setLeaveYear] = useState(new Date().getFullYear());
+  const [leaveLedger, setLeaveLedger] = useState([]);
+  const [leaveLedgerLoading, setLeaveLedgerLoading] = useState(false);
+  const [leaveLedgerError, setLeaveLedgerError] = useState('');
 
   useEffect(() => {
     if (USE_MOCK) {
@@ -198,6 +209,68 @@ const HREmployeeManagement = () => {
     setEditingEmployee(employee);
     setModalOpen(true);
   };
+
+  const openViewProfile = async (employee) => {
+    setProfileOpen(true);
+    setProfileError('');
+    setLeaveYear(new Date().getFullYear());
+
+    if (USE_MOCK) {
+      setProfileEmployee(employee);
+      return;
+    }
+
+    setProfileLoading(true);
+    // Show the row data immediately, then refresh with the full record
+    // (row data already has most fields, but this picks up anything the
+    // list endpoint doesn't return, e.g. avatar/manager details).
+    setProfileEmployee(employee);
+    try {
+      const res = await apiService.getEmployee(employee.id);
+      const data = res?.data ?? res;
+      setProfileEmployee({ ...data, fullName: data?.fullName ?? data?.name });
+    } catch (err) {
+      setProfileError(getErrorMessage(err, 'Failed to load full profile — showing available details.'));
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const closeViewProfile = () => {
+    setProfileOpen(false);
+    setProfileEmployee(null);
+    setProfileError('');
+    setLeaveLedger([]);
+    setLeaveLedgerError('');
+  };
+
+  const loadLeaveLedgerFor = useCallback(async (employeeId, year) => {
+    if (!employeeId) return;
+    setLeaveLedgerError('');
+
+    if (USE_MOCK) {
+      setLeaveLedger(mockLeaveLedger);
+      return;
+    }
+
+    setLeaveLedgerLoading(true);
+    try {
+      const res = await apiService.getEmployeeLeaveLedger(employeeId, year);
+      const data = res?.data ?? res ?? [];
+      setLeaveLedger(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setLeaveLedgerError(getErrorMessage(err, 'Failed to load leave balance for this employee.'));
+      setLeaveLedger([]);
+    } finally {
+      setLeaveLedgerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (profileOpen && profileEmployee?.id) {
+      loadLeaveLedgerFor(profileEmployee.id, leaveYear);
+    }
+  }, [profileOpen, profileEmployee?.id, leaveYear, loadLeaveLedgerFor]);
 
   const handleSubmitEmployee = async (payload) => {
     setSubmitting(true);
@@ -369,6 +442,7 @@ const HREmployeeManagement = () => {
               totalPages={totalPages}
               totalCount={totalCount}
               onPageChange={setPage}
+              onViewProfile={openViewProfile}
               onEdit={openEditModal}
               onDeactivate={handleDeactivate}
             />
@@ -417,6 +491,21 @@ const HREmployeeManagement = () => {
             setEditingEmployee(null);
           }}
           onSubmit={handleSubmitEmployee}
+        />
+      )}
+
+      {profileOpen && (
+        <EmployeeProfileModal
+          employee={profileEmployee}
+          loading={profileLoading}
+          error={profileError}
+          onClose={closeViewProfile}
+          onEdit={openEditModal}
+          leaveLedger={leaveLedger}
+          leaveLedgerLoading={leaveLedgerLoading}
+          leaveLedgerError={leaveLedgerError}
+          leaveYear={leaveYear}
+          onLeaveYearChange={setLeaveYear}
         />
       )}
 

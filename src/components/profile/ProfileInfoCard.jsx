@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import AvatarUpload from '../common/AvatarUpload';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
 import './ProfileInfoCard.css';
@@ -12,9 +13,12 @@ const formatDate = (iso) => {
 // card), so everything renders as a disabled/read-only field.
 const ProfileInfoCard = ({ profile, onChangePhoto, uploadingPhoto }) => {
   const color = getAvatarColor(profile.fullName);
+  const [photoUpdated, setPhotoUpdated] = useState(false);
 
   const handleAvatarUpload = async (file, localPreview) => {
     await onChangePhoto?.(file);
+    setPhotoUpdated(true);
+    window.setTimeout(() => setPhotoUpdated(false), 3000);
   };
 
   return (
@@ -31,6 +35,11 @@ const ProfileInfoCard = ({ profile, onChangePhoto, uploadingPhoto }) => {
             disabled={uploadingPhoto}
             size={120}
           />
+          {photoUpdated && (
+            <div className="profile-photo-success" role="status">
+              Profile picture updated
+            </div>
+          )}
         </div>
 
         <div className="profile-info-grid">

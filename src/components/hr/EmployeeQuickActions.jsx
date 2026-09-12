@@ -4,10 +4,7 @@ import './EmployeeQuickActions.css';
 const EmployeeQuickActions = ({ onAddEmployee, onImport, onBulkUpdate, onManageRoles, onDocuments }) => {
   const ACTIONS = [
     { label: 'Add New Employee', icon: PlusCircleIcon, tone: 'blue', onClick: onAddEmployee },
-    { label: 'Import Employees', icon: UploadIcon, tone: 'green', onClick: onImport },
-    { label: 'Bulk Update', icon: EditIcon, tone: 'purple', onClick: onBulkUpdate },
     { label: 'Manage Roles & Access', icon: ShieldIcon, tone: 'amber', onClick: onManageRoles },
-    { label: 'Employee Documents', icon: FileTextIcon, tone: 'teal', onClick: onDocuments },
   ];
 
   return (

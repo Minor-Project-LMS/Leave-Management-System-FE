@@ -18,7 +18,6 @@ import {
 
 export const EMPLOYEE_PORTAL = {
   portalLabel: 'EMPLOYEE PORTAL',
-  searchPlaceholder: 'Search anything...',
   navItems: [
     { label: 'Dashboard', path: '/dashboard', icon: GridIcon },
     { label: 'Apply Leave', path: '/apply-leave', icon: PlusCircleIcon },
@@ -33,7 +32,6 @@ export const EMPLOYEE_PORTAL = {
 
 export const MANAGER_PORTAL = {
   portalLabel: 'MANAGER PORTAL',
-  searchPlaceholder: 'Search employees, requests...',
   navItems: [
     { label: 'Manager Dashboard', path: '/manager/dashboard', icon: GridIcon },
     { label: 'Approval Inbox', path: '/manager/approval-inbox', icon: InboxIcon, badgeKey: 'approvals' },
@@ -46,7 +44,6 @@ export const MANAGER_PORTAL = {
 
 export const HR_PORTAL = {
   portalLabel: 'HR PORTAL',
-  searchPlaceholder: 'Search employees, requests, reports...',
   navItems: [
     { label: 'Dashboard', path: '/hr/dashboard', icon: GridIcon },
     { label: 'Employee Management', path: '/hr/employees', icon: UsersIcon },

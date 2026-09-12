@@ -7,7 +7,6 @@ const Topbar = ({
   title,
   subtitle,
   breadcrumbs,
-  searchPlaceholder = 'Search anything...',
   dateLabel,
   user,
   notificationCount = 0,
@@ -62,11 +61,7 @@ const Topbar = ({
           </div>
         )}
 
-        <div className="topbar-search">
-          <SearchIcon className="topbar-search-icon" />
-          <input type="text" placeholder={searchPlaceholder} />
-          <kbd>Ctrl+K</kbd>
-        </div>
+
 
         <button className="topbar-bell" aria-label="Notifications">
           <BellIcon />

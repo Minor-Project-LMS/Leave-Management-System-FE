@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import LeaveBalanceSummary from '../components/leave/LeaveBalanceSummary';
@@ -50,13 +50,16 @@ const LeaveLedger = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [balanceSummary, setBalanceSummary] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
 
-  const years = [2024, 2023, 2022, 2021];
+  const years = useMemo(() => {
+    const current = new Date().getFullYear();
+    return [current, current - 1, current - 2, current - 3];
+  }, []);
 
   const loadLedgerData = useCallback(async () => {
     setLoading(true);

@@ -42,9 +42,6 @@ const RowActionsMenu = ({ employee, onViewProfile, onEdit, onAssignQuota, onDeac
           <button onClick={() => { onEdit?.(employee); setOpen(false); }}>
             <EditIcon width={14} height={14} /> Edit
           </button>
-          <button onClick={() => { onAssignQuota?.(employee); setOpen(false); }}>
-            <BarChartIcon width={14} height={14} /> Assign Quota
-          </button>
           {isActive && (
             <button className="danger" onClick={() => { onDeactivate?.(employee); setOpen(false); }}>
               <XCircleIcon width={14} height={14} /> Deactivate

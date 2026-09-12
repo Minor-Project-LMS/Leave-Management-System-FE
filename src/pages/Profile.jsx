@@ -95,7 +95,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
 
   // This page is shared between the Employee Portal (/profile) and the
   // Manager Portal (/manager/profile) — managers get the same profile
@@ -244,15 +244,59 @@ const Profile = () => {
       });
 
       xhr.open('PUT', uploadUrl);
-      
+
       // Set required headers from the pre-signed URL response
       Object.entries(requiredHeaders).forEach(([key, value]) => {
         xhr.setRequestHeader(key, value);
       });
-      
+
       xhr.send(file);
     });
   };
+
+  const applyAvatarUpdate = useCallback((avatarData) => {
+    const data = avatarData?.data || avatarData || {};
+    const avatarUrl = data.avatarUrl || null;
+    const avatarAttachmentId = data.avatarAttachmentId || data.attachmentId || null;
+
+    if (!avatarUrl && !avatarAttachmentId) return false;
+
+    setProfile((prev) => ({
+      ...prev,
+      avatarUrl: avatarUrl || prev?.avatarUrl || null,
+      avatarAttachmentId: avatarAttachmentId || prev?.avatarAttachmentId || null,
+    }));
+
+    // Keep the global topbar avatar synchronized with the newly uploaded photo.
+    updateUser?.({
+      avatarUrl: avatarUrl || undefined,
+      avatarAttachmentId: avatarAttachmentId || undefined,
+    });
+
+    return true;
+  }, [updateUser]);
+
+  const syncAvatarFromServer = useCallback(async (fallbackAvatar = {}) => {
+    try {
+      const res = await apiService.getCurrentUser();
+      const userData = res?.data || res || {};
+      const synced = {
+        avatarUrl: userData.avatarUrl || fallbackAvatar.avatarUrl || null,
+        avatarAttachmentId:
+          userData.avatarAttachmentId ||
+          fallbackAvatar.avatarAttachmentId ||
+          null,
+      };
+
+      applyAvatarUpdate(synced);
+      return synced;
+    } catch (err) {
+      // The upload may already have succeeded even if the follow-up profile read fails.
+      applyAvatarUpdate(fallbackAvatar);
+      console.warn('Avatar uploaded, but profile refresh failed:', err);
+      return fallbackAvatar;
+    }
+  }, [applyAvatarUpdate]);
 
   const handleChangePhoto = async (file) => {
     // Validate file size
@@ -287,7 +331,7 @@ const Profile = () => {
 
         // Handle different response structures - might be direct or wrapped in 'data'
         const responseData = uploadUrlResponse?.data || uploadUrlResponse;
-        
+
         const { attachmentId, uploadUrl, requiredHeaders } = responseData || {};
 
         if (!uploadUrl) {
@@ -300,18 +344,15 @@ const Profile = () => {
 
         await uploadToBlobStorage(file, uploadUrl, requiredHeaders);
         const confirmedAvatar = await apiService.confirmAvatarUpload(attachmentId);
+        const confirmedData = confirmedAvatar?.data || confirmedAvatar || {};
+        const fallbackAvatar = {
+          avatarUrl: confirmedData.avatarUrl || null,
+          avatarAttachmentId: confirmedData.avatarAttachmentId || attachmentId,
+        };
 
-        setProfile((prev) => ({
-          ...prev,
-          avatarUrl:
-            confirmedAvatar?.avatarUrl ??
-            confirmedAvatar?.data?.avatarUrl ??
-            prev.avatarUrl,
-          avatarAttachmentId:
-            confirmedAvatar?.avatarAttachmentId ??
-            confirmedAvatar?.data?.avatarAttachmentId ??
-            attachmentId,
-        }));
+        // Re-read /users/me after confirmation so the UI uses the exact persisted
+        // avatar URL returned by the backend, not a stale/previous URL.
+        await syncAvatarFromServer(fallbackAvatar);
       }
     } catch (err) {
       // If CORS error occurs, fall back to direct upload through backend
@@ -319,18 +360,12 @@ const Profile = () => {
         console.warn('CORS error detected for avatar upload, falling back to direct upload');
         try {
           const directUploadResponse = await apiService.uploadAvatarDirect(file);
-          
-          setProfile((prev) => ({
-            ...prev,
-            avatarUrl:
-              directUploadResponse?.avatarUrl ??
-              directUploadResponse?.data?.avatarUrl ??
-              prev.avatarUrl,
-            avatarAttachmentId:
-              directUploadResponse?.avatarAttachmentId ??
-              directUploadResponse?.data?.avatarAttachmentId ??
-              prev.avatarAttachmentId,
-          }));
+
+          const directData = directUploadResponse?.data || directUploadResponse || {};
+          await syncAvatarFromServer({
+            avatarUrl: directData.avatarUrl || null,
+            avatarAttachmentId: directData.avatarAttachmentId || null,
+          });
         } catch (directErr) {
           setError(
             getErrorMessage(directErr, 'Failed to upload photo.')
