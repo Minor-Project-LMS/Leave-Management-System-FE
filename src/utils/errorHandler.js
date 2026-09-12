@@ -14,3 +14,17 @@ export const isNetworkError = (error) => {
          error.name === 'TypeError' ||
          error.message.includes('Failed to fetch');
 };
+
+export const isSecurityError = (error) => {
+  // Determine if this is a security/token error vs credential error
+  // Token errors typically have specific error codes or messages
+  const errorCode = error?.response?.data?.error?.code;
+  const errorMessage = error?.response?.data?.error?.message || error?.message;
+  
+  // Security/token related errors
+  const securityErrorCodes = ['TOKEN_EXPIRED', 'TOKEN_INVALID', 'UNAUTHORIZED'];
+  
+  return securityErrorCodes.includes(errorCode) ||
+         errorMessage?.toLowerCase().includes('token') ||
+         errorMessage?.toLowerCase().includes('expired');
+};

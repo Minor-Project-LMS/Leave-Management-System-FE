@@ -33,7 +33,10 @@ const getErrorMessage = (err, fallback) => {
 const synthesizeDetail = (item) => ({
   ...item,
   employee: { employeeCode: `EMP-${String(item.userId).padStart(4, '0')}` },
-  attachments: [],
+  attachments: (item.attachments || []).map(att => ({
+    ...att,
+    uploadStatus: att.uploadStatus || att.status || 'ACTIVE',
+  })),
   approvals: [
     {
       id: `${item.id}-req`,

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '../dashboard/StatusBadge';
+import { getAvatarColor } from '../../utils/avatarColor';
 import './PendingApprovalsWidget.css';
 
 const getInitials = (name = '') =>
@@ -21,18 +22,43 @@ const PendingApprovalsWidget = ({ approvals = [] }) => {
         <p className="widget-empty">No pending approvals.</p>
       ) : (
         <ul className="pending-approvals-list">
-          {approvals.map((req) => (
-            <li key={req.id} className="pending-approvals-row">
-              <div className="pending-approvals-avatar">{getInitials(req.name)}</div>
-              <div className="pending-approvals-info">
-                <span className="pending-approvals-name">{req.name}</span>
-                <span className="pending-approvals-meta">
-                  {req.type} · {req.dateRange}
-                </span>
-              </div>
-              <StatusBadge status="Pending" />
-            </li>
-          ))}
+          {approvals.map((req) => {
+            const color = getAvatarColor(req.name);
+            return (
+              <li key={req.id} className="pending-approvals-row">
+                <div 
+                  className="pending-approvals-avatar"
+                  style={{ 
+                    background: req.avatarUrl ? 'transparent' : color.bg, 
+                    color: req.avatarUrl ? 'transparent' : color.fg 
+                  }}
+                >
+                  {req.avatarUrl ? (
+                    <img 
+                      src={req.avatarUrl} 
+                      alt={req.name} 
+                      className="pending-approvals-avatar-image"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.style.background = color.bg;
+                        e.target.parentElement.style.color = color.fg;
+                        e.target.parentElement.textContent = getInitials(req.name);
+                      }}
+                    />
+                  ) : (
+                    getInitials(req.name)
+                  )}
+                </div>
+                <div className="pending-approvals-info">
+                  <span className="pending-approvals-name">{req.name}</span>
+                  <span className="pending-approvals-meta">
+                    {req.type} · {req.dateRange}
+                  </span>
+                </div>
+                <StatusBadge status="Pending" />
+              </li>
+            );
+          })}
         </ul>
       )}
 

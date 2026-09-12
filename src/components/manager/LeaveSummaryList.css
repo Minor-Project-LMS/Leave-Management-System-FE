@@ -1,0 +1,69 @@
+.leave-summary-list-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.9rem;
+}
+
+.leave-summary-list-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.leave-summary-list-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin-top: 0.1rem;
+}
+
+.leave-summary-list-items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.leave-summary-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.86rem;
+}
+
+.leave-summary-list-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.leave-summary-list-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.leave-summary-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.leave-summary-dot-blue { background: var(--primary-blue); }
+.leave-summary-dot-green { background: var(--accent-green); }
+.leave-summary-dot-amber { background: #d97706; }
+.leave-summary-dot-purple { background: #7c3aed; }
+.leave-summary-dot-default { background: var(--text-light); }
+
+.leave-summary-list-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}

@@ -1,0 +1,53 @@
+.team-overview-list ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.team-overview-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.team-overview-list-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.team-overview-list-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-blue-light);
+  color: var(--primary-blue);
+}
+
+.team-overview-list-icon.tone-green {
+  background: var(--accent-green-light);
+  color: var(--accent-green);
+}
+
+.team-overview-list-icon.tone-amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.team-overview-list-icon.tone-purple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.team-overview-list-value {
+  font-weight: 700;
+  color: var(--text-primary);
+}

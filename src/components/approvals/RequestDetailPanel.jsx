@@ -1,5 +1,6 @@
 import LeaveTypeBadge from './LeaveTypeBadge';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
+import { getEmployeeName, getEmployeeCode } from '../../utils/employee';
 import { PaperclipIcon, DownloadIcon, InfoIcon } from '../icons/Icons';
 import './RequestDetailPanel.css';
 
@@ -34,8 +35,24 @@ const RequestDetailPanel = ({ detail, loading }) => {
     );
   }
 
-  const color = getAvatarColor(detail.employeeName);
-  const employeeCode = detail.employee?.employeeCode || `EMP-${String(detail.userId).padStart(4, '0')}`;
+  const employeeName = getEmployeeName(detail);
+  const color = getAvatarColor(employeeName);
+  const employeeCode = getEmployeeCode(detail, detail.userId);
+
+  const handleDownloadAttachment = (attachment) => {
+    // Guard for PENDING status - only allow download when attachment is ACTIVE
+    if (attachment.uploadStatus === 'PENDING' || attachment.status === 'PENDING') {
+      alert('Attachment upload is still in progress. Please wait for it to complete.');
+      return;
+    }
+
+    // Use the download URL from the attachment (presigned blob-storage URL)
+    if (attachment.downloadUrl && attachment.downloadUrl !== '#') {
+      window.open(attachment.downloadUrl, '_blank');
+    } else {
+      alert('Download URL not available for this attachment.');
+    }
+  };
 
   return (
     <div className="request-detail-panel">
@@ -44,14 +61,45 @@ const RequestDetailPanel = ({ detail, loading }) => {
       </div>
 
       <div className="request-detail-employee">
-        <span className="request-detail-avatar" style={{ background: color.bg, color: color.fg }}>
-          {getInitials(detail.employeeName)}
+        <span 
+          className="request-detail-avatar" 
+          style={{ 
+            background: detail.avatarUrl ? 'transparent' : color.bg, 
+            color: detail.avatarUrl ? 'transparent' : color.fg 
+          }}
+        >
+          {detail.avatarUrl ? (
+            <img 
+              src={detail.avatarUrl} 
+              alt={employeeName} 
+              className="request-detail-avatar-image"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.style.background = color.bg;
+                e.target.parentElement.style.color = color.fg;
+                e.target.parentElement.textContent = getInitials(employeeName);
+              }}
+            />
+          ) : (
+            getInitials(employeeName)
+          )}
         </span>
         <div>
-          <span className="request-detail-name">{detail.employeeName}</span>
-          <span className="request-detail-team">{detail.departmentName} · {employeeCode}</span>
+          <span className="request-detail-name">{employeeName || '—'}</span>
+          <span className="request-detail-team">
+            {[detail.departmentName, employeeCode].filter(Boolean).join(' · ')}
+          </span>
         </div>
       </div>
+
+      {detail.lopDays > 0 && (
+        <div className="request-detail-lop-banner">
+          <InfoIcon width={15} height={15} />
+          <span>
+            This request includes <strong>{detail.lopDays} day{Number(detail.lopDays) === 1 ? '' : 's'} of Loss of Pay</strong> — approving it will not deduct those days from the employee's leave balance, and they'll be unpaid.
+          </span>
+        </div>
+      )}
 
       <dl className="request-detail-fields">
         <div>
@@ -70,7 +118,25 @@ const RequestDetailPanel = ({ detail, loading }) => {
         </div>
         <div>
           <dt>Total Days</dt>
-          <dd>{detail.totalDays}</dd>
+          <dd>
+            {detail.totalDays}
+            {detail.lopDays > 0 && (
+              <span
+                title={`${detail.lopDays} day(s) will be Loss of Pay (unpaid) if approved`}
+                style={{
+                  marginLeft: '8px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#b45309',
+                  background: '#fef3c7',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                }}
+              >
+                {detail.lopDays} LOP
+              </span>
+            )}
+          </dd>
         </div>
         <div>
           <dt>Reason</dt>
@@ -95,9 +161,14 @@ const RequestDetailPanel = ({ detail, loading }) => {
                 <PaperclipIcon width={14} height={14} />
                 <span className="request-detail-attachment-name">{att.fileName}</span>
                 <span className="request-detail-attachment-size">{formatFileSize(att.sizeBytes)}</span>
-                <a href={att.downloadUrl} target="_blank" rel="noreferrer" className="request-detail-download">
+                <button 
+                  onClick={() => handleDownloadAttachment(att)}
+                  disabled={att.uploadStatus === 'PENDING' || att.status === 'PENDING'}
+                  className="request-detail-download"
+                  title={att.uploadStatus === 'PENDING' || att.status === 'PENDING' ? 'Upload in progress' : 'Download attachment'}
+                >
                   <DownloadIcon width={14} height={14} />
-                </a>
+                </button>
               </li>
             ))}
           </ul>
@@ -128,11 +199,6 @@ const RequestDetailPanel = ({ detail, loading }) => {
           </ul>
         </div>
       )}
-
-      <div className="request-detail-note">
-        <InfoIcon width={16} height={16} />
-        <p>Please review the request details before approving or rejecting.</p>
-      </div>
     </div>
   );
 };

@@ -54,6 +54,16 @@ export const AuthProvider = ({ children }) => {
     return { ...data, profile };
   }, []);
 
+  // Update the in-memory user immediately when profile data changes (for example,
+  // after uploading a new profile photo). This keeps the topbar avatar in sync
+  // without requiring a page reload.
+  const updateUser = useCallback((updates) => {
+    setUser((prevUser) => ({
+      ...(prevUser || {}),
+      ...(updates || {}),
+    }));
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await apiService.logout(); // clears the httpOnly cookie server-side
@@ -70,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     initializing,
     login,
     logout,
+    updateUser,
     accessToken: getAccessToken(),
   };
 

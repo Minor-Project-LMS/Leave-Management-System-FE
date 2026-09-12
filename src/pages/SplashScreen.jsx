@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SplashScreen.css';
 
@@ -6,27 +6,65 @@ const SplashScreen = () => {
   const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
-    // Simulate loading progress
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 60);
+  const targetProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
+  const isMountedRef = useRef(true);
 
-    // Navigate to login after 3 seconds (regardless of auth state)
-    // This ensures users can always reach login even if backend is down
-    const timer = setTimeout(() => {
-      navigate('/login');
-    }, 3000);
+  useEffect(() => {
+    isMountedRef.current = true;
+    let animationFrameId;
+
+    // 1. Smooth 60fps frame loop that runs over 1 second
+    const updateProgress = () => {
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+
+      if (current < target) {
+        // High-speed interpolation to reach target smoothly within the 1-second window
+        const step = Math.max(0.8, (target - current) * 0.2);
+        const next = Math.min(current + step, target);
+
+        currentProgressRef.current = next;
+        setProgress(next);
+      }
+
+      if (isMountedRef.current) {
+        animationFrameId = requestAnimationFrame(updateProgress);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(updateProgress);
+
+    // 2. Async loader fast-tracked for 1 second total execution
+    const loadAppData = async () => {
+      try {
+        targetProgressRef.current = 35;
+        await checkAppConfig();
+
+        if (!isMountedRef.current) return;
+        targetProgressRef.current = 75;
+        const isAuthenticated = await checkAuthStatus();
+
+        if (!isMountedRef.current) return;
+        targetProgressRef.current = 100;
+
+        // Small grace period for visual completion at 100%
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            navigate(isAuthenticated ? '/dashboard' : '/login');
+          }
+        }, 150);
+      } catch (error) {
+        console.error('Initialization error:', error);
+        if (isMountedRef.current) navigate('/login');
+      }
+    };
+
+    loadAppData();
 
     return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
+      isMountedRef.current = false;
+      cancelAnimationFrame(animationFrameId);
     };
   }, [navigate]);
 
@@ -67,6 +105,7 @@ const SplashScreen = () => {
                 style={{
                   strokeDasharray: '125.6',
                   strokeDashoffset: 125.6 - (125.6 * progress) / 100,
+                  transition: 'stroke-dashoffset 0.016s linear',
                 }}
               />
             </svg>
@@ -96,5 +135,9 @@ const SplashScreen = () => {
     </div>
   );
 };
+
+// Simulated tasks capped at 300ms each so the whole sequence fits in ~1 second
+const checkAppConfig = () => new Promise((res) => setTimeout(res, 250));
+const checkAuthStatus = () => new Promise((res) => setTimeout(res, 350));
 
 export default SplashScreen;

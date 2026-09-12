@@ -65,8 +65,7 @@ export const AuthProvider = ({ children }) => {
       document.body.appendChild(el);
       setTimeout(() => { try { el.remove(); } catch (e) {} }, 3000);
     } catch (e) {
-      // fallback
-      try { console.log(message); } catch (e) {}
+      // fallback - silently ignore
     }
   };
 
@@ -154,6 +153,7 @@ export const AuthProvider = ({ children }) => {
 
         if (newToken) {
           setAccessTokenState(newToken);
+          // Preserve avatar fields from profile
           setUser(profile);
           return true;
         }
@@ -208,6 +208,7 @@ export const AuthProvider = ({ children }) => {
       safeSessionStorage.removeItem('hasLoggedOut');
       
       setAccessTokenState(token);
+      // Ensure avatar fields are preserved in the user profile
       setUser(profile);
       
       // Broadcast login event to other tabs
@@ -241,6 +242,34 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Refresh user avatar URL when it expires (valid for 15 minutes)
+  const refreshUserAvatar = useCallback(async () => {
+    try {
+      const resp = await refreshTokenRequest();
+      const profile = resp?.data?.user || resp?.data?.profile || null;
+      if (profile) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          avatarUrl: profile.avatarUrl || null,
+          avatarAttachmentId: profile.avatarAttachmentId || null,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to refresh user avatar:', error);
+    }
+  }, []);
+
+  // Refresh avatar URL every 14 minutes (before the 15-minute expiration)
+  useEffect(() => {
+    if (!user?.avatarAttachmentId) return;
+
+    const refreshInterval = setInterval(() => {
+      refreshUserAvatar();
+    }, 14 * 60 * 1000); // 14 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user?.avatarAttachmentId, refreshUserAvatar]);
+
   const apiCall = useCallback(async (config) => {
     // config: { url, method, params, data }
     const resp = await api.request(config);
@@ -263,9 +292,6 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const resp = await rawApi.post('/auth/logout');
-      // helpful debug when backend doesn't clear cookie
-      // eslint-disable-next-line no-console
-      console.info('logout response', resp && resp.status, resp && resp.headers && resp.headers['set-cookie']);
 
       // Show a friendly message to the user
       if (resp && (resp.status === 200 || resp.status === 204)) {
@@ -274,8 +300,6 @@ export const AuthProvider = ({ children }) => {
         showToast('Logged out (server response)', 'info');
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('logout request failed', e?.response?.status, e?.message);
       // Show error but proceed with logout
       showToast('Logging out...', 'info');
       // proceed to clear client state regardless

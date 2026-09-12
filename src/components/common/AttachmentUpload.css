@@ -1,0 +1,134 @@
+.attachment-upload {
+  margin-bottom: 1rem;
+}
+
+.attachment-upload label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.attachment-upload-file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.attachment-upload-file-list li {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 0.75rem;
+}
+
+.attachment-upload-file-list li:last-child {
+  border-bottom: none;
+}
+
+.attachment-upload-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attachment-upload-file-name {
+  font-size: 0.875rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.attachment-upload-file-size {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.attachment-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.attachment-upload-progress-bar {
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+  flex: 1;
+  max-width: 100px;
+}
+
+.attachment-upload-progress-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: #4caf50;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.attachment-upload-progress-text {
+  font-size: 0.75rem;
+  color: #666;
+  min-width: 35px;
+}
+
+.attachment-upload-add-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.attachment-upload-add-file:hover:not(:disabled) {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.attachment-upload-add-file:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attachment-upload-file-list button {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: #666;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.attachment-upload-file-list button:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.attachment-upload-file-list button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attachment-upload-error {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #c62828;
+  font-size: 0.875rem;
+}
