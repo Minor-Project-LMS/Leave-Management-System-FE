@@ -48,6 +48,49 @@
 
 .form-field label {
   font-size: 0.8rem;
+}
+
+.comp-off-balance-info {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.comp-off-balance-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comp-off-balance-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.comp-off-balance-value {
+  color: #0369a1;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.comp-off-expiry-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #d97706;
+  font-size: 0.8rem;
+  background: #fef3c7;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.comp-off-expiry-warning svg {
+  flex-shrink: 0;
+}
   font-weight: 600;
   color: var(--text-primary);
 }

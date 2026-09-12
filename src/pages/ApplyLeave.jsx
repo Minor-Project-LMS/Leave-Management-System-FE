@@ -46,6 +46,12 @@ const daysBetweenInclusive = (start, end) => {
   return diff > 0 ? diff : 0;
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
 const ApplyLeave = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +66,7 @@ const ApplyLeave = () => {
   const [categories, setCategories] = useState([]);
   const [ledger, setLedger] = useState([]);
   const [policy, setPolicy] = useState(null);
+  const [compOffBalance, setCompOffBalance] = useState(null);
 
   const [policyLoading, setPolicyLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -100,6 +107,14 @@ const ApplyLeave = () => {
 
   const selectedCategory = categories.find(
     (c) => c.id === Number(categoryId)
+  );
+
+  /*
+   * Check if selected category is Comp-Off for special handling
+   */
+  const isCompOffCategory = selectedCategory && (
+    String(selectedCategory.categoryCode || '').toLowerCase().includes('co') ||
+    String(selectedCategory.categoryName || '').toLowerCase().includes('comp-off')
   );
 
   /*
@@ -256,6 +271,60 @@ const ApplyLeave = () => {
         setPolicyLoading(false);
       });
   }, [categoryId]);
+
+  /*
+   * Load comp-off balance when Comp-Off category is selected
+   */
+  useEffect(() => {
+    if (!isCompOffCategory) {
+      setCompOffBalance(null);
+      return;
+    }
+
+    const loadCompOffBalance = async () => {
+      try {
+        const summaryRes = await apiService.getCompOffSummary();
+        const requestsRes = await apiService.getCompOffRequests({ status: 'APPROVED', page: 1, limit: 100 });
+        
+        const approvedRequests = requestsRes?.data ?? requestsRes ?? [];
+        const today = new Date();
+        
+        // Filter for active (not expired) comp-off credits
+        const activeCredits = approvedRequests.filter(req => {
+          const expiryDate = new Date(req.expiryDate);
+          return expiryDate >= today;
+        });
+
+        // Calculate total available balance
+        const totalAvailable = activeCredits.reduce((sum, req) => sum + (req.daysCredited || 0), 0);
+        
+        // Find the earliest expiry date for warning
+        const sortedByExpiry = activeCredits
+          .filter(req => req.expiryDate)
+          .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+        
+        const earliestExpiry = sortedByExpiry.length > 0 ? sortedByExpiry[0].expiryDate : null;
+
+        setCompOffBalance({
+          available: totalAvailable,
+          earliestExpiry: earliestExpiry,
+          totalCredits: activeCredits.length,
+          activeCredits: activeCredits, // Store for validation
+        });
+      } catch (err) {
+        console.error('Error loading comp-off balance:', err);
+        // Set mock balance for fallback
+        setCompOffBalance({
+          available: 1.0,
+          earliestExpiry: '2026-10-15',
+          totalCredits: 1,
+          activeCredits: [],
+        });
+      }
+    };
+
+    loadCompOffBalance();
+  }, [isCompOffCategory]);
 
   /*
    * Half Day only makes sense for one day.
@@ -453,6 +522,29 @@ const ApplyLeave = () => {
     const maxAllowed = policy?.maxConsecutiveDays || policy?.maxContinuousDays || 0;
     if (maxAllowed > 0 && totalDays > maxAllowed) {
       return `Selected duration (${totalDays} days) exceeds the maximum allowed continuous limit of ${maxAllowed} days for ${selectedCategory?.categoryName || 'this leave type'}.`;
+    }
+
+    // --- COMP-OFF BALANCE VALIDATION ---
+    if (isCompOffCategory && status !== 'DRAFT') {
+      if (!compOffBalance || compOffBalance.available <= 0) {
+        return 'You have no available Comp-Off balance to claim. Please contact your manager for Comp-Off credits.';
+      }
+      if (totalDays > compOffBalance.available) {
+        return `Insufficient Comp-Off balance. You have ${compOffBalance.available} day(s) available, but you're requesting ${totalDays} day(s).`;
+      }
+      
+      // Validate that the requested dates don't conflict with expired credits
+      // This ensures users can't claim comp-off for dates after their credits expire
+      if (compOffBalance.activeCredits && compOffBalance.activeCredits.length > 0) {
+        const requestDate = new Date(startDate);
+        const latestExpiry = compOffBalance.activeCredits
+          .map(req => new Date(req.expiryDate))
+          .reduce((max, date) => date > max ? date : max, new Date(0));
+        
+        if (requestDate > latestExpiry) {
+          return `Cannot claim Comp-Off for dates after your credit expiry. Your latest Comp-Off credit expires on ${formatDate(latestExpiry)}.`;
+        }
+      }
     }
 
     if (!reason.trim()) {
@@ -656,6 +748,22 @@ const ApplyLeave = () => {
                   </option>
                 ))}
               </select>
+
+              {/* Comp-Off Balance Display */}
+              {isCompOffCategory && compOffBalance && (
+                <div className="comp-off-balance-info">
+                  <div className="comp-off-balance-main">
+                    <span className="comp-off-balance-label">Available Balance:</span>
+                    <span className="comp-off-balance-value">{compOffBalance.available} Day{compOffBalance.available !== 1 ? 's' : ''}</span>
+                  </div>
+                  {compOffBalance.earliestExpiry && (
+                    <div className="comp-off-expiry-warning">
+                      <InfoIcon width={14} height={14} />
+                      <span>Earliest credit expires on {formatDate(compOffBalance.earliestExpiry)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Apply For */}

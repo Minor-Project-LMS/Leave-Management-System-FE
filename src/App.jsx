@@ -22,6 +22,7 @@ import ApprovalInbox from './pages/manager/ApprovalInbox'
 import TeamCalendar from './pages/manager/TeamCalendar'
 import TeamMembers from './pages/manager/TeamMembers'
 import DelegationManagement from './pages/manager/DelegationManagement'
+import ManagerCompOff from './pages/manager/ManagerCompOff'
 import HRDashboard from './pages/HRDashboard'
 import HRReportsAnalytics from './pages/HRReportsAnalytics'
 import HREmployeeManagement from './pages/HREmployeeManagement'
@@ -147,6 +148,7 @@ function App() {
           />
           <Route path="/manager/team-calendar" element={<ProtectedRoute><TeamCalendar /></ProtectedRoute>} />
           <Route path="/manager/team-members" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
+          <Route path="/manager/comp-off" element={<ProtectedRoute><ManagerCompOff /></ProtectedRoute>} />
           <Route path="/manager/delegation" element={<ProtectedRoute><DelegationManagement /></ProtectedRoute>} />
           <Route
             path="/manager/profile"

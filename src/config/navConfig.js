@@ -37,6 +37,7 @@ export const MANAGER_PORTAL = {
     { label: 'Approval Inbox', path: '/manager/approval-inbox', icon: InboxIcon, badgeKey: 'approvals' },
     { label: 'Team Calendar', path: '/manager/team-calendar', icon: CalendarIcon },
     { label: 'Team Members', path: '/manager/team-members', icon: UsersIcon },
+    { label: 'Comp-Off Management', path: '/manager/comp-off', icon: CoffeeIcon },
     { label: 'Delegation', path: '/manager/delegation', icon: ClipboardListIcon },
     { label: 'Profile', path: '/manager/profile', icon: UserIcon },
   ],

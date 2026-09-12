@@ -26,6 +26,7 @@
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 2rem;
+  min-width: 0;
 }
 
 .comp-off-table-section {
@@ -592,6 +593,16 @@
 .btn-remove-file:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.comp-off-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Responsive Design */
