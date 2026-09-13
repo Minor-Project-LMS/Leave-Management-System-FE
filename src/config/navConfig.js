@@ -50,7 +50,7 @@ export const HR_PORTAL = {
     { label: 'Employee Management', path: '/hr/employees', icon: UsersIcon },
     { label: 'Leave Policies', path: '/hr/leave-policies', icon: BookIcon },
     { label: 'Leave Categories', path: '/hr/leave-categories', icon: ClipboardListIcon },
-    { label: 'Holiday Calendar', path: '/hr/holiday-calendar', icon: CalendarIcon },
+    { label: 'Delegation', path: '/hr/delegation', icon: InboxIcon },
     { label: 'Reports & Analytics', path: '/hr/reports', icon: BarChartIcon },
     { label: 'Audit Trail', path: '/hr/audit-trail', icon: HistoryIcon },
     { label: 'Notification Queue', path: '/hr/notification-queue', icon: BellIcon, badgeKey: 'notifications' },

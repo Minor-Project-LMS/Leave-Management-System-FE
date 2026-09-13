@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { apiService, getAccessToken, setAccessToken } from '../services/api';
+import { apiService, getAccessToken, setAccessToken, setProfileRefreshListener } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -63,6 +63,16 @@ export const AuthProvider = ({ children }) => {
       ...(updates || {}),
     }));
   }, []);
+
+  // Whenever api.js silently refreshes the access token mid-session (e.g.
+  // after a 401), it also hands back the current user profile — subscribe
+  // so a role change (or any other profile edit) made elsewhere takes
+  // effect for this user without needing a full page reload.
+  useEffect(() => {
+    if (USE_MOCK) return;
+    setProfileRefreshListener(updateUser);
+    return () => setProfileRefreshListener(null);
+  }, [updateUser]);
 
   const logout = useCallback(async () => {
     try {

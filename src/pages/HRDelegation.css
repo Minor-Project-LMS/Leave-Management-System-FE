@@ -1,0 +1,138 @@
+.hr-delegation-info-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.1rem;
+}
+
+.hr-delegation-info-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.hr-delegation-info-icon {
+  color: var(--primary-blue);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.hr-delegation-info-left strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.hr-delegation-info-left p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+.hr-delegation-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--primary-blue);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hr-delegation-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.hr-delegation-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hr-delegation-view-btn.active {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #fff;
+}
+
+.hr-delegation-view-badge {
+  background: #fff;
+  color: var(--primary-blue);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+}
+
+.hr-delegation-view-btn.active .hr-delegation-view-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Layout blocks shared with the Manager Approval Inbox / Delegation pages */
+.approval-inbox-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.approval-inbox-main {
+  min-width: 0;
+}
+
+.approval-inbox-detail {
+  position: sticky;
+  top: 1.75rem;
+}
+
+.delegation-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.delegation-main {
+  min-width: 0;
+}
+
+.delegation-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .approval-inbox-layout,
+  .delegation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-inbox-detail {
+    position: static;
+  }
+}

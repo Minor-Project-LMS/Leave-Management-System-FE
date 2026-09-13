@@ -58,6 +58,8 @@ const TeamMembers = () => {
   const [leaveSummary, setLeaveSummary] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
   const [error, setError] = useState('');
 
   const [profileOpen, setProfileOpen] = useState(false);
@@ -130,6 +132,68 @@ const TeamMembers = () => {
     }
   }, [departmentId, page]);
 
+  // Exports the full team (respecting the current department filter, but
+  // not limited to the current page — a manager clicking "export" wants
+  // the whole list, not just the 8 rows currently visible).
+  const csvEscape = (value) => {
+    const str = value == null ? '' : String(value);
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+
+  const buildMembersCsv = (rows) => {
+    const header = ['Name', 'Employee ID', 'Department', 'Designation', 'Email', 'Phone', 'Status'];
+    const lines = rows.map((m) =>
+      [m.fullName, m.employeeCode, m.departmentName, m.designation, m.email, m.phone, m.status]
+        .map(csvEscape)
+        .join(',')
+    );
+    return [header.join(','), ...lines].join('\n');
+  };
+
+  const handleExportMembers = async () => {
+    setExporting(true);
+    setExportError('');
+    try {
+      let rows;
+
+      if (USE_MOCK) {
+        rows = departmentId ? mockTeamMembers.filter((m) => m.departmentId === departmentId) : mockTeamMembers;
+      } else {
+        // Fetch the whole filtered set in one go rather than paging through
+        // it — team sizes here are small enough that a single large-limit
+        // call is simpler and safer than stitching pages together.
+        const res = await apiService.getTeamMembers({ departmentId, page: 1, limit: 1000 });
+        const raw = res?.data ?? [];
+        rows = raw.map((m) => ({
+          ...m,
+          id: m.id ?? m.userId,
+          departmentName: m.departmentName ?? m.department,
+        }));
+      }
+
+      const csv = buildMembersCsv(rows);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `team-members-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setExportError(getErrorMessage(err, 'Failed to export member list.'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleQuickAction = (label) => {
+    if (label === 'Export Member List') {
+      handleExportMembers();
+    }
+  };
+
   useEffect(() => {
     loadMembers();
   }, [loadMembers]);
@@ -199,6 +263,7 @@ const TeamMembers = () => {
       onLogout={handleLogout}
     >
       {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {exportError && <div className="dashboard-error-banner">{exportError}</div>}
 
       <div className="team-members-toolbar">
         <div className="team-members-stat-trio">
@@ -274,7 +339,7 @@ const TeamMembers = () => {
           </div>
 
           <div className="dashboard-panel">
-            <TeamMembersQuickActions />
+            <TeamMembersQuickActions onAction={handleQuickAction} exporting={exporting} />
             <NoteCard tone="info">
               You can view member leave details, balances, and request history from their profile.
             </NoteCard>

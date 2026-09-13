@@ -18,6 +18,19 @@ export const setAccessToken = (token) => {
 
 export const getAccessToken = () => accessToken;
 
+// AuthContext subscribes here so that whenever a fresh user profile comes
+// back from the backend — on the initial silent refresh at page load, or on
+// any later mid-session refresh triggered by a 401 retry — the in-memory
+// user object (and therefore role-based routing/nav) stays in sync. Without
+// this, a role change made by HR only took effect for that user after a
+// full page reload, since tryRefresh() below only updated the access token,
+// never the profile.
+let profileRefreshListener = null;
+
+export const setProfileRefreshListener = (fn) => {
+  profileRefreshListener = fn;
+};
+
 class ApiService {
   async request(endpoint, options = {}, { skipAuthRetry = false, skipErrorRedirect = false } = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
@@ -176,6 +189,7 @@ class ApiService {
     const token = data?.accessToken || data?.token || data?.data?.accessToken || data?.data?.token;
     const profile = data?.user || data?.data?.user || data?.profile || data?.data?.profile;
     if (token) setAccessToken(token);
+    if (profile) profileRefreshListener?.(profile);
     return { ...data, profile };
   }
 

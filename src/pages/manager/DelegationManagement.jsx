@@ -20,6 +20,7 @@ import {
   mockLeaveSummaryCategories,
   mockEligibleDelegates,
 } from '../../utils/mockData';
+import { normalizeDelegation } from '../../utils/delegation';
 import './DelegationManagement.css';
 
 const USE_MOCK = env.useMockData;
@@ -97,7 +98,7 @@ const DelegationManagement = () => {
       // delegations per manager) so all three tab counts can be shown at
       // once, and filter/paginate client-side per active tab.
       const res = await apiService.getDelegations({ limit: 100 });
-      setAllDelegations(res?.data ?? []);
+      setAllDelegations((res?.data ?? []).map(normalizeDelegation));
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load delegations.'));
       setAllDelegations(mockDelegations);
