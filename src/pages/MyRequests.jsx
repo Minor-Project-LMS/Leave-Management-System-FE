@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { mockMyRequests } from '../utils/mockData';
+import { formatToday } from '../utils/date';
 import './MyRequests.css';
 
 const STATUS_OPTIONS = ['All Status', 'Draft', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Withdrawn'];
@@ -265,6 +266,7 @@ const MyRequests = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

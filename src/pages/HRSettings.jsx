@@ -6,8 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
-import { 
-  SettingsIcon, 
+import { formatToday } from '../utils/date';
+import {
+  SettingsIcon,
   FileTextIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -29,7 +30,7 @@ const TABS = [
 ];
 
 const TIMEZONES = [
-  'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 
+  'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London',
   'Asia/Kolkata', 'Asia/Tokyo', 'Australia/Sydney'
 ];
 
@@ -495,6 +496,7 @@ const HRSettings = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

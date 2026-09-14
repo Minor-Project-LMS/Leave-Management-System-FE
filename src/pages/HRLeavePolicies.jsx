@@ -14,6 +14,7 @@ import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
 import { mockHRLeavePolicies, mockLeaveCategories, mockDepartments } from '../utils/mockData';
+import { formatToday } from '../utils/date';
 import './HRLeavePolicies.css';
 
 const USE_MOCK = env.useMockData;
@@ -224,6 +225,7 @@ const HRLeavePolicies = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

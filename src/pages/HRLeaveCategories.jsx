@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import { apiService } from '../services/api';
 import {
   ArchiveIcon,
@@ -190,7 +191,7 @@ const HRLeaveCategories = () => {
   const clearFilters = () => { setSearch(''); setStatus('ALL'); setType('ALL'); setApplicableTo('ALL'); setPage(1); };
 
   return (
-    <DashboardLayout title="Leave Categories" breadcrumbs={[{ label: 'HR Dashboard', path: '/hr/dashboard' }, { label: 'Leave Categories' }]} portalLabel={HR_PORTAL.portalLabel} navItems={HR_PORTAL.navItems} searchPlaceholder={HR_PORTAL.searchPlaceholder} user={user} onLogout={handleLogout}>
+    <DashboardLayout title="Leave Categories" breadcrumbs={[{ label: 'HR Dashboard', path: '/hr/dashboard' }, { label: 'Leave Categories' }]} portalLabel={HR_PORTAL.portalLabel} navItems={HR_PORTAL.navItems} searchPlaceholder={HR_PORTAL.searchPlaceholder} dateLabel={formatToday()} user={user} onLogout={handleLogout}>
       <div className="leave-category-page" onClick={() => menuId && setMenuId(null)}>
         {error && <div className="category-error">{error}</div>}
 

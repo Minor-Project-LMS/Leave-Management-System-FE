@@ -440,16 +440,12 @@ const HRDelegation = () => {
           <div>
             <strong>How delegation works</strong>
             <p>
-              When a manager is on leave, they delegate their approval authority — usually to HR. Any leave
+              When a manager is on leave or not available, they delegate their approval authority — usually to HR. Any leave
               request that would normally wait for that manager is automatically routed to the delegate instead,
               so nothing gets stuck waiting for someone who's out of office.
             </p>
           </div>
         </div>
-        <button className="hr-delegation-create-btn" onClick={openCreateModal}>
-          <PlusIcon width={16} height={16} />
-          Create My Delegation
-        </button>
       </div>
 
       <div className="hr-delegation-view-toggle">

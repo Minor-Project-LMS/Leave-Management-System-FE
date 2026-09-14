@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
-import { getMonthMatrix, getMonthName, getWeekdayLabels, formatShortDate } from '../utils/date';
+import { getMonthMatrix, getMonthName, getWeekdayLabels, formatShortDate, formatToday } from '../utils/date';
 import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, PlusIcon, XIcon } from '../components/icons/Icons';
 import './HolidayCalendar.css';
 
@@ -33,14 +33,14 @@ const HolidayCalendar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   useRoleRedirect('employee');
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [holidays, setHolidays] = useState([]);
   const [upcomingHolidays, setUpcomingHolidays] = useState([]);
   const [allHolidays, setAllHolidays] = useState([]);
   const [showFullListModal, setShowFullListModal] = useState(false);
-  
+
   const today = new Date();
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
@@ -72,12 +72,12 @@ const HolidayCalendar = () => {
       const params = new URLSearchParams();
       params.set('year', cursor.year);
       params.set('limit', 100); // Get all holidays for the year
-      
+
       const holidaysRes = await apiService.request(`/holidays?${params.toString()}`, {
         method: 'GET',
         headers: apiService.authHeaders(),
       });
-      
+
       const holidaysData = holidaysRes?.data ?? holidaysRes ?? [];
       const normalizedHolidays = holidaysData.map(normalizeHolidayData);
       setAllHolidays(normalizedHolidays);
@@ -108,20 +108,20 @@ const HolidayCalendar = () => {
       const params = new URLSearchParams();
       params.set('year', cursor.year);
       params.set('month', cursor.month + 1);
-      
+
       const holidaysRes = await apiService.request(`/holidays?${params.toString()}`, {
         method: 'GET',
         headers: apiService.authHeaders(),
       });
-      
+
       const upcomingRes = await apiService.getUpcomingHolidays(cursor.month + 1, cursor.year);
-      
+
       const holidaysData = holidaysRes?.data ?? holidaysRes ?? [];
       const upcomingData = upcomingRes ?? [];
-      
+
       const normalizedHolidays = holidaysData.map(normalizeHolidayData);
       const normalizedUpcoming = upcomingData.map(normalizeHolidayData);
-      
+
       setHolidays(normalizedHolidays);
       setUpcomingHolidays(normalizedUpcoming);
     } catch (err) {
@@ -216,6 +216,7 @@ const HolidayCalendar = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       notificationCount={notificationCount}
       onLogout={handleLogout}

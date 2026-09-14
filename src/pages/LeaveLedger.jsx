@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import './LeaveLedger.css';
 
 const USE_MOCK = env.useMockData;
@@ -159,6 +160,7 @@ const LeaveLedger = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

@@ -21,6 +21,7 @@ import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { mockRequestDetails } from '../utils/mockData';
 import { getAvatarColor } from '../utils/avatarColor';
+import { formatToday } from '../utils/date';
 import './RequestDetails.css';
 
 const formatDate = (dateStr) => {
@@ -32,9 +33,9 @@ const formatDate = (dateStr) => {
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('en-GB', { 
-    day: '2-digit', 
-    month: 'short', 
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -61,7 +62,7 @@ const RequestDetails = () => {
     try {
       // Fetch request details (basic response from actual API)
       const response = await apiService.getLeaveRequestDetail(requestId);
-      
+
       // Check if response is valid
       if (!response || (typeof response === 'object' && Object.keys(response).length === 0)) {
         throw new Error('Invalid response from server');
@@ -69,7 +70,7 @@ const RequestDetails = () => {
 
       // Handle wrapped response (some APIs return { success: true, data: {...} })
       const requestData = response.data || response;
-      
+
       // Fetch additional data separately since API doesn't return full detail
       let employeeData = null;
       let balanceData = [];
@@ -113,7 +114,7 @@ const RequestDetails = () => {
       } catch (commentsErr) {
         // Silently ignore comments loading failure
       }
-      
+
       // Transform API response to match our component structure
       const transformedRequest = {
         id: requestData.displayId || requestData.id || 'LR-000',
@@ -124,7 +125,7 @@ const RequestDetails = () => {
         categoryCode: requestData.categoryCode || (requestData.categoryName?.substring(0, 2).toUpperCase()) || 'LV',
         startDate: requestData.startDate || requestData.fromDate || '',
         endDate: requestData.endDate || requestData.toDate || '',
-        dateRange: requestData.startDate && requestData.endDate 
+        dateRange: requestData.startDate && requestData.endDate
           ? `${formatDate(requestData.startDate)} - ${formatDate(requestData.endDate)}`
           : formatDate(requestData.startDate || requestData.fromDate || ''),
         totalDays: requestData.totalDays || requestData.days || 0,
@@ -375,6 +376,7 @@ const RequestDetails = () => {
         portalLabel={EMPLOYEE_PORTAL.portalLabel}
         navItems={EMPLOYEE_PORTAL.navItems}
         searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+        dateLabel={formatToday()}
         user={user}
         onLogout={handleLogout}
       >
@@ -410,6 +412,7 @@ const RequestDetails = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

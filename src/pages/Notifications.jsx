@@ -18,6 +18,7 @@ import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
+import { formatToday } from '../utils/date';
 import './Notifications.css';
 
 const TABS = [
@@ -316,6 +317,7 @@ const Notifications = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       badgeCounts={{ notifications: unreadCount }}
       user={user}
       notificationCount={unreadCount}

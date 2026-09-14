@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { MANAGER_PORTAL } from '../../config/navConfig';
 import { useRoleRedirect } from '../../hooks/useRoleRedirect';
 import { env } from '../../config/env';
+import { formatToday } from '../../utils/date';
 import './ManagerCompOff.css';
 
 const TABS = [
@@ -41,9 +42,9 @@ const formatDate = (dateStr) => {
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('en-GB', { 
-    day: '2-digit', 
-    month: 'short', 
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -53,7 +54,7 @@ const formatDateTime = (dateStr) => {
 const getCompOffStatus = (request) => {
   const today = new Date();
   const expiryDate = request.expiryDate ? new Date(request.expiryDate) : null;
-  
+
   // Check if expired
   if (expiryDate && expiryDate < today) {
     return {
@@ -64,7 +65,7 @@ const getCompOffStatus = (request) => {
       borderColor: '#fecaca'
     };
   }
-  
+
   // Check if claimed/used
   if (request.claimed || request.status === 'CLAIMED' || request.status === 'USED') {
     return {
@@ -75,7 +76,7 @@ const getCompOffStatus = (request) => {
       borderColor: '#bfdbfe'
     };
   }
-  
+
   // Default to active/available
   return {
     status: 'ACTIVE',
@@ -180,7 +181,7 @@ const ManagerCompOff = () => {
   const [summary, setSummary] = useState(null);
   const [requests, setRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('granted');
-  
+
   // Form state
   const [showGrantForm, setShowGrantForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -220,7 +221,7 @@ const ManagerCompOff = () => {
       // Calculate summary from requests
       const granted = requestsRes?.data?.filter(r => r.status === 'APPROVED')?.length || 0;
       const pending = requestsRes?.data?.filter(r => r.status === 'PENDING')?.length || 0;
-      
+
       setSummary({
         totalGranted: granted,
         pendingRequests: pending,
@@ -359,7 +360,7 @@ const ManagerCompOff = () => {
 
   const handleGrantSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validationError = validateGrantForm();
     if (validationError) {
       setFormError(validationError);
@@ -393,7 +394,7 @@ const ManagerCompOff = () => {
       };
 
       await apiService.submitCompOffRequest(payload);
-      
+
       setSuccessMessage('Comp-Off granted successfully!');
       setTimeout(() => {
         handleGrantFormClose();
@@ -438,6 +439,7 @@ const ManagerCompOff = () => {
       portalLabel={MANAGER_PORTAL.portalLabel}
       navItems={MANAGER_PORTAL.navItems}
       searchPlaceholder={MANAGER_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

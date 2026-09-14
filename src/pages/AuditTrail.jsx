@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import './AuditTrail.css';
 
 const USE_MOCK = env.useMockData;
@@ -118,38 +119,38 @@ const AuditTrail = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   useRoleRedirect('hr');
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
-  
+
   // Filters
   const [dateRange, setDateRange] = useState({ from: null, to: null });
   const [selectedAction, setSelectedAction] = useState('');
   const [selectedEntityType, setSelectedEntityType] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState('');
-  
+
   // Data
   const [auditEntries, setAuditEntries] = useState([]);
   const [activitySummary, setActivitySummary] = useState(null);
   const [topActions, setTopActions] = useState([]);
   const [auditInfo, setAuditInfo] = useState(null);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // Diff modal
   const [diffModalOpen, setDiffModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [loadingDiff, setLoadingDiff] = useState(false);
-  
+
   // Date preset buttons
   const [activePreset, setActivePreset] = useState('');
-  
+
   const ACTION_OPTIONS = [
     { value: '', label: 'All Actions' },
     { value: 'CREATE', label: 'Create' },
@@ -160,7 +161,7 @@ const AuditTrail = () => {
     { value: 'DELEGATE', label: 'Delegate' },
     { value: 'DELETE', label: 'Delete' },
   ];
-  
+
   const ENTITY_TYPE_OPTIONS = [
     { value: '', label: 'All Modules' },
     { value: 'LEAVE_REQUEST', label: 'Leave Requests' },
@@ -173,7 +174,7 @@ const AuditTrail = () => {
     { value: 'USER', label: 'Users' },
     { value: 'DEPARTMENT', label: 'Departments' },
   ];
-  
+
   const loadAuditData = useCallback(async () => {
   setLoading(true);
   setError('');
@@ -223,21 +224,21 @@ const AuditTrail = () => {
     setLoading(false);
   }
 }, [page, pageSize, dateRange, selectedAction, selectedEntityType, searchQuery, userId]);
-  
+
   useEffect(() => {
     loadAuditData();
   }, [loadAuditData]);
-  
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
-  
+
   const handleDatePreset = (preset) => {
     setActivePreset(preset);
     const now = new Date();
     let from = null;
-    
+
     switch (preset) {
       case 'today':
         from = new Date(now.setHours(0, 0, 0, 0));
@@ -255,7 +256,7 @@ const AuditTrail = () => {
       default:
         break;
     }
-    
+
     if (from) {
       setDateRange({
         from: from.toISOString(),
@@ -263,36 +264,36 @@ const AuditTrail = () => {
       });
     }
   };
-  
+
   const handleDateRangeChange = (field, value) => {
     setDateRange(prev => ({ ...prev, [field]: value }));
     setActivePreset('');
   };
-  
+
   const handleExport = async () => {
     if (exporting) return;
     setExporting(true);
-    
+
     if (USE_MOCK) {
       setTimeout(() => setExporting(false), 1500);
       return;
     }
-    
+
     try {
       const params = {
         format: 'csv',
       };
-      
+
       if (dateRange.from) params.dateFrom = dateRange.from;
       if (dateRange.to) params.dateTo = dateRange.to;
-      
+
       console.log('Making export API call to /audit-log/export with params:', params);
-      const response = await api.get('/audit-log/export', { 
+      const response = await api.get('/audit-log/export', {
         params,
         responseType: 'blob',
       });
       console.log('Export API response:', response);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -310,7 +311,7 @@ const AuditTrail = () => {
       setExporting(false);
     }
   };
-  
+
   const handleViewDiff = async (entry) => {
   setSelectedEntry(entry);
   setDiffModalOpen(true);
@@ -331,12 +332,12 @@ const AuditTrail = () => {
     setLoadingDiff(false);
   }
 };
-  
+
   const handleApplyFilters = () => {
     setPage(1);
     loadAuditData();
   };
-  
+
   const handleResetFilters = () => {
     setDateRange({ from: null, to: null });
     setSelectedAction('');
@@ -346,7 +347,7 @@ const AuditTrail = () => {
     setActivePreset('');
     setPage(1);
   };
-  
+
   if (loading && !auditEntries.length) {
     return (
       <div className="dashboard-loading">
@@ -355,7 +356,7 @@ const AuditTrail = () => {
       </div>
     );
   }
-  
+
   return (
     <DashboardLayout
       title="Audit Trail"
@@ -367,6 +368,7 @@ const AuditTrail = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       badgeCounts={{}}
       user={user}
       notificationCount={0}

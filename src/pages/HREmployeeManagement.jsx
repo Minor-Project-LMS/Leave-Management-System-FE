@@ -24,6 +24,7 @@ import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
 import { mockEmployees, mockEmployeeStats, mockDepartments, mockDepartmentSummary, mockLeaveLedger } from '../utils/mockData';
+import { formatToday } from '../utils/date';
 import './HREmployeeManagement.css';
 
 const USE_MOCK = env.useMockData;
@@ -320,6 +321,7 @@ const HREmployeeManagement = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

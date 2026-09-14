@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import './CompOff.css';
 
 const TABS = [
@@ -45,7 +46,7 @@ const formatDate = (dateStr) => {
 const getCompOffStatus = (request) => {
   const today = new Date();
   const expiryDate = request.expiryDate ? new Date(request.expiryDate) : null;
-  
+
   // Check if expired
   if (expiryDate && expiryDate < today) {
     return {
@@ -56,7 +57,7 @@ const getCompOffStatus = (request) => {
       borderColor: '#fecaca'
     };
   }
-  
+
   // Check if claimed/used (you might need to add a 'claimed' field to your data model)
   if (request.claimed || request.status === 'CLAIMED' || request.status === 'USED') {
     return {
@@ -67,7 +68,7 @@ const getCompOffStatus = (request) => {
       borderColor: '#bfdbfe'
     };
   }
-  
+
   // Default to active/available
   return {
     status: 'ACTIVE',
@@ -81,9 +82,9 @@ const getCompOffStatus = (request) => {
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('en-GB', { 
-    day: '2-digit', 
-    month: 'short', 
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -311,6 +312,7 @@ const CompOff = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

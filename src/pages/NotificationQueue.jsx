@@ -9,11 +9,12 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
-import { 
-  mockNotificationQueue, 
-  mockNotificationSummary, 
-  mockDeliveryOverview, 
-  mockNotificationTypes 
+import { formatToday } from '../utils/date';
+import {
+  mockNotificationQueue,
+  mockNotificationSummary,
+  mockDeliveryOverview,
+  mockNotificationTypes
 } from '../utils/mockData';
 import './NotificationQueue.css';
 
@@ -292,7 +293,7 @@ const NotificationQueue = () => {
 
   const handleRetrySingle = async (notificationId) => {
     if (USE_MOCK) {
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, status: 'QUEUED', retryCount: 0 } : n
       ));
       setActionMenuOpen(null);
@@ -313,7 +314,7 @@ const NotificationQueue = () => {
 
   const handleCancelNotification = async (notificationId) => {
     if (USE_MOCK) {
-      setNotifications(prev => prev.map(n => 
+      setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, status: 'CANCELLED' } : n
       ));
       setActionMenuOpen(null);
@@ -347,7 +348,7 @@ const NotificationQueue = () => {
       if (dateTo) params.dateTo = dateTo;
 
       const response = await apiService.exportNotificationQueue(params);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement('a');
@@ -427,6 +428,7 @@ const NotificationQueue = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

@@ -19,6 +19,7 @@ import {
   mockLeavePolicies,
   mockLeaveLedger,
 } from '../utils/mockData';
+import { formatToday } from '../utils/date';
 import './ApplyLeave.css';
 
 const USE_MOCK =
@@ -26,6 +27,7 @@ const USE_MOCK =
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 const REASON_MAX_LEN = 500;
+const today = new Date().toISOString().split('T')[0];
 
 const formatBytes = (bytes) => {
   const kb = bytes / 1024;
@@ -102,6 +104,25 @@ const ApplyLeave = () => {
       Object.fromEntries(
         categories.map((c) => [c.id, c.categoryCode])
       ),
+    [categories]
+  );
+
+  const leaveTypeOptions = useMemo(
+    () =>
+      categories.filter((cat) => {
+        const categoryName = String(cat.categoryName || '')
+          .toLowerCase()
+          .replace(/\s+/g, '');
+
+        const categoryCode = String(cat.categoryCode || '')
+          .toLowerCase()
+          .replace(/[_\s-]+/g, '');
+
+        return (
+          !categoryName.includes('compoff') &&
+          !categoryCode.includes('compoff')
+        );
+      }),
     [categories]
   );
 
@@ -708,6 +729,7 @@ const ApplyLeave = () => {
       searchPlaceholder={
         EMPLOYEE_PORTAL.searchPlaceholder
       }
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >
@@ -754,7 +776,7 @@ const ApplyLeave = () => {
                   setFormError('');
                 }}
               >
-                {categories.map((cat) => (
+                {leaveTypeOptions.map((cat) => (
                   <option
                     key={cat.id}
                     value={cat.id}
@@ -823,6 +845,7 @@ const ApplyLeave = () => {
               <input
                 type="date"
                 value={startDate}
+                min={today}
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   setFormError('');
@@ -837,16 +860,12 @@ const ApplyLeave = () => {
               <input
                 type="date"
                 value={endDate}
+                min={startDate || today}
                 onChange={(e) => {
                   setEndDate(e.target.value);
                   setFormError('');
                 }}
-                min={
-                  startDate || undefined
-                }
-                disabled={
-                  applyFor === 'HALF_DAY'
-                }
+                disabled={applyFor === 'HALF_DAY'}
               />
             </div>
 

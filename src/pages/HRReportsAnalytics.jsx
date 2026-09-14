@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import {
   mockReportsSummary,
   mockMonthlyLeaveTrend,
@@ -187,6 +188,7 @@ const HRReportsAnalytics = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >

@@ -295,14 +295,6 @@ const TeamMembers = () => {
             </select>
             <ChevronDownIcon width={14} height={14} />
           </div>
-          <button className="team-members-filter-btn">
-            <FilterIcon width={15} height={15} />
-            Filter
-          </button>
-          <button className="team-members-add-btn">
-            <PlusIcon width={16} height={16} />
-            Add Member
-          </button>
         </div>
       </div>
 

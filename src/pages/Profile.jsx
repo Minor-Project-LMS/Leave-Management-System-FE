@@ -12,6 +12,7 @@ import { EMPLOYEE_PORTAL, MANAGER_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
 import { mockUserProfile } from '../utils/mockData';
+import { formatToday } from '../utils/date';
 import './Profile.css';
 
 const USE_MOCK = env.useMockData;
@@ -477,6 +478,7 @@ const Profile = () => {
       portalLabel={portal.portalLabel}
       navItems={portal.navItems}
       searchPlaceholder={portal.searchPlaceholder}
+      dateLabel={formatToday()}
       user={user}
       onLogout={handleLogout}
     >
