@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { EMPLOYEE_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import {
   mockSummary,
   mockTrend,
@@ -115,6 +116,7 @@ const Dashboard = () => {
       portalLabel={EMPLOYEE_PORTAL.portalLabel}
       navItems={EMPLOYEE_PORTAL.navItems}
       searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       badgeCounts={{ notifications: activity.length }}
       user={user}
       notificationCount={activity.length}

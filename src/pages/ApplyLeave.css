@@ -28,6 +28,17 @@
   color: #047857;
 }
 
+.apply-leave-lop-note {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .apply-leave-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -48,6 +59,48 @@
 
 .form-field label {
   font-size: 0.8rem;
+}
+
+.comp-off-balance-info {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.comp-off-balance-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comp-off-balance-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.comp-off-balance-value {
+  color: #0369a1;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.comp-off-expiry-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #d97706;
+  font-size: 0.8rem;
+  background: #fef3c7;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.comp-off-expiry-warning svg {
+  flex-shrink: 0;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -131,6 +184,14 @@
   color: var(--text-secondary);
 }
 
+.apply-leave-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .apply-leave-file-name {
   flex: 1;
   font-size: 0.8rem;
@@ -144,6 +205,35 @@
   font-size: 0.7rem;
   color: var(--text-light);
   flex-shrink: 0;
+}
+
+.apply-leave-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.apply-leave-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.apply-leave-progress-bar {
+  background: var(--primary-blue);
+  transition: width 0.2s ease;
+}
+
+.apply-leave-progress-text {
+  font-size: 0.65rem;
+  color: var(--text-light);
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
 }
 
 .apply-leave-file-list button {
@@ -225,6 +315,13 @@
 .apply-leave-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.apply-leave-file-required {
+  display: block;
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
 }
 
 @media (max-width: 1100px) {

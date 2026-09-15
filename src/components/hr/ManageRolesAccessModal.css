@@ -1,0 +1,191 @@
+.roles-access-modal {
+  max-width: 720px;
+}
+
+.roles-access-role-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.roles-access-role-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+}
+
+.roles-access-role-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.roles-access-role-card.role-employee .roles-access-role-icon { background: var(--primary-blue); }
+.roles-access-role-card.role-manager .roles-access-role-icon { background: var(--accent-green); }
+.roles-access-role-card.role-hr_admin .roles-access-role-icon { background: #d97706; }
+
+.roles-access-role-card strong {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.roles-access-role-card p {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.roles-access-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+.roles-access-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.roles-access-table-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.roles-access-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.roles-access-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-light);
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-light);
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.roles-access-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.roles-access-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.roles-access-person {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.roles-access-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.roles-access-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.roles-access-email {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.roles-access-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.roles-access-badge.role-employee { background: var(--bg-blue-light); color: var(--primary-blue); }
+.roles-access-badge.role-manager { background: #d1fae5; color: #047857; }
+.roles-access-badge.role-hr_admin { background: #fef3c7; color: #b45309; }
+
+.roles-access-table select {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  background: var(--bg-white);
+  font-family: inherit;
+}
+
+.roles-access-save-btn {
+  background: var(--primary-blue);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.roles-access-save-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.roles-access-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roles-access-saved {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-green);
+}
+
+@media (max-width: 640px) {
+  .roles-access-role-cards {
+    grid-template-columns: 1fr;
+  }
+}

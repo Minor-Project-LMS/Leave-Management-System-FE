@@ -1,0 +1,113 @@
+.employee-mgmt-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.employee-mgmt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.employee-mgmt-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  color: var(--text-light);
+}
+
+.employee-mgmt-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.employee-mgmt-filter-select {
+  appearance: none;
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.employee-mgmt-filter-btn,
+.employee-mgmt-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.employee-mgmt-filter-btn {
+  background: var(--bg-white);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.employee-mgmt-filter-btn:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+.employee-mgmt-add-btn {
+  background: var(--primary-blue);
+  border: 1px solid var(--primary-blue);
+  color: #fff;
+}
+
+.employee-mgmt-add-btn:hover {
+  background: var(--primary-dark);
+}
+
+.employee-mgmt-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.employee-mgmt-main {
+  min-width: 0;
+}
+
+.employee-mgmt-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .employee-mgmt-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .employee-mgmt-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .employee-mgmt-stats-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -22,8 +22,8 @@ const RecentActivity = ({ items = [] }) => {
             <li key={item.id}>
               <span className="recent-activity-dot" />
               <div className="recent-activity-body">
-                <span className="recent-activity-text">{item.text}</span>
-                <span className="recent-activity-time">{formatRelativeTime(item.timestamp)}</span>
+                <span className="recent-activity-text">{item.text ?? item.description}</span>
+                <span className="recent-activity-time">{formatRelativeTime(item.timestamp ?? item.performedAt)}</span>
               </div>
             </li>
           ))}

@@ -12,6 +12,7 @@ import { MANAGER_PORTAL } from '../../config/navConfig';
 import { useRoleRedirect } from '../../hooks/useRoleRedirect';
 import { env } from '../../config/env';
 import { mockApprovalInbox, mockApprovalDetails } from '../../utils/mockData';
+import { formatToday } from '../../utils/date';
 import './ApprovalInbox.css';
 
 const USE_MOCK = env.useMockData;
@@ -33,7 +34,10 @@ const getErrorMessage = (err, fallback) => {
 const synthesizeDetail = (item) => ({
   ...item,
   employee: { employeeCode: `EMP-${String(item.userId).padStart(4, '0')}` },
-  attachments: [],
+  attachments: (item.attachments || []).map(att => ({
+    ...att,
+    uploadStatus: att.uploadStatus || att.status || 'ACTIVE',
+  })),
   approvals: [
     {
       id: `${item.id}-req`,
@@ -253,6 +257,7 @@ const ApprovalInbox = () => {
       portalLabel={MANAGER_PORTAL.portalLabel}
       navItems={MANAGER_PORTAL.navItems}
       searchPlaceholder={MANAGER_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       badgeCounts={{ approvals: counts.pending }}
       user={user}
       notificationCount={counts.pending}
