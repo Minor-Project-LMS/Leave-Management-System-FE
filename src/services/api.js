@@ -951,25 +951,50 @@ async exportAuditLogs(params = {}) {
     });
   }
 
-  async withdrawCompOffRequest(compId) {
+  // Revoke a grant's remaining unclaimed balance. Manager/HR only (the
+  // employee's reporting manager, an active delegate, or HR_ADMIN) — this is
+  // NOT an employee "withdraw my own request" action. Sets status=REJECTED
+  // (reused to mean "revoked"); days already claimed via approved leave
+  // requests are unaffected. 409 if a PENDING_L1/PENDING_L2/APPROVED leave
+  // request is still linked against the grant.
+  async revokeCompOffGrant(compId) {
     return this.request(`/comp-off-requests/${compId}`, {
       method: 'DELETE',
       headers: this.authHeaders(),
     });
   }
 
-  async decideCompOffRequest(compId, decision, comments) {
-    return this.request(`/comp-off-requests/${compId}/decisions`, {
-      method: 'PATCH',
-      headers: this.authHeaders(),
-      body: JSON.stringify({ decision, comments }),
-    });
-  }
+  // NOTE: there is no longer a decision step on the grant itself — a grant
+  // lands APPROVED immediately on creation (see submitCompOffRequest).
+  // "Approving comp-off" now means approving the employee's claim, which is
+  // an ordinary leave request: use decideLeaveRequest(requestId, decision,
+  // comment) against the leave request created by claimCompOff(), NOT a
+  // comp-off-specific decision call. (The old PATCH
+  // /comp-off-requests/{compId}/decisions endpoint this used to call has
+  // been removed from the API.)
 
   async getCompOffSummary() {
     // This endpoint might not exist in the spec yet, but we'll add it for the dashboard
     // For now, we'll derive it from the comp-off requests data
     return this.request('/dashboard/summary', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async claimCompOff(payload) {
+    // Comp-off claims create a standard leave request with compOffRequestId
+    // This follows the intended workflow per OpenAPI spec
+    return this.request('/leave-requests', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getCompOffLeaveRequests() {
+    // Get leave requests that are comp-off claims
+    return this.request('/leave-requests?categoryCode=CO', {
       method: 'GET',
       headers: this.authHeaders(),
     });

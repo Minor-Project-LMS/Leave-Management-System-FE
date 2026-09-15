@@ -98,6 +98,7 @@ const ApplyLeave = () => {
 
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [compOffRequestId, setCompOffRequestId] = useState(null);
 
   const categoryCodeById = useMemo(
     () =>
@@ -303,6 +304,7 @@ const ApplyLeave = () => {
   useEffect(() => {
     if (!isCompOffCategory) {
       setCompOffBalance(null);
+      setCompOffRequestId(null);
       return;
     }
 
@@ -314,14 +316,14 @@ const ApplyLeave = () => {
         const approvedRequests = requestsRes?.data ?? requestsRes ?? [];
         const today = new Date();
 
-        // Filter for active (not expired) comp-off credits
+        // Filter for active (not expired) comp-off credits with remaining balance
         const activeCredits = approvedRequests.filter(req => {
           const expiryDate = new Date(req.expiryDate);
-          return expiryDate >= today;
+          return expiryDate >= today && (req.daysRemaining || 0) > 0;
         });
 
         // Calculate total available balance
-        const totalAvailable = activeCredits.reduce((sum, req) => sum + (req.daysCredited || 0), 0);
+        const totalAvailable = activeCredits.reduce((sum, req) => sum + (req.daysRemaining || 0), 0);
 
         // Find the earliest expiry date for warning
         const sortedByExpiry = activeCredits
@@ -334,8 +336,13 @@ const ApplyLeave = () => {
           available: totalAvailable,
           earliestExpiry: earliestExpiry,
           totalCredits: activeCredits.length,
-          activeCredits: activeCredits, // Store for validation
+          activeCredits: activeCredits, // Store for validation and selection
         });
+
+        // Auto-select the grant with earliest expiry if none selected
+        if (!compOffRequestId && activeCredits.length > 0) {
+          setCompOffRequestId(activeCredits[0].id);
+        }
       } catch (err) {
         console.error('Error loading comp-off balance:', err);
         // Set mock balance for fallback
@@ -507,18 +514,27 @@ const ApplyLeave = () => {
   /*
    * Build leave request payload.
    */
-  const buildPayload = (status) => ({
-    ...(draftId ? { id: draftId } : {}),
-    categoryId: Number(categoryId),
-    startDate,
-    endDate: endDate || startDate,
-    sessionType:
-      applyFor === 'HALF_DAY'
-        ? 'FIRST_HALF'
-        : 'FULL_DAY',
-    reason: reason.trim(),
-    status,
-  });
+  const buildPayload = (status) => {
+    const payload = {
+      ...(draftId ? { id: draftId } : {}),
+      categoryId: Number(categoryId),
+      startDate,
+      endDate: endDate || startDate,
+      sessionType:
+        applyFor === 'HALF_DAY'
+          ? 'FIRST_HALF'
+          : 'FULL_DAY',
+      reason: reason.trim(),
+      status,
+    };
+
+    // Add compOffRequestId if this is a comp-off category request
+    if (isCompOffCategory && compOffRequestId) {
+      payload.compOffRequestId = compOffRequestId;
+    }
+
+    return payload;
+  };
 
   /*
    * Validate leave application.
@@ -551,24 +567,29 @@ const ApplyLeave = () => {
 
     // --- COMP-OFF BALANCE VALIDATION ---
     if (isCompOffCategory && status !== 'DRAFT') {
-      if (!compOffBalance || compOffBalance.available <= 0) {
-        return 'You have no available Comp-Off balance to claim. Please contact your manager for Comp-Off credits.';
-      }
-      if (totalDays > compOffBalance.available) {
-        return `Insufficient Comp-Off balance. You have ${compOffBalance.available} day(s) available, but you're requesting ${totalDays} day(s).`;
+      if (!compOffRequestId) {
+        return 'Please select a Comp-Off grant to use for this leave request.';
       }
 
-      // Validate that the requested dates don't conflict with expired credits
-      // This ensures users can't claim comp-off for dates after their credits expire
-      if (compOffBalance.activeCredits && compOffBalance.activeCredits.length > 0) {
-        const requestDate = new Date(startDate);
-        const latestExpiry = compOffBalance.activeCredits
-          .map(req => new Date(req.expiryDate))
-          .reduce((max, date) => date > max ? date : max, new Date(0));
+      const selectedGrant = compOffBalance?.activeCredits?.find(credit => credit.id === compOffRequestId);
+      if (!selectedGrant) {
+        return 'Selected Comp-Off grant not found or no longer available.';
+      }
 
-        if (requestDate > latestExpiry) {
-          return `Cannot claim Comp-Off for dates after your credit expiry. Your latest Comp-Off credit expires on ${formatDate(latestExpiry)}.`;
-        }
+      const grantRemaining = selectedGrant.daysRemaining || 0;
+      if (grantRemaining <= 0) {
+        return 'The selected Comp-Off grant has no remaining balance. Please select a different grant.';
+      }
+      if (totalDays > grantRemaining) {
+        return `Insufficient balance in selected grant. You have ${grantRemaining} day(s) available in this grant, but you're requesting ${totalDays} day(s).`;
+      }
+
+      // Validate that the requested dates don't conflict with the selected grant's expiry
+      const requestDate = new Date(startDate);
+      const grantExpiry = new Date(selectedGrant.expiryDate);
+
+      if (requestDate > grantExpiry) {
+        return `Cannot claim Comp-Off for dates after the selected grant's expiry. This grant expires on ${formatDate(selectedGrant.expiryDate)}.`;
       }
     }
 
@@ -797,6 +818,22 @@ const ApplyLeave = () => {
                     <div className="comp-off-expiry-warning">
                       <InfoIcon width={14} height={14} />
                       <span>Earliest credit expires on {formatDate(compOffBalance.earliestExpiry)}</span>
+                    </div>
+                  )}
+                  {compOffBalance.activeCredits && compOffBalance.activeCredits.length > 0 && (
+                    <div className="comp-off-grant-selector">
+                      <label>Select Comp-Off Grant to Use:</label>
+                      <select
+                        value={compOffRequestId || ''}
+                        onChange={(e) => setCompOffRequestId(Number(e.target.value))}
+                        className="comp-off-grant-select"
+                      >
+                        {compOffBalance.activeCredits.map(credit => (
+                          <option key={credit.id} value={credit.id}>
+                            {credit.displayId || credit.id} - {credit.daysRemaining} Day(s) remaining (Expires: {formatDate(credit.expiryDate)})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </div>

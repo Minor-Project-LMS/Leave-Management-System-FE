@@ -88,6 +88,8 @@ const MyRequests = () => {
                       filterParams.status === 'Rejected' ? 'REJECTED' :
                       filterParams.status === 'Withdrawn' ? 'WITHDRAWN' :
                       filterParams.status === 'Cancelled' ? 'CANCELLED' : filterParams.status;
+      } else {
+        delete params.status
       }
 
       if (filterParams.leaveType && filterParams.leaveType !== 'All Leave Types') {
@@ -131,7 +133,9 @@ const MyRequests = () => {
 
       // Fallback client filtering if API doesn't support leave type param
       if (filterParams.leaveType && filterParams.leaveType !== 'All Leave Types') {
-        transformedRequests = transformedRequests.filter(req => req.type === filterParams.leaveType);
+        const normalize = (str) => (str || '').toLowerCase().replace(/[-\s]+/g, ' ').trim();
+        const targetType = normalize(filterParams.leaveType);
+        transformedRequests = transformedRequests.filter(req => normalize(req.type) === targetType);
       }
 
       setRequests(transformedRequests);
