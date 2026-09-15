@@ -30,6 +30,7 @@ const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCa
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
+    if (!form.policyName.trim()) return setError('Please enter a policy name.');
     if (!form.categoryId) return setError('Please select a leave type.');
     if (form.annualQuota === '') return setError('Please enter an annual quota.');
     if (!form.effectiveFrom) return setError('Please select an effective-from date.');

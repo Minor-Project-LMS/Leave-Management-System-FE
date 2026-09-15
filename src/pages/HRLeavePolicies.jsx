@@ -146,8 +146,8 @@ const HRLeavePolicies = () => {
       const q = search.trim().toLowerCase();
       result = result.filter(
         (p) =>
-          p.policyName.toLowerCase().includes(q) ||
-          p.categoryName.toLowerCase().includes(q) ||
+          p.policyName?.toLowerCase().includes(q) ||
+          p.categoryName?.toLowerCase().includes(q) ||
           p.policyCode?.toLowerCase().includes(q)
       );
     }

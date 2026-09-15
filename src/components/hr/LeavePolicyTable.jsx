@@ -50,9 +50,6 @@ const ActionsMenu = ({ policy, onEdit, onViewHistory, onToggleStatus }) => {
           <button onClick={() => { onEdit?.(policy); setOpen(false); }}>
             <EditIcon width={14} height={14} /> Edit
           </button>
-          <button onClick={() => { onViewHistory?.(policy); setOpen(false); }}>
-            <HistoryIcon width={14} height={14} /> View History
-          </button>
           {policy.status === 'DRAFT' && (
             <button onClick={() => { onToggleStatus?.(policy, 'ACTIVE'); setOpen(false); }}>
               <CheckIcon width={14} height={14} /> Activate
@@ -102,13 +99,8 @@ const LeavePolicyTable = ({
             <tr key={p.id}>
               <td>
                 <div className="policy-name-cell">
-                  <span className="policy-name">{p.policyName}</span>
-                  <span className="policy-code-row">
-                    {p.policyCode}
-                    <span className={`policy-default-tag ${p.isDefault ? 'default' : 'custom'}`}>
-                      {p.isDefault ? 'Default' : 'Custom'}
-                    </span>
-                  </span>
+                  <span className="policy-name">{p.policyName || 'Untitled Policy'}</span>
+                  {p.policyCode && <span className="policy-code-row">{p.policyCode}</span>}
                 </div>
               </td>
               <td>
