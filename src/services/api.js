@@ -100,7 +100,7 @@ class ApiService {
         const errorMessage =
           typeof rawMsg === 'object'
             ? rawMsg?.message || JSON.stringify(rawMsg)
-            : rawMsg || 'API request failed';
+            : rawMsg || 'Invalid email or password';
 
         throw new Error(errorMessage);
       }
