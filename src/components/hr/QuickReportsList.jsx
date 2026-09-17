@@ -1,4 +1,4 @@
-import { FileTextIcon, BuildingIcon, UsersIcon, TrendUpIcon, HourglassIcon, EditIcon, ChevronRightSmallIcon } from '../icons/Icons';
+import { FileTextIcon, BuildingIcon, UsersIcon, TrendUpIcon, HourglassIcon, ChevronRightSmallIcon } from '../icons/Icons';
 import './QuickReportsList.css';
 
 const REPORTS = [
@@ -7,7 +7,6 @@ const REPORTS = [
   { key: 'EMPLOYEE_LEAVE', label: 'Employee Leave Report', icon: UsersIcon },
   { key: 'LEAVE_TREND', label: 'Leave Trend Analysis', icon: TrendUpIcon },
   { key: 'PENDING_REQUESTS', label: 'Pending Requests Report', icon: HourglassIcon },
-  { key: 'CUSTOM', label: 'Custom Report', icon: EditIcon },
 ];
 
 // Each shortcut runs the same export flow as the main "Export Report"

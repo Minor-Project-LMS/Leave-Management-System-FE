@@ -3,7 +3,6 @@ import { BarChartIcon, BookIcon, HistoryIcon, UsersIcon } from '../icons/Icons';
 import './HRQuickActions.css';
 
 const ACTIONS = [
-  { label: 'Generate Leave Report', icon: BarChartIcon, action: 'export', highlighted: true },
   { label: 'Manage Leave Policies', icon: BookIcon, path: '/hr/leave-policies' },
   { label: 'View Audit Trail', icon: HistoryIcon, path: '/hr/audit-trail' },
   { label: 'Manage Employees', icon: UsersIcon, path: '/hr/employees' },

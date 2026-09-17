@@ -137,38 +137,27 @@ const HRReportsAnalytics = () => {
     }
 
     apiService
-      .exportReport({ reportType: type, format: 'xlsx', dateFrom, dateTo, departmentId: departmentId || undefined })
+      .exportReport({ reportType: type, format: 'csv', dateFrom, dateTo, departmentId: departmentId || undefined })
       .then((res) => {
-        const jobId = res?.jobId ?? res?.data?.jobId;
-        if (!jobId) throw new Error('Export did not return a job id.');
+        // The export now happens synchronously on the backend and comes
+        // back ready immediately (as a data: URL) — no more job polling.
+        const downloadUrl = res?.downloadUrl ?? res?.data?.downloadUrl;
+        const filename = res?.filename ?? res?.data?.filename ?? 'report.csv';
 
-        let attempts = 0;
-        pollRef.current = setInterval(async () => {
-          attempts += 1;
-          try {
-            const statusRes = await apiService.getReportExportStatus(jobId);
-            const status = statusRes?.status ?? statusRes?.data?.status;
-            const downloadUrl = statusRes?.downloadUrl ?? statusRes?.data?.downloadUrl;
+        if (!downloadUrl) throw new Error('Export did not return a file.');
 
-            if (status === 'READY' && downloadUrl) {
-              clearInterval(pollRef.current);
-              setExportingType(null);
-              window.open(downloadUrl, '_blank');
-            } else if (status === 'FAILED' || attempts > 15) {
-              clearInterval(pollRef.current);
-              setExportingType(null);
-              setError('Report export failed or timed out.');
-            }
-          } catch {
-            clearInterval(pollRef.current);
-            setExportingType(null);
-            setError('Report export failed.');
-          }
-        }, 2000);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setExportingType(null);
       })
       .catch((err) => {
         setExportingType(null);
-        setError(getErrorMessage(err, 'Failed to start report export.'));
+        setError(getErrorMessage(err, 'Failed to export report.'));
       });
   };
 
@@ -206,7 +195,7 @@ const HRReportsAnalytics = () => {
         departments={departments}
         location={location}
         onLocationChange={setLocation}
-        onExport={() => runExport(reportType === 'All' ? 'LEAVE_SUMMARY' : reportType.toUpperCase().replace(/\s+/g, '_'))}
+        onExport={() => runExport('ALL')}
         exporting={!!exportingType}
       />
 

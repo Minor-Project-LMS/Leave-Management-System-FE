@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import StatusBadge from '../dashboard/StatusBadge';
 import { getAvatarColor } from '../../utils/avatarColor';
 import './PendingApprovalsWidget.css';
@@ -6,14 +6,23 @@ import './PendingApprovalsWidget.css';
 const getInitials = (name = '') =>
   name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
-const PendingApprovalsWidget = ({ approvals = [] }) => {
+const PendingApprovalsWidget = ({ approvals = [], isHR = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Auto-detect if user is on an HR route if prop isn't passed explicitly
+  const isHRPortal = isHR || location.pathname.startsWith('/hr');
+
+  // Dynamic configuration based on HR vs Manager context
+  const title = isHRPortal ? 'Delegation Pending Approvals ' : 'Pending Approvals';
+  const ctaText = isHRPortal ? 'Go to Delegation' : 'Go to Approval Inbox';
+  const targetPath = isHRPortal ? '/hr/delegation' : '/manager/approval-inbox';
 
   return (
     <div className="pending-approvals">
       <div className="widget-header">
-        <h3>Pending Approvals</h3>
-        <button className="widget-view-all" onClick={() => navigate('/manager/approval-inbox')}>
+        <h3>{title}</h3>
+        <button className="widget-view-all" onClick={() => navigate(targetPath)}>
           View All
         </button>
       </div>
@@ -26,17 +35,17 @@ const PendingApprovalsWidget = ({ approvals = [] }) => {
             const color = getAvatarColor(req.name);
             return (
               <li key={req.id} className="pending-approvals-row">
-                <div 
+                <div
                   className="pending-approvals-avatar"
-                  style={{ 
-                    background: req.avatarUrl ? 'transparent' : color.bg, 
-                    color: req.avatarUrl ? 'transparent' : color.fg 
+                  style={{
+                    background: req.avatarUrl ? 'transparent' : color.bg,
+                    color: req.avatarUrl ? 'transparent' : color.fg
                   }}
                 >
                   {req.avatarUrl ? (
-                    <img 
-                      src={req.avatarUrl} 
-                      alt={req.name} 
+                    <img
+                      src={req.avatarUrl}
+                      alt={req.name}
                       className="pending-approvals-avatar-image"
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -62,8 +71,8 @@ const PendingApprovalsWidget = ({ approvals = [] }) => {
         </ul>
       )}
 
-      <button className="pending-approvals-cta" onClick={() => navigate('/manager/approval-inbox')}>
-        Go to Approval Inbox
+      <button className="pending-approvals-cta" onClick={() => navigate(targetPath)}>
+        {ctaText}
       </button>
     </div>
   );
