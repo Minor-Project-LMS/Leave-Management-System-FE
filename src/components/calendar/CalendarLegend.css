@@ -1,0 +1,38 @@
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.9rem 0;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.calendar-legend-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.legend-dot-blue { background: #dbeafe; color: #1d4ed8; }
+.legend-dot-green { background: #d1fae5; color: #047857; }
+.legend-dot-amber { background: #fef3c7; color: #b45309; }
+.legend-dot-purple { background: #ede9fe; color: #7c3aed; }
+.legend-dot-gray { background: var(--bg-light); color: var(--text-light); width: 20px; min-width: 20px; }
+.legend-dot-red { background: #fee2e2; color: #b91c1c; width: 20px; min-width: 20px; }

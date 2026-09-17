@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { HR_PORTAL } from '../config/navConfig';
 import { useRoleRedirect } from '../hooks/useRoleRedirect';
 import { env } from '../config/env';
+import { formatToday } from '../utils/date';
 import {
   mockHRSummary,
   mockHRLeaveTrend,
@@ -175,6 +176,7 @@ const HRDashboard = () => {
       portalLabel={HR_PORTAL.portalLabel}
       navItems={HR_PORTAL.navItems}
       searchPlaceholder={HR_PORTAL.searchPlaceholder}
+      dateLabel={formatToday()}
       badgeCounts={{ notifications: summary?.pendingRequests || 0 }}
       user={user}
       notificationCount={summary?.pendingRequests || 0}

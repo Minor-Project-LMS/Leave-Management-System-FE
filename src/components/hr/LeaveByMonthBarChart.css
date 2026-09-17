@@ -1,0 +1,65 @@
+.month-bar-chart {
+  position: relative;
+  width: 100%;
+}
+
+.month-bar-legend {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.month-bar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.month-bar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--primary-blue);
+}
+
+.month-bar-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.month-bar-grid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.month-bar-rect {
+  fill: var(--primary-blue);
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.month-bar-rect.active {
+  opacity: 1;
+}
+
+.month-bar-axis-label {
+  font-size: 9px;
+  fill: var(--text-light);
+}
+
+.month-bar-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}

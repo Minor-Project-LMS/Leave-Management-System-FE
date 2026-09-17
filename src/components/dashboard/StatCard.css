@@ -36,6 +36,11 @@
   color: #7c3aed;
 }
 
+.stat-card-icon.icon-red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .stat-card-body {
   display: flex;
   flex-direction: column;

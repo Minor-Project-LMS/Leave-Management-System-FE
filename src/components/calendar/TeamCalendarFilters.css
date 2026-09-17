@@ -1,0 +1,43 @@
+.team-calendar-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.team-calendar-filter-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.team-calendar-filter-field select {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-white);
+  appearance: auto;
+}
+
+.team-calendar-filter-field select:focus {
+  border-color: var(--border-focus);
+}
+
+.team-calendar-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.team-calendar-filter-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-blue);
+  cursor: pointer;
+}
