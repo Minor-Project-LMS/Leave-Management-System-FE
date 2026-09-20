@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import { 
-  BellIcon, 
-  FilterIcon, 
-  CheckCircleIcon, 
-  ClockIcon, 
-  CalendarIcon, 
+import {
+  BellIcon,
+  FilterIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CalendarIcon,
   AlertCircleIcon,
   InfoIcon,
   FileTextIcon,
@@ -263,9 +263,9 @@ const Notifications = () => {
 
       // Update active list state locally
       setNotifications(prev =>
-        prev.map(notif =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif
-        )
+          prev.map(notif =>
+              notif.id === notificationId ? { ...notif, isRead: true } : notif
+          )
       );
 
       // Re-sync unread & tab counts
@@ -303,246 +303,242 @@ const Notifications = () => {
 
   if (loading && notifications.length === 0) {
     return (
-      <div className="dashboard-loading">
-        <div className="dashboard-loading-spinner" />
-        <p>Loading notifications...</p>
-      </div>
+        <div className="dashboard-loading">
+          <div className="dashboard-loading-spinner" />
+          <p>Loading notifications...</p>
+        </div>
     );
   }
 
   return (
-    <DashboardLayout
-      title="Notifications"
-      breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Notifications' }]}
-      portalLabel={EMPLOYEE_PORTAL.portalLabel}
-      navItems={EMPLOYEE_PORTAL.navItems}
-      searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
-      dateLabel={formatToday()}
-      badgeCounts={{ notifications: unreadCount }}
-      user={user}
-      notificationCount={unreadCount}
-      onLogout={handleLogout}
-    >
-      {error && <div className="dashboard-error-banner">{error}</div>}
+      <DashboardLayout
+          title="Notifications"
+          breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Notifications' }]}
+          portalLabel={EMPLOYEE_PORTAL.portalLabel}
+          navItems={EMPLOYEE_PORTAL.navItems}
+          searchPlaceholder={EMPLOYEE_PORTAL.searchPlaceholder}
+          dateLabel={formatToday()}
+          badgeCounts={{ notifications: unreadCount }}
+          user={user}
+          notificationCount={unreadCount}
+          onLogout={handleLogout}
+      >
+        {error && <div className="dashboard-error-banner">{error}</div>}
 
-      <div className="notifications-container">
-        <div className="notifications-main">
-          <div className="notifications-header-bar">
-            <div className="notifications-tabs">
-              {TABS.map(tab => (
-                <button
-                  key={tab.value}
-                  className={`notifications-tab ${activeTab === tab.value ? 'active' : ''}`}
-                  onClick={() => handleTabChange(tab.value)}
-                >
-                  {tab.label}
-                  <span className="tab-count">({tabCounts[tab.value] ?? 0})</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="notifications-actions">
-              <button className="btn-filter" onClick={() => setShowFilterModal(true)}>
-                <FilterIcon width={16} height={16} />
-                Filter
-              </button>
-              <button
-                className="btn-mark-all-read"
-                onClick={handleMarkAllAsRead}
-                disabled={!notifications.some(n => !n.isRead) && unreadCount === 0}
-              >
-                Mark all as read
-              </button>
-            </div>
-          </div>
-
-          <div className="notifications-list">
-            {notifications.length === 0 ? (
-              <div className="notifications-empty">
-                <BellIcon width={48} height={48} />
-                <p>No notifications found</p>
+        <div className="notifications-container">
+          <div className="notifications-main">
+            <div className="notifications-header-bar">
+              <div className="notifications-tabs">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.value}
+                        className={`notifications-tab ${activeTab === tab.value ? 'active' : ''}`}
+                        onClick={() => handleTabChange(tab.value)}
+                    >
+                      {tab.label}
+                      <span className="tab-count">({tabCounts[tab.value] ?? 0})</span>
+                    </button>
+                ))}
               </div>
-            ) : (
-              notifications.map(notification => {
-                const { icon: Icon, color, bgColor } = getNotificationIcon(notification.category, notification.title);
-                const { top, bottom } = formatNotificationTime(notification.createdAt);
 
-                return (
-                  <div
-                    key={notification.id}
-                    className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className="notification-icon" style={{ backgroundColor: bgColor, color }}>
-                      <Icon width={22} height={22} />
-                    </div>
+              <div className="notifications-actions">
+                <button className="btn-filter" onClick={() => setShowFilterModal(true)}>
+                  <FilterIcon width={16} height={16} />
+                  Filter
+                </button>
+                <button
+                    className="btn-mark-all-read"
+                    onClick={handleMarkAllAsRead}
+                    disabled={!notifications.some(n => !n.isRead) && unreadCount === 0}
+                >
+                  Mark all as read
+                </button>
+              </div>
+            </div>
 
-                    <div className="notification-content">
-                      <h4 className="notification-title">{notification.title}</h4>
-                      <p className="notification-description">{notification.description}</p>
-                    </div>
-
-                    <div className="notification-right">
-                      <div className="notification-time-block">
-                        <span className="time-top">{top}</span>
-                        <span className="time-bottom">{bottom}</span>
-                      </div>
-                      {!notification.isRead && <span className="notification-unread-dot" />}
-                    </div>
+            <div className="notifications-list">
+              {notifications.length === 0 ? (
+                  <div className="notifications-empty">
+                    <BellIcon width={48} height={48} />
+                    <p>No notifications found</p>
                   </div>
-                );
-              })
+              ) : (
+                  notifications.map(notification => {
+                    const { icon: Icon, color, bgColor } = getNotificationIcon(notification.category, notification.title);
+                    const { top, bottom } = formatNotificationTime(notification.createdAt);
+
+                    return (
+                        <div
+                            key={notification.id}
+                            className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
+                            onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="notification-icon" style={{ backgroundColor: bgColor, color }}>
+                            <Icon width={22} height={22} />
+                          </div>
+
+                          <div className="notification-content">
+                            <h4 className="notification-title">{notification.title}</h4>
+                            <p className="notification-description">{notification.description}</p>
+                          </div>
+
+                          <div className="notification-right">
+                            <div className="notification-time-block">
+                              <span className="time-top">{top}</span>
+                              <span className="time-bottom">{bottom}</span>
+                            </div>
+                            {!notification.isRead && <span className="notification-unread-dot" />}
+                          </div>
+                        </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {totalNotifications > 0 && (
+                <div className="notifications-pagination">
+                  <div className="pagination-info">
+                    Showing {showingFrom} to {showingTo} of {totalNotifications} notifications
+                  </div>
+                  <div className="pagination-controls">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                            key={page}
+                            className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                            onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                    ))}
+                    <button
+                        className="pagination-btn"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                      <ChevronRightIcon width={16} height={16} />
+                    </button>
+                  </div>
+                </div>
             )}
           </div>
 
-          {totalNotifications > 0 && (
-            <div className="notifications-pagination">
-              <div className="pagination-info">
-                Showing {showingFrom} to {showingTo} of {totalNotifications} notifications
+          <div className="notifications-sidebar">
+            <div className="preferences-panel">
+              <div className="preferences-header">
+                <h3>Notification Preferences</h3>
+                <SettingsIcon width={18} height={18} />
               </div>
-              <div className="pagination-controls">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </button>
+              <p className="preferences-description">Choose what notifications you want to receive.</p>
+
+              <div className="preferences-list">
+                {Object.entries(preferences).map(([key, value]) => (
+                    <div key={key} className="preference-item">
+                  <span className="preference-label">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </span>
+                      <button
+                          className={`preference-toggle ${value ? 'on' : 'off'}`}
+                          onClick={() => handlePreferenceToggle(key)}
+                          disabled={updatingPreferences}
+                      >
+                        <span className="toggle-slider" />
+                      </button>
+                    </div>
                 ))}
-                <button
-                  className="pagination-btn"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
+              </div>
+            </div>
+
+            <div className="quick-actions-panel">
+              <h3>Quick Actions</h3>
+              <div className="quick-actions-list">
+                <button className="quick-action-item" onClick={() => navigate('/apply-leave')}>
+                  <div className="quick-action-icon green">
+                    <FileTextIcon width={18} height={18} />
+                  </div>
+                  <span>Apply Leave</span>
+                  <ChevronRightIcon width={16} height={16} />
+                </button>
+
+                <button className="quick-action-item" onClick={() => navigate('/my-requests')}>
+                  <div className="quick-action-icon blue">
+                    <FileTextIcon width={18} height={18} />
+                  </div>
+                  <span>My Requests</span>
+                  <ChevronRightIcon width={16} height={16} />
+                </button>
+
+                <button className="quick-action-item" onClick={() => navigate('/leave-ledger')}>
+                  <div className="quick-action-icon yellow">
+                    <FileTextIcon width={18} height={18} />
+                  </div>
+                  <span>Leave Ledger</span>
+                  <ChevronRightIcon width={16} height={16} />
+                </button>
+
+                <button className="quick-action-item" onClick={() => navigate('/holiday-calendar')}>
+                  <div className="quick-action-icon purple">
+                    <CalendarIcon width={18} height={18} />
+                  </div>
+                  <span>Holiday Calendar</span>
                   <ChevronRightIcon width={16} height={16} />
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="notifications-sidebar">
-          <div className="preferences-panel">
-            <div className="preferences-header">
-              <h3>Notification Preferences</h3>
-              <SettingsIcon width={18} height={18} />
-            </div>
-            <p className="preferences-description">Choose what notifications you want to receive.</p>
-
-            <div className="preferences-list">
-              {Object.entries(preferences).map(([key, value]) => (
-                <div key={key} className="preference-item">
-                  <span className="preference-label">
-                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                  </span>
-                  <button
-                    className={`preference-toggle ${value ? 'on' : 'off'}`}
-                    onClick={() => handlePreferenceToggle(key)}
-                    disabled={updatingPreferences}
-                  >
-                    <span className="toggle-slider" />
+        {showFilterModal && (
+            <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3>Filter Notifications</h3>
+                  <button className="modal-close" onClick={() => setShowFilterModal(false)}>
+                    <XIcon width={20} height={20} />
                   </button>
                 </div>
-              ))}
-            </div>
-
-            <button className="btn-manage-preferences">
-              Manage Preferences <ChevronRightIcon width={14} height={14} />
-            </button>
-          </div>
-
-          <div className="quick-actions-panel">
-            <h3>Quick Actions</h3>
-            <div className="quick-actions-list">
-              <button className="quick-action-item" onClick={() => navigate('/apply-leave')}>
-                <div className="quick-action-icon green">
-                  <FileTextIcon width={18} height={18} />
+                <div className="modal-body">
+                  <div className="filter-group">
+                    <label>Category</label>
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                    >
+                      <option value="all">All Categories</option>
+                      <option value="REQUESTS">Requests</option>
+                      <option value="APPROVALS">Approvals</option>
+                      <option value="SYSTEM">System</option>
+                    </select>
+                  </div>
+                  <div className="filter-group">
+                    <label>From Date</label>
+                    <input
+                        type="date"
+                        value={filterDateRange.from}
+                        onChange={(e) => setFilterDateRange(prev => ({ ...prev, from: e.target.value }))}
+                    />
+                  </div>
+                  <div className="filter-group">
+                    <label>To Date</label>
+                    <input
+                        type="date"
+                        value={filterDateRange.to}
+                        onChange={(e) => setFilterDateRange(prev => ({ ...prev, to: e.target.value }))}
+                        min={filterDateRange.from || undefined}
+                    />
+                  </div>
                 </div>
-                <span>Apply Leave</span>
-                <ChevronRightIcon width={16} height={16} />
-              </button>
-
-              <button className="quick-action-item" onClick={() => navigate('/my-requests')}>
-                <div className="quick-action-icon blue">
-                  <FileTextIcon width={18} height={18} />
+                <div className="modal-footer">
+                  <button className="btn-secondary" onClick={() => setShowFilterModal(false)}>
+                    Reset
+                  </button>
+                  <button className="btn-primary" onClick={() => setShowFilterModal(false)}>
+                    Apply Filters
+                  </button>
                 </div>
-                <span>My Requests</span>
-                <ChevronRightIcon width={16} height={16} />
-              </button>
-
-              <button className="quick-action-item" onClick={() => navigate('/leave-ledger')}>
-                <div className="quick-action-icon yellow">
-                  <FileTextIcon width={18} height={18} />
-                </div>
-                <span>Leave Ledger</span>
-                <ChevronRightIcon width={16} height={16} />
-              </button>
-
-              <button className="quick-action-item" onClick={() => navigate('/holiday-calendar')}>
-                <div className="quick-action-icon purple">
-                  <CalendarIcon width={18} height={18} />
-                </div>
-                <span>Holiday Calendar</span>
-                <ChevronRightIcon width={16} height={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showFilterModal && (
-        <div className="modal-overlay" onClick={() => setShowFilterModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Filter Notifications</h3>
-              <button className="modal-close" onClick={() => setShowFilterModal(false)}>
-                <XIcon width={20} height={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="filter-group">
-                <label>Category</label>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  <option value="REQUESTS">Requests</option>
-                  <option value="APPROVALS">Approvals</option>
-                  <option value="SYSTEM">System</option>
-                </select>
-              </div>
-              <div className="filter-group">
-                <label>From Date</label>
-                <input
-                  type="date"
-                  value={filterDateRange.from}
-                  onChange={(e) => setFilterDateRange(prev => ({ ...prev, from: e.target.value }))}
-                />
-              </div>
-              <div className="filter-group">
-                <label>To Date</label>
-                <input
-                  type="date"
-                  value={filterDateRange.to}
-                  onChange={(e) => setFilterDateRange(prev => ({ ...prev, to: e.target.value }))}
-                  min={filterDateRange.from || undefined}
-                />
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowFilterModal(false)}>
-                Reset
-              </button>
-              <button className="btn-primary" onClick={() => setShowFilterModal(false)}>
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </DashboardLayout>
+        )}
+      </DashboardLayout>
   );
 };
 

@@ -73,9 +73,9 @@ class ApiService {
         // text instead.
         const looksLikeHtml = contentType.includes('text/html') || /^\s*<(!doctype|html)/i.test(text || '');
         data =
-          !text || looksLikeHtml
-            ? { message: response.statusText || `Request failed (${response.status})` }
-            : { message: text };
+            !text || looksLikeHtml
+                ? { message: response.statusText || `Request failed (${response.status})` }
+                : { message: text };
       }
 
       if (!response.ok) {
@@ -85,12 +85,12 @@ class ApiService {
           const refreshed = await this.tryRefresh();
           if (refreshed) {
             return this.request(
-              endpoint,
-              {
-                ...options,
-                headers: { ...options.headers, ...this.authHeaders() },
-              },
-              { skipAuthRetry: true }
+                endpoint,
+                {
+                  ...options,
+                  headers: { ...options.headers, ...this.authHeaders() },
+                },
+                { skipAuthRetry: true }
             );
           }
         }
@@ -98,9 +98,9 @@ class ApiService {
         // Safely extract string message from standard or nested error response shapes
         const rawMsg = data?.error?.message || data?.message || data?.error || data?.detail;
         const errorMessage =
-          typeof rawMsg === 'object'
-            ? rawMsg?.message || JSON.stringify(rawMsg)
-            : rawMsg || 'Invalid email or password';
+            typeof rawMsg === 'object'
+                ? rawMsg?.message || JSON.stringify(rawMsg)
+                : rawMsg || 'Invalid email or password';
 
         throw new Error(errorMessage);
       }
@@ -277,48 +277,54 @@ class ApiService {
   }
 
   async getRecentActivity(limit = 5) {
-    return this.request(`/audit-log/recent?limit=${limit}`, {
+    const response = await this.request(`/notifications?tab=all&page=1&limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+    const items = response?.data ?? (Array.isArray(response) ? response : []);
+    return items.map(item => ({
+      id: item.id,
+      text: item.description || item.title,
+      timestamp: item.createdAt,
+    }));
+  }
+
+  async getAuditLogs(params = {}) {
+    const { page = 1, limit = 10, dateFrom, dateTo, action, entityType, q, userId } = params;
+    const queryParams = new URLSearchParams({ page, limit });
+    if (dateFrom) queryParams.set('dateFrom', dateFrom);
+    if (dateTo) queryParams.set('dateTo', dateTo);
+    if (action) queryParams.set('action', action);
+    if (entityType) queryParams.set('entityType', entityType);
+    if (q) queryParams.set('q', q);
+    if (userId) queryParams.set('userId', userId);
+
+    return this.request(`/audit-log?${queryParams.toString()}`, {
       method: 'GET',
       headers: this.authHeaders(),
     });
   }
 
-async getAuditLogs(params = {}) {
-  const { page = 1, limit = 10, dateFrom, dateTo, action, entityType, q, userId } = params;
-  const queryParams = new URLSearchParams({ page, limit });
-  if (dateFrom) queryParams.set('dateFrom', dateFrom);
-  if (dateTo) queryParams.set('dateTo', dateTo);
-  if (action) queryParams.set('action', action);
-  if (entityType) queryParams.set('entityType', entityType);
-  if (q) queryParams.set('q', q);
-  if (userId) queryParams.set('userId', userId);
+  async getAuditLogDetail(auditId) {
+    return this.request(`/audit-log/${auditId}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
 
-  return this.request(`/audit-log?${queryParams.toString()}`, {
-    method: 'GET',
-    headers: this.authHeaders(),
-  });
-}
+  async exportAuditLogs(params = {}) {
+    const { dateFrom, dateTo, action, entityType, format = 'csv' } = params;
+    const queryParams = new URLSearchParams({ format });
+    if (dateFrom) queryParams.set('dateFrom', dateFrom);
+    if (dateTo) queryParams.set('dateTo', dateTo);
+    if (action) queryParams.set('action', action);
+    if (entityType) queryParams.set('entityType', entityType);
 
-async getAuditLogDetail(auditId) {
-  return this.request(`/audit-log/${auditId}`, {
-    method: 'GET',
-    headers: this.authHeaders(),
-  });
-}
-
-async exportAuditLogs(params = {}) {
-  const { dateFrom, dateTo, action, entityType, format = 'csv' } = params;
-  const queryParams = new URLSearchParams({ format });
-  if (dateFrom) queryParams.set('dateFrom', dateFrom);
-  if (dateTo) queryParams.set('dateTo', dateTo);
-  if (action) queryParams.set('action', action);
-  if (entityType) queryParams.set('entityType', entityType);
-
-  return this.request(`/audit-log/export?${queryParams.toString()}`, {
-    method: 'GET',
-    headers: this.authHeaders(),
-  });
-}
+    return this.request(`/audit-log/export?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
 
   // Manager dashboard endpoints (/api/manager/...)
   async getManagerSummary() {
