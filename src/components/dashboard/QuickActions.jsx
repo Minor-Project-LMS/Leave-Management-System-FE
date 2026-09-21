@@ -4,7 +4,6 @@ import './QuickActions.css';
 
 const ACTIONS = [
   { label: 'Apply Leave', sublabel: 'Request time off', icon: PlusCircleIcon, path: '/apply-leave', tone: 'blue' },
-  { label: 'Apply Comp-Off', sublabel: 'Request comp-off', icon: CoffeeIcon, path: '/comp-off', tone: 'green' },
   { label: 'My Requests', sublabel: 'Track your requests', icon: FileTextIcon, path: '/my-requests', tone: 'purple' },
   { label: 'Leave Ledger', sublabel: 'View leave balance', icon: BookIcon, path: '/leave-ledger', tone: 'amber' },
 ];
@@ -17,15 +16,15 @@ const QuickActions = () => {
       <div className="widget-header">
         <h3>Quick Actions</h3>
       </div>
-      <div className="quick-actions-grid">
+      <div className="dash-quick-actions-grid">
         {ACTIONS.map(({ label, sublabel, icon: Icon, path, tone }) => (
-          <button key={label} className={`quick-action-btn tone-${tone}`} onClick={() => navigate(path)}>
-            <span className="quick-action-icon">
+          <button key={label} className={`dash-quick-action-btn tone-${tone}`} onClick={() => navigate(path)}>
+            <span className="dash-quick-action-icon">
               <Icon />
             </span>
-            <span className="quick-action-text">
-              <span className="quick-action-label">{label}</span>
-              <span className="quick-action-sublabel">{sublabel}</span>
+            <span className="dash-quick-action-text">
+              <span className="dash-quick-action-label">{label}</span>
+              <span className="dash-quick-action-sublabel">{sublabel}</span>
             </span>
           </button>
         ))}

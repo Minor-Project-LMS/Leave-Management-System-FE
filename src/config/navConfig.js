@@ -13,11 +13,11 @@ import {
   BarChartIcon,
   SettingsIcon,
   HistoryIcon,
+  HelpCircleIcon,
 } from '../components/icons/Icons';
 
 export const EMPLOYEE_PORTAL = {
   portalLabel: 'EMPLOYEE PORTAL',
-  searchPlaceholder: 'Search anything...',
   navItems: [
     { label: 'Dashboard', path: '/dashboard', icon: GridIcon },
     { label: 'Apply Leave', path: '/apply-leave', icon: PlusCircleIcon },
@@ -25,34 +25,32 @@ export const EMPLOYEE_PORTAL = {
     { label: 'Leave Ledger', path: '/leave-ledger', icon: BookIcon },
     { label: 'Comp-Off', path: '/comp-off', icon: CoffeeIcon },
     { label: 'Holiday Calendar', path: '/holiday-calendar', icon: CalendarIcon },
-    { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications' },
+    { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications', helpIcon: HelpCircleIcon },
     { label: 'Profile', path: '/profile', icon: UserIcon },
   ],
 };
 
 export const MANAGER_PORTAL = {
   portalLabel: 'MANAGER PORTAL',
-  searchPlaceholder: 'Search employees, requests...',
   navItems: [
     { label: 'Manager Dashboard', path: '/manager/dashboard', icon: GridIcon },
     { label: 'Approval Inbox', path: '/manager/approval-inbox', icon: InboxIcon, badgeKey: 'approvals' },
     { label: 'Team Calendar', path: '/manager/team-calendar', icon: CalendarIcon },
     { label: 'Team Members', path: '/manager/team-members', icon: UsersIcon },
+    { label: 'Comp-Off Management', path: '/manager/comp-off', icon: CoffeeIcon },
     { label: 'Delegation', path: '/manager/delegation', icon: ClipboardListIcon },
-    { label: 'Reports & Analytics', path: '/manager/reports', icon: BarChartIcon },
-    { label: 'Settings', path: '/manager/settings', icon: SettingsIcon },
+    { label: 'Profile', path: '/manager/profile', icon: UserIcon },
   ],
 };
 
 export const HR_PORTAL = {
   portalLabel: 'HR PORTAL',
-  searchPlaceholder: 'Search employees, requests, reports...',
   navItems: [
     { label: 'Dashboard', path: '/hr/dashboard', icon: GridIcon },
     { label: 'Employee Management', path: '/hr/employees', icon: UsersIcon },
     { label: 'Leave Policies', path: '/hr/leave-policies', icon: BookIcon },
     { label: 'Leave Categories', path: '/hr/leave-categories', icon: ClipboardListIcon },
-    { label: 'Holiday Calendar', path: '/hr/holiday-calendar', icon: CalendarIcon },
+    { label: 'Delegation', path: '/hr/delegation', icon: InboxIcon },
     { label: 'Reports & Analytics', path: '/hr/reports', icon: BarChartIcon },
     { label: 'Audit Trail', path: '/hr/audit-trail', icon: HistoryIcon },
     { label: 'Notification Queue', path: '/hr/notification-queue', icon: BellIcon, badgeKey: 'notifications' },

@@ -1,0 +1,104 @@
+.audit-info-widget {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.audit-info-widget.loading {
+  opacity: 0.6;
+}
+
+.widget-header {
+  margin-bottom: 20px;
+}
+
+.widget-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.audit-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audit-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: background 0.15s;
+}
+
+.audit-info-item:hover {
+  background: #f1f5f9;
+}
+
+.audit-info-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #dbeafe;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.audit-info-details {
+  flex: 1;
+}
+
+.audit-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.audit-info-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.audit-info-value.enabled {
+  color: #16a34a;
+}
+
+.audit-info-value.disabled {
+  color: #ef4444;
+}
+
+/* Skeleton Loading */
+.audit-info-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audit-info-skeleton-item {
+  height: 60px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

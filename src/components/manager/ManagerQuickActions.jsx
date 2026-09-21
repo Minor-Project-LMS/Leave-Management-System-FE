@@ -6,7 +6,6 @@ const ACTIONS = [
   { label: 'Approval Inbox', icon: InboxIcon, path: '/manager/approval-inbox', tone: 'blue' },
   { label: 'Team Calendar', icon: CalendarIcon, path: '/manager/team-calendar', tone: 'green' },
   { label: 'Team Members', icon: UsersIcon, path: '/manager/team-members', tone: 'purple' },
-  { label: 'Generate Report', icon: BarChartIcon, path: '/manager/reports', tone: 'amber' },
 ];
 
 const ManagerQuickActions = () => {

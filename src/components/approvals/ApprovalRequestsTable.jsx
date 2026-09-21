@@ -1,6 +1,7 @@
 import StatusBadge from '../dashboard/StatusBadge';
 import LeaveTypeBadge from './LeaveTypeBadge';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
+import { getEmployeeName } from '../../utils/employee';
 import { CheckIcon, XIcon } from '../icons/Icons';
 import './ApprovalRequestsTable.css';
 
@@ -50,7 +51,8 @@ const ApprovalRequestsTable = ({
         </thead>
         <tbody>
           {requests.map((req) => {
-            const color = getAvatarColor(req.employeeName);
+            const employeeName = getEmployeeName(req);
+            const color = getAvatarColor(employeeName);
             const isPending = req.status === 'PENDING_L1' || req.status === 'PENDING_L2';
             const isSelected = selectedId === req.id;
 
@@ -64,12 +66,29 @@ const ApprovalRequestsTable = ({
                   <div className="approval-table-employee">
                     <span
                       className="approval-table-avatar"
-                      style={{ background: color.bg, color: color.fg }}
+                      style={{ 
+                        background: req.avatarUrl ? 'transparent' : color.bg, 
+                        color: req.avatarUrl ? 'transparent' : color.fg 
+                      }}
                     >
-                      {getInitials(req.employeeName)}
+                      {req.avatarUrl ? (
+                        <img 
+                          src={req.avatarUrl} 
+                          alt={employeeName} 
+                          className="approval-table-avatar-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.style.background = color.bg;
+                            e.target.parentElement.style.color = color.fg;
+                            e.target.parentElement.textContent = getInitials(employeeName);
+                          }}
+                        />
+                      ) : (
+                        getInitials(employeeName)
+                      )}
                     </span>
                     <div className="approval-table-employee-info">
-                      <span className="approval-table-name">{req.employeeName}</span>
+                      <span className="approval-table-name">{employeeName || '—'}</span>
                       <span className="approval-table-team">{req.departmentName}</span>
                     </div>
                   </div>
@@ -78,7 +97,25 @@ const ApprovalRequestsTable = ({
                   <LeaveTypeBadge categoryCode={req.categoryCode} categoryName={req.categoryName} />
                 </td>
                 <td className="approval-table-dates">{formatDateRange(req.startDate, req.endDate)}</td>
-                <td>{req.totalDays}</td>
+                <td>
+                  {req.totalDays}
+                  {req.lopDays > 0 && (
+                    <span
+                      title={`${req.lopDays} day(s) Loss of Pay`}
+                      style={{
+                        marginLeft: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: '#b45309',
+                        background: '#fef3c7',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                      }}
+                    >
+                      LOP
+                    </span>
+                  )}
+                </td>
                 <td className="approval-table-reason" title={req.reason}>
                   {req.reason}
                 </td>
