@@ -9,18 +9,46 @@ export const mockSummary = {
 };
 
 export const mockTrend = [
-  { month: 'Jan', days: 2 },
-  { month: 'Feb', days: 3 },
-  { month: 'Mar', days: 1 },
-  { month: 'Apr', days: 4 },
-  { month: 'May', days: 3 },
-  { month: 'Jun', days: 5 },
-  { month: 'Jul', days: 4 },
-  { month: 'Aug', days: 6 },
-  { month: 'Sep', days: 5 },
-  { month: 'Oct', days: 7 },
-  { month: 'Nov', days: 6 },
-  { month: 'Dec', days: 8 },
+  {
+    category: 'Casual Leave',
+    color: '#2563eb',
+    points: [
+      { month: 'Jan', days: 1 }, { month: 'Feb', days: 1 }, { month: 'Mar', days: 0 },
+      { month: 'Apr', days: 2 }, { month: 'May', days: 1 }, { month: 'Jun', days: 0 },
+      { month: 'Jul', days: 1 }, { month: 'Aug', days: 0 }, { month: 'Sep', days: 0 },
+      { month: 'Oct', days: 0 }, { month: 'Nov', days: 0 }, { month: 'Dec', days: 0 },
+    ],
+  },
+  {
+    category: 'Sick Leave',
+    color: '#16a34a',
+    points: [
+      { month: 'Jan', days: 0 }, { month: 'Feb', days: 1 }, { month: 'Mar', days: 1 },
+      { month: 'Apr', days: 0 }, { month: 'May', days: 1 }, { month: 'Jun', days: 0 },
+      { month: 'Jul', days: 0 }, { month: 'Aug', days: 0 }, { month: 'Sep', days: 0 },
+      { month: 'Oct', days: 0 }, { month: 'Nov', days: 0 }, { month: 'Dec', days: 0 },
+    ],
+  },
+  {
+    category: 'Earned Leave',
+    color: '#dc2626',
+    points: [
+      { month: 'Jan', days: 0 }, { month: 'Feb', days: 0 }, { month: 'Mar', days: 0 },
+      { month: 'Apr', days: 2 }, { month: 'May', days: 1 }, { month: 'Jun', days: 3 },
+      { month: 'Jul', days: 2 }, { month: 'Aug', days: 0 }, { month: 'Sep', days: 0 },
+      { month: 'Oct', days: 0 }, { month: 'Nov', days: 0 }, { month: 'Dec', days: 0 },
+    ],
+  },
+  {
+    category: 'Comp Off',
+    color: '#9333ea',
+    points: [
+      { month: 'Jan', days: 0 }, { month: 'Feb', days: 0 }, { month: 'Mar', days: 0 },
+      { month: 'Apr', days: 0 }, { month: 'May', days: 0 }, { month: 'Jun', days: 0 },
+      { month: 'Jul', days: 0 }, { month: 'Aug', days: 0 }, { month: 'Sep', days: 1 },
+      { month: 'Oct', days: 0 }, { month: 'Nov', days: 0 }, { month: 'Dec', days: 0 },
+    ],
+  },
 ];
 
 export const mockDistribution = [
@@ -1060,12 +1088,12 @@ export const mockRequestDetails = {
     sessionType: 'FULL_DAY',
     appliedOn: '2024-05-18T10:30:00Z',
     appliedOnFormatted: '18 May 2024 10:30 AM',
-    
+
     // Current approver
     approverName: 'Alex Johnson',
     approverRole: 'Team Lead',
     approverInitials: 'AJ',
-    
+
     // Employee details
     employee: {
       name: 'John Doe',
@@ -1075,14 +1103,14 @@ export const mockRequestDetails = {
       email: 'john.doe@company.com',
       phone: '+91 98765 43210',
     },
-    
+
     // Leave balance at time of request
     leaveBalance: {
       available: 12.5,
       used: 5.5,
       total: 18.0,
     },
-    
+
     // Approval timeline
     approvals: [
       {
@@ -1104,7 +1132,7 @@ export const mockRequestDetails = {
         comments: null,
       },
     ],
-    
+
     // Attachments
     attachments: [
       {
@@ -1122,7 +1150,7 @@ export const mockRequestDetails = {
         uploadedAt: '2024-05-18T10:32:00Z',
       },
     ],
-    
+
     // Comments
     comments: [
       {
@@ -1153,19 +1181,19 @@ export const mockRequestDetails = {
     appliedOnFormatted: '19 Apr 2024, 10:30 AM',
     updatedAt: '2024-04-22T15:45:00Z',
     updatedAtFormatted: '22 Apr 2024, 03:45 PM',
-    
+
     // Contact and handover details
     contactNumber: '+1 98196 43210',
     addressDuringLeave: '21, Talk Street, Bangalore, Karnataka - 560001',
     handoverTo: null,
     handoverToName: 'Available on phone',
     handoverNotes: null,
-    
+
     // Current approver
     approverName: 'Alex Johnson',
     approverRole: 'Team Lead',
     approverInitials: 'AJ',
-    
+
     // Employee details
     employee: {
       fullName: 'John Doe',
@@ -1177,7 +1205,7 @@ export const mockRequestDetails = {
       phone: '+1 98755 43210',
       managerName: 'Alex Johnson',
     },
-    
+
     // Leave balance at time of request - multiple leave types
     balanceAsOfRequestDate: [
       {
@@ -1221,7 +1249,7 @@ export const mockRequestDetails = {
         used: 4.0,
       },
     ],
-    
+
     // Approval timeline - matching the image exactly
     approvals: [
       {
@@ -1264,7 +1292,7 @@ export const mockRequestDetails = {
         comments: 'Latest request has been fully approved.',
       },
     ],
-    
+
     // Attachments
     attachments: [
       {
@@ -1275,7 +1303,7 @@ export const mockRequestDetails = {
         downloadUrl: '#',
       },
     ],
-    
+
     // Comments
     comments: [
       {
