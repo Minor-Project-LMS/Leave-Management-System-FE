@@ -10,8 +10,13 @@ const ACCRUAL_OPTIONS = [
   { value: 'QUARTERLY', label: 'Quarterly' },
 ];
 
+const NEW_CATEGORY_VALUE = '__add_new__';
+
 // editing: an existing LeavePolicy to prefill (omit for create mode).
-const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCancel, onSubmit, submitting }) => {
+// onCreateCategory(name): creates a new leave type and resolves with the
+// created category — lets HR add a custom leave type right from this
+// dropdown instead of needing to visit Leave Categories first.
+const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCancel, onSubmit, submitting, onCreateCategory }) => {
   const [form, setForm] = useState({
     policyName: editing?.policyName || '',
     policyCode: editing?.policyCode || '',
@@ -27,7 +32,40 @@ const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCa
   });
   const [error, setError] = useState('');
 
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleCategorySelect = (value) => {
+    if (value === NEW_CATEGORY_VALUE) {
+      setAddingCategory(true);
+      setNewCategoryName('');
+      return;
+    }
+    set('categoryId', value);
+  };
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return setError('Please enter a name for the new leave type.');
+    if (!onCreateCategory) return;
+
+    setError('');
+    setCreatingCategory(true);
+    try {
+      const created = await onCreateCategory(name);
+      const id = created?.id ?? created?.categoryId;
+      if (id != null) set('categoryId', id);
+      setAddingCategory(false);
+      setNewCategoryName('');
+    } catch (err) {
+      setError(err?.message || 'Failed to create leave type.');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (!form.policyName.trim()) return setError('Please enter a policy name.');
@@ -84,14 +122,43 @@ const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCa
           </div>
           <div className="form-field">
             <label>Leave Type</label>
-            <select value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-              <option value="">Select leave type</option>
-              {categories.map((c) => (
-                <option key={c.id || c.categoryId} value={c.id || c.categoryId}>
-                  {c.categoryName}
-                </option>
-              ))}
-            </select>
+            {!addingCategory ? (
+              <select value={form.categoryId} onChange={(e) => handleCategorySelect(e.target.value)}>
+                <option value="">Select leave type</option>
+                {categories.map((c) => (
+                  <option key={c.id || c.categoryId} value={c.id || c.categoryId}>
+                    {c.categoryName}
+                  </option>
+                ))}
+                {onCreateCategory && <option value={NEW_CATEGORY_VALUE}>+ Add New Leave Type...</option>}
+              </select>
+            ) : (
+              <div className="policy-new-category-row">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Sabbatical Leave"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  disabled={creatingCategory}
+                />
+                <button type="button" onClick={handleCreateCategory} disabled={creatingCategory}>
+                  {creatingCategory ? 'Adding...' : 'Add'}
+                </button>
+                <button
+                  type="button"
+                  className="policy-new-category-cancel"
+                  onClick={() => {
+                    setAddingCategory(false);
+                    setNewCategoryName('');
+                  }}
+                  disabled={creatingCategory}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
           <div className="form-field">
             <label>Department (optional)</label>

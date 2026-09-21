@@ -4,8 +4,6 @@ import './PolicyQuickActions.css';
 const PolicyQuickActions = ({ onCreate, onTemplates, onApprovalWorkflow, onHistory }) => {
   const ACTIONS = [
     { label: 'Create New Policy', icon: PlusCircleIcon, tone: 'blue', onClick: onCreate },
-    { label: 'Policy Templates', icon: FileTextIcon, tone: 'green', onClick: onTemplates },
-    { label: 'Policy Approval Workflow', icon: ListIcon, tone: 'purple', onClick: onApprovalWorkflow },
     { label: 'Policy History', icon: HistoryIcon, tone: 'amber', onClick: onHistory },
   ];
 

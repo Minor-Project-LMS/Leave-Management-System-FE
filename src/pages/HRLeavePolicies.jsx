@@ -7,6 +7,7 @@ import LeavePolicyFormModal from '../components/hr/LeavePolicyFormModal';
 import PolicyOverviewChart from '../components/hr/PolicyOverviewChart';
 import PolicyQuickActions from '../components/hr/PolicyQuickActions';
 import PolicyNotesCard from '../components/hr/PolicyNotesCard';
+import PolicyHistoryModal from '../components/hr/PolicyHistoryModal';
 import { ClipboardListIcon, CheckCircleIcon, EditIcon, ArchiveIcon, SearchIcon, FilterIcon, PlusIcon } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +80,11 @@ const HRLeavePolicies = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyPolicy, setHistoryPolicy] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
 
   useEffect(() => {
     if (USE_MOCK) {
@@ -195,6 +201,40 @@ const HRLeavePolicies = () => {
       setSubmitting(false);
     }
   };
+
+  const openHistory = (policy = null) => {
+    setHistoryPolicy(policy);
+    setHistoryError('');
+    setHistoryOpen(true);
+  };
+
+  const loadPolicyHistory = useCallback(async (policyId) => {
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      if (USE_MOCK) {
+        const policy = allPolicies.find((item) => String(item.id) === String(policyId));
+        return policy
+          ? [{
+              id: `mock-${policy.id}`,
+              version: 1,
+              action: 'CREATED',
+              changedAt: policy.createdAt ?? policy.effectiveFrom ?? new Date().toISOString(),
+              changedByName: 'HR Admin',
+              reason: 'Policy created',
+              afterState: policy,
+            }]
+          : [];
+      }
+      return await apiService.getLeavePolicyHistory(policyId);
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to load policy history.');
+      setHistoryError(message);
+      throw err;
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [allPolicies]);
 
   const handleToggleStatus = async (policy, nextStatus) => {
     const verb = nextStatus === 'ARCHIVED' ? 'archive' : 'activate';
@@ -335,7 +375,7 @@ const HRLeavePolicies = () => {
               totalCount={filtered.length}
               onPageChange={setPage}
               onEdit={openEditModal}
-              onViewHistory={() => {}}
+              onViewHistory={openHistory}
               onToggleStatus={handleToggleStatus}
             />
           )}
@@ -354,7 +394,7 @@ const HRLeavePolicies = () => {
               onCreate={openCreateModal}
               onTemplates={() => {}}
               onApprovalWorkflow={() => {}}
-              onHistory={() => {}}
+              onHistory={() => openHistory(allPolicies[0] ?? null)}
             />
           </div>
 
@@ -363,6 +403,20 @@ const HRLeavePolicies = () => {
           </div>
         </div>
       </div>
+
+      <PolicyHistoryModal
+        isOpen={historyOpen}
+        onClose={() => {
+          setHistoryOpen(false);
+          setHistoryPolicy(null);
+          setHistoryError('');
+        }}
+        policies={allPolicies}
+        selectedPolicy={historyPolicy}
+        onLoadHistory={loadPolicyHistory}
+        loading={historyLoading}
+        error={historyError}
+      />
 
       {modalOpen && (
         <LeavePolicyFormModal
