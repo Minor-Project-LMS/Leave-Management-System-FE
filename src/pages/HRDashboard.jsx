@@ -26,6 +26,78 @@ import './HRDashboard.css';
 
 const USE_MOCK = env.useMockData;
 
+const buildSixMonthLeaveTrend = (requests = []) => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+      month: date.toLocaleString('en-US', { month: 'short' }),
+      requests: 0,
+      approved: 0,
+    };
+  });
+
+  const monthMap = new Map(months.map((month) => [month.key, month]));
+
+  requests.forEach((request) => {
+    const requestDate = request.appliedAt || request.createdAt || request.startDate;
+    if (!requestDate) return;
+
+    const date = new Date(requestDate);
+    if (Number.isNaN(date.getTime())) return;
+
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const month = monthMap.get(key);
+    if (!month) return;
+
+    const status = String(request.status || '').toUpperCase();
+
+    // Drafts are not submitted requests. Other submitted states count as
+    // requests; APPROVED is also counted in the approved series.
+    if (status !== 'DRAFT') {
+      month.requests += 1;
+    }
+    if (status === 'APPROVED') {
+      month.approved += 1;
+    }
+  });
+
+  return months.map(({ key, ...month }) => month);
+};
+
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const fetchLeaveRequestsForTrend = async () => {
+  const today = new Date();
+  const from = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+  const allRequests = [];
+  const limit = 100;
+
+  for (let page = 1; page <= 20; page += 1) {
+    const response = await apiService.getLeaveRequests({
+      fromDate: toLocalDateString(from),
+      toDate: toLocalDateString(today),
+      page,
+      limit,
+      sort: 'recent',
+    });
+
+    const pageData = response?.data ?? response ?? [];
+    const rows = Array.isArray(pageData) ? pageData : Array.isArray(pageData?.content) ? pageData.content : [];
+    allRequests.push(...rows);
+
+    if (rows.length < limit) break;
+  }
+
+  return allRequests;
+};
+
 const HRDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -58,10 +130,10 @@ const HRDashboard = () => {
     }
 
     try {
-      const [hrSummaryRes, reportsSummaryRes, trendRes, deptRes, approvalsRes] = await Promise.all([
+      const [hrSummaryRes, reportsSummaryRes, leaveRequests, deptRes, approvalsRes] = await Promise.all([
         apiService.getHRSummary(),
         apiService.getReportsSummary(),
-        apiService.getHRLeaveTrend(),
+        fetchLeaveRequestsForTrend(),
         apiService.getDepartmentSummary(),
         apiService.getHRPendingApprovals(5),
       ]);
@@ -77,8 +149,7 @@ const HRDashboard = () => {
         leaveUtilizationPct: reportsSummary.approvalRate ?? null,
       });
 
-      const trendData = trendRes?.data ?? trendRes ?? [];
-      setTrend(trendData);
+      setTrend(buildSixMonthLeaveTrend(leaveRequests));
 
       const deptData = (deptRes?.data ?? deptRes ?? []).map((d) => ({
         departmentName: d.departmentName,

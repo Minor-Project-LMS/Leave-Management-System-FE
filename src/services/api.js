@@ -656,6 +656,17 @@ class ApiService {
     });
   }
 
+  // HR: create a custom leave type (used by the "+ Add New Leave Type..."
+  // option in the leave policy form). POST /leave-categories → 201 + the
+  // created LeaveCategoryDto (id, categoryName, ...).
+  async createLeaveCategory(payload) {
+    return this.request('/leave-categories', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
   // NOTE: renamed from getLeavePolicies(categoryId) — it was a duplicate of
   // the HR-02 getLeavePolicies({...}) method above. Two methods with the
   // same name in one class silently collide (the second definition wins),

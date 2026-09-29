@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
 import LeaveTrendChart from '../components/dashboard/LeaveTrendChart';
 import LeaveDistributionChart from '../components/dashboard/LeaveDistributionChart';
+import LeaveBalanceClusterChart from '../components/dashboard/LeaveBalanceClusterChart';
 import HolidayCalendarWidget from '../components/dashboard/HolidayCalendarWidget';
 import RecentRequestsTable from '../components/dashboard/RecentRequestsTable';
 import QuickActions from '../components/dashboard/QuickActions';
@@ -22,6 +23,7 @@ import {
   mockRecentRequests,
   mockHolidays,
   mockActivity,
+  mockLeaveLedger,
 } from '../utils/mockData';
 import './Dashboard.css';
 
@@ -42,6 +44,7 @@ const Dashboard = () => {
   const [requests, setRequests] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [activity, setActivity] = useState([]);
+  const [ledger, setLedger] = useState([]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -54,12 +57,13 @@ const Dashboard = () => {
       setRequests(mockRecentRequests);
       setHolidays(mockHolidays);
       setActivity(mockActivity);
+      setLedger(mockLeaveLedger);
       setLoading(false);
       return;
     }
 
     try {
-      const [summaryRes, trendRes, distributionRes, requestsRes, holidaysRes, activityRes] =
+      const [summaryRes, trendRes, distributionRes, requestsRes, holidaysRes, activityRes, ledgerRes] =
         await Promise.all([
           apiService.getDashboardSummary(),
           apiService.getLeaveTrend(),
@@ -67,6 +71,9 @@ const Dashboard = () => {
           apiService.getRecentRequests(5),
           apiService.getUpcomingHolidays(),
           apiService.getRecentActivity(5),
+          // Only feeds the used-vs-remaining chart, so a failure here just
+          // leaves that chart without balances instead of failing the page.
+          apiService.getLeaveLedger().catch(() => null),
         ]);
 
       setSummary(summaryRes?.data ?? summaryRes);
@@ -75,6 +82,7 @@ const Dashboard = () => {
       setRequests(requestsRes?.data ?? requestsRes ?? []);
       setHolidays(holidaysRes?.data ?? holidaysRes ?? []);
       setActivity(activityRes?.data ?? activityRes ?? []);
+      setLedger(ledgerRes?.data ?? ledgerRes ?? []);
     } catch (err) {
       setError(err.message || 'Failed to load dashboard data.');
       // Fall back to mock data so the layout still renders something useful.
@@ -84,6 +92,7 @@ const Dashboard = () => {
       setRequests(mockRecentRequests);
       setHolidays(mockHolidays);
       setActivity(mockActivity);
+      setLedger(mockLeaveLedger);
     } finally {
       setLoading(false);
     }
@@ -156,23 +165,28 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-charts-row">
-        <div className="dashboard-panel">
+        <div className="dashboard-panel dashboard-panel-stretch dashboard-panel-flex">
           <div className="widget-header">
             <h3>Leave Usage Trend (This Year)</h3>
           </div>
-          <LeaveTrendChart data={trend} />
+          <div className="dashboard-panel-body-center">
+            <LeaveTrendChart data={trend} />
+          </div>
         </div>
-        <div className="dashboard-panel">
+        <div className="dashboard-panel dashboard-panel-stretch">
           <div className="widget-header">
             <h3>Leave Distribution (This Year)</h3>
           </div>
           <LeaveDistributionChart data={distribution} />
         </div>
-        <div className="dashboard-panel">
+        <div className="dashboard-panel dashboard-charts-holidays">
           <div className="widget-header">
             <h3>Upcoming Holidays</h3>
           </div>
           <HolidayCalendarWidget holidays={holidays} />
+        </div>
+        <div className="dashboard-panel dashboard-charts-balance">
+          <LeaveBalanceClusterChart trend={trend} ledger={ledger} />
         </div>
       </div>
 

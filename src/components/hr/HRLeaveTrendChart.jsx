@@ -5,30 +5,46 @@ const WIDTH = 640;
 const HEIGHT = 240;
 const PADDING = { top: 16, right: 16, bottom: 28, left: 32 };
 
-// data: [{ month, requests, approved }]
+const toFiniteNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+};
+
 const HRLeaveTrendChart = ({ data = [] }) => {
   const [hoverIndex, setHoverIndex] = useState(null);
 
-  const { requestsPath, approvedPath, points, maxValue, yTicks } = useMemo(() => {
-    if (!data.length) return { points: [], maxValue: 0, yTicks: [] };
+  const normalizedData = useMemo(
+    () =>
+      (Array.isArray(data) ? data : []).map((item) => ({
+        month: item?.month || '',
+        requests: toFiniteNumber(item?.requests),
+        approved: toFiniteNumber(item?.approved),
+      })),
+    [data]
+  );
 
-    const max = Math.max(...data.map((d) => Math.max(d.requests, d.approved)), 1);
-    // Round the axis max up to a friendly multiple of 30 (60, 30, 0 like the reference design)
-    const axisMax = Math.max(30, Math.ceil(max / 30) * 30);
+  const { requestsPath, approvedPath, points, maxValue, yTicks } = useMemo(() => {
+    if (!normalizedData.length) return { requestsPath: '', approvedPath: '', points: [], maxValue: 0, yTicks: [] };
+
+    const max = Math.max(
+      ...normalizedData.map((item) => Math.max(item.requests, item.approved)),
+      1
+    );
+    const axisMax = Math.max(10, Math.ceil(max / 10) * 10);
     const innerW = WIDTH - PADDING.left - PADDING.right;
     const innerH = HEIGHT - PADDING.top - PADDING.bottom;
-    const step = innerW / (data.length - 1 || 1);
+    const step = innerW / (normalizedData.length - 1 || 1);
+    const toY = (value) => PADDING.top + innerH - (value / axisMax) * innerH;
 
-    const toY = (v) => PADDING.top + innerH - (v / axisMax) * innerH;
-
-    const pts = data.map((d, i) => ({
-      x: PADDING.left + step * i,
-      yRequests: toY(d.requests),
-      yApproved: toY(d.approved),
-      ...d,
+    const pts = normalizedData.map((item, index) => ({
+      ...item,
+      x: PADDING.left + step * index,
+      yRequests: toY(item.requests),
+      yApproved: toY(item.approved),
     }));
 
-    const buildPath = (key) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p[key]}`).join(' ');
+    const buildPath = (key) =>
+      pts.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point[key]}`).join(' ');
 
     return {
       requestsPath: buildPath('yRequests'),
@@ -37,9 +53,9 @@ const HRLeaveTrendChart = ({ data = [] }) => {
       maxValue: axisMax,
       yTicks: [0, axisMax / 2, axisMax],
     };
-  }, [data]);
+  }, [normalizedData]);
 
-  if (!data.length) {
+  if (!normalizedData.length) {
     return <div className="chart-empty">No leave trend data yet.</div>;
   }
 
@@ -64,35 +80,35 @@ const HRLeaveTrendChart = ({ data = [] }) => {
             <g key={tick}>
               <line x1={PADDING.left} y1={y} x2={WIDTH - PADDING.right} y2={y} className="hr-trend-grid" />
               <text x={4} y={y + 4} className="hr-trend-axis-label">
-                {tick}
+                {Number.isInteger(tick) ? tick : tick.toFixed(1)}
               </text>
             </g>
           );
         })}
 
-        <path d={requestsPath} className="hr-trend-line line-requests" />
-        <path d={approvedPath} className="hr-trend-line line-approved" />
+        <path d={requestsPath} className="hr-trend-line line-requests" fill="none" />
+        <path d={approvedPath} className="hr-trend-line line-approved" fill="none" />
 
-        {points.map((p, i) => (
-          <g key={p.month}>
+        {points.map((point, index) => (
+          <g key={`${point.month}-${index}`}>
             <circle
-              cx={p.x}
-              cy={p.yRequests}
-              r={hoverIndex === i ? 5 : 3.5}
+              cx={point.x}
+              cy={point.yRequests}
+              r={hoverIndex === index ? 5 : 3.5}
               className="hr-trend-dot-marker dot-requests"
-              onMouseEnter={() => setHoverIndex(i)}
+              onMouseEnter={() => setHoverIndex(index)}
               onMouseLeave={() => setHoverIndex(null)}
             />
             <circle
-              cx={p.x}
-              cy={p.yApproved}
-              r={hoverIndex === i ? 5 : 3.5}
+              cx={point.x}
+              cy={point.yApproved}
+              r={hoverIndex === index ? 5 : 3.5}
               className="hr-trend-dot-marker dot-approved"
-              onMouseEnter={() => setHoverIndex(i)}
+              onMouseEnter={() => setHoverIndex(index)}
               onMouseLeave={() => setHoverIndex(null)}
             />
-            <text x={p.x} y={HEIGHT - 8} textAnchor="middle" className="hr-trend-axis-label">
-              {p.month}
+            <text x={point.x} y={HEIGHT - 8} textAnchor="middle" className="hr-trend-axis-label">
+              {point.month}
             </text>
           </g>
         ))}
@@ -113,7 +129,7 @@ const HRLeaveTrendChart = ({ data = [] }) => {
           className="hr-trend-chart-tooltip"
           style={{ left: `${(hovered.x / WIDTH) * 100}%`, top: `${(hovered.yRequests / HEIGHT) * 100}%` }}
         >
-          <strong>{hovered.requests}</strong> requests · <strong>{hovered.approved}</strong> approved
+          <strong>{hovered.month}</strong>: {hovered.requests} requests · {hovered.approved} approved
         </div>
       )}
     </div>

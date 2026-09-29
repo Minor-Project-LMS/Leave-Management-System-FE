@@ -52,14 +52,33 @@ const LeavePolicyFormModal = ({ categories = [], departments = [], editing, onCa
     if (!name) return setError('Please enter a name for the new leave type.');
     if (!onCreateCategory) return;
 
+    // Leave type names are unique, so if HR types one that already exists
+    // just select that one instead of trying (and failing) to create it.
+    const existing = categories.find(
+      (c) => String(c.categoryName ?? c.name ?? '').trim().toLowerCase() === name.toLowerCase()
+    );
+    if (existing) {
+      set('categoryId', existing.id ?? existing.categoryId);
+      setError('');
+      setAddingCategory(false);
+      setNewCategoryName('');
+      return;
+    }
+
     setError('');
     setCreatingCategory(true);
     try {
       const created = await onCreateCategory(name);
       const id = created?.id ?? created?.categoryId;
-      if (id != null) set('categoryId', id);
       setAddingCategory(false);
       setNewCategoryName('');
+      if (id != null) {
+        set('categoryId', id);
+      } else {
+        // Don't silently keep the previous selection: say so, so a policy
+        // never gets saved against the wrong leave type by accident.
+        setError('The leave type was created, but could not be selected automatically. Please choose it from the Leave Type list.');
+      }
     } catch (err) {
       setError(err?.message || 'Failed to create leave type.');
     } finally {

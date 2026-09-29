@@ -1,0 +1,122 @@
+.balance-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.balance-chart-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.balance-chart-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.balance-chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.balance-chart-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.balance-chart-swatch.used {
+  background: #dc2626;
+}
+
+.balance-chart-swatch.remaining {
+  background: #16a34a;
+}
+
+.balance-chart-body {
+  position: relative;
+  width: 100%;
+}
+
+.balance-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.balance-chart-grid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.balance-chart-axis-label {
+  font-size: 10px;
+  fill: var(--text-light);
+}
+
+.balance-chart-value {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-primary);
+  pointer-events: none;
+}
+
+.balance-chart-value.on-solid {
+  fill: #fff;
+}
+
+.balance-chart-hover-band {
+  fill: var(--primary-blue);
+  opacity: 0.06;
+}
+
+.balance-chart-hover-part {
+  fill: #0f172a;
+  opacity: 0.14;
+}
+
+.balance-chart-tooltip {
+  position: absolute;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.balance-chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.balance-chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.balance-chart-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}

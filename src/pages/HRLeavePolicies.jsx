@@ -103,6 +103,28 @@ const HRLeavePolicies = () => {
       });
   }, []);
 
+  // Lets HR add a custom leave type straight from the policy form's Leave
+  // Type dropdown (create or edit), instead of having to leave this page
+  // first. Returns the created category so the form can select it right
+  // away; it's also added to the list here so it shows up in the dropdown.
+  const handleCreateCategory = async (name) => {
+    if (USE_MOCK) {
+      const id = Date.now();
+      const mockCategory = { id, categoryId: id, categoryName: name, name };
+      setCategories((prev) => [...prev, mockCategory]);
+      return mockCategory;
+    }
+
+    const res = await apiService.createLeaveCategory({
+      name,
+      applicableTo: 'ALL_EMPLOYEES',
+      status: 'ACTIVE',
+    });
+    const created = res?.data ?? res;
+    setCategories((prev) => [...prev, created]);
+    return created;
+  };
+
   const loadPolicies = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -424,6 +446,7 @@ const HRLeavePolicies = () => {
           departments={departments}
           editing={editingPolicy}
           submitting={submitting}
+          onCreateCategory={handleCreateCategory}
           onCancel={() => {
             setModalOpen(false);
             setEditingPolicy(null);
