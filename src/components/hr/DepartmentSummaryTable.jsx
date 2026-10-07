@@ -5,7 +5,7 @@ const DepartmentSummaryTable = ({ rows = [] }) => (
     <div className="widget-header">
       <div>
         <h3>Department-wise Leave Summary</h3>
-        <p className="dept-summary-subtitle">Current month · all locations</p>
+        <p className="dept-summary-subtitle">Year to date · all departments</p>
       </div>
     </div>
 

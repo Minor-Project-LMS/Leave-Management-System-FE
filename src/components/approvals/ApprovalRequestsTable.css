@@ -105,6 +105,16 @@
   gap: 0.4rem;
 }
 
+.approval-action-with-hr {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-light);
+  border-radius: 4px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
 .approval-action-btn {
   width: 30px;
   height: 30px;

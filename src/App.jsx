@@ -31,12 +31,14 @@ import HRLeaveCategories from './pages/HRLeaveCategories'
 import NotFound from './pages/error/NotFound'
 import ServerError from './pages/error/ServerError'
 import CompOff from './pages/CompOff'
+import DonateLeave from './pages/DonateLeave'
 import HolidayCalendar from './pages/HolidayCalendar'
 import Notifications from './pages/Notifications'
 import AuditTrail from './pages/AuditTrail'
 import NotificationQueue from './pages/NotificationQueue'
 import HRSettings from './pages/HRSettings'
 import HRDelegation from './pages/HRDelegation'
+import HRLeaveDonations from './pages/HRLeaveDonations'
 
 // Wraps a placeholder page in the route guard + correct portal shell
 const guardedPlaceholder = (title, portal, icon) => (
@@ -102,6 +104,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CompOff />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/donate-leave"
+            element={
+              <ProtectedRoute>
+                <DonateLeave />
               </ProtectedRoute>
             }
           />
@@ -198,6 +208,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <HRDelegation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/leave-donations"
+            element={
+              <ProtectedRoute>
+                <HRLeaveDonations />
               </ProtectedRoute>
             }
           />

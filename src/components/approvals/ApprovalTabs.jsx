@@ -7,12 +7,13 @@ const TABS = [
   { key: 'PENDING', label: 'Pending' },
   { key: 'APPROVED', label: 'Approved' },
   { key: 'REJECTED', label: 'Rejected' },
+  { key: 'ESCALATED', label: 'Escalated' },
 ];
 
 const ApprovalTabs = ({ activeStatus, onStatusChange, counts, sort, onSortChange }) => {
   const [sortOpen, setSortOpen] = useState(false);
 
-  const countKey = { ALL: 'all', PENDING: 'pending', APPROVED: 'approved', REJECTED: 'rejected' };
+  const countKey = { ALL: 'all', PENDING: 'pending', APPROVED: 'approved', REJECTED: 'rejected', ESCALATED: 'escalated' };
 
   return (
     <div className="approval-tabs-row">

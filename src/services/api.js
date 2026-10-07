@@ -580,6 +580,29 @@ class ApiService {
     });
   }
 
+  // Per-leave-type monthly lines: [{ category, color, points: [{ month, days }] }]
+  async getReportsLeaveTrendByType({ year = new Date().getFullYear(), departmentId } = {}) {
+    const params = new URLSearchParams({ year });
+    if (departmentId) params.set('departmentId', departmentId);
+    return this.request(`/reports/leave-trend-by-type?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Approved leave days by type: { total, items: [{ label, value, color }] }
+  async getReportsDistribution({ dateFrom, dateTo, departmentId } = {}) {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (departmentId) params.set('departmentId', departmentId);
+    const qs = params.toString();
+    return this.request(`/reports/distribution${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   async getDepartmentSummary(params = {}) {
     const qs = new URLSearchParams(params).toString();
     return this.request(`/reports/department-summary${qs ? `?${qs}` : ''}`, {
@@ -595,10 +618,11 @@ class ApiService {
     });
   }
 
-  async getTopEmployees({ dateFrom, dateTo, limit = 5 } = {}) {
+  async getTopEmployees({ dateFrom, dateTo, limit = 5, departmentId } = {}) {
     const params = new URLSearchParams({ limit });
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
+    if (departmentId) params.set('departmentId', departmentId);
     return this.request(`/reports/top-employees?${params.toString()}`, {
       method: 'GET',
       headers: this.authHeaders(),
@@ -645,6 +669,24 @@ class ApiService {
       method: 'PATCH',
       headers: this.authHeaders(),
       body: JSON.stringify({ decision, comments }),
+    });
+  }
+
+  // Working-week config (currently just "is Saturday a working day?").
+  // Read by any signed-in user — it drives the Apply Leave day-count
+  // preview for everyone, not just HR. Writable by HR only.
+  async getWorkWeekSettings() {
+    return this.request('/settings/work-week', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateWorkWeekSettings(payload) {
+    return this.request('/settings/work-week', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -721,6 +763,90 @@ class ApiService {
       method: 'POST',
       headers: this.authHeaders(),
       body: JSON.stringify(payload),
+    });
+  }
+
+  // Toggles one handover-checklist item. Only the employee who applied for
+  // the leave can call this — the backend enforces that regardless of what
+  // the UI allows.
+  async updateHandoverTask(requestId, taskId, completed) {
+    return this.request(`/leave-requests/${requestId}/handover-tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ completed }),
+    });
+  }
+
+  // Approval SLA escalation
+  async getApprovalSlaSettings() {
+    return this.request('/settings/approval-sla', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async updateApprovalSlaSettings(payload) {
+    return this.request('/settings/approval-sla', {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async runEscalationNow() {
+    return this.request('/settings/approval-sla/run-now', {
+      method: 'POST',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // Leave Donation / Pooling
+  async getUserDirectory(q = '') {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    return this.request(`/users/directory?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async createLeaveDonation(payload) {
+    return this.request('/leave-donations', {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMyLeaveDonations({ page = 1, limit = 20 } = {}) {
+    return this.request(`/leave-donations/mine?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async getReceivedLeaveDonations({ page = 1, limit = 20 } = {}) {
+    return this.request(`/leave-donations/received?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // HR only
+  async getAllLeaveDonations({ status, page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.set('status', status);
+    return this.request(`/leave-donations?${params.toString()}`, {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
+  async decideLeaveDonation(donationId, { decision, comments }) {
+    return this.request(`/leave-donations/${donationId}/decision`, {
+      method: 'PATCH',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ decision, comments }),
     });
   }
 

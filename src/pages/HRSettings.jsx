@@ -95,6 +95,20 @@ const HRSettings = () => {
   // Leave Settings state
   const [leaveSettings, setLeaveSettings] = useState({});
 
+  // Working-week config — kept separate from leaveSettings/updateSettings
+  // above on purpose: GET/PATCH /settings actually returns hardcoded values
+  // and doesn't persist anything sent to it (see SettingsController), so a
+  // toggle here needs its own real, working endpoint rather than joining a
+  // page's worth of settings that don't currently save.
+  const [saturdayWorking, setSaturdayWorking] = useState(false);
+  const [workWeekSaving, setWorkWeekSaving] = useState(false);
+
+  // Approval SLA escalation — same reasoning as Working Week above: its
+  // own real, working endpoint rather than the generic settings save.
+  const [slaDays, setSlaDays] = useState(3);
+  const [slaSaving, setSlaSaving] = useState(false);
+  const [slaRunning, setSlaRunning] = useState(false);
+
   // Approval Workflow state
   const [approvalWorkflow, setApprovalWorkflow] = useState({});
 
@@ -182,12 +196,22 @@ const HRSettings = () => {
         { id: 'calendar', name: 'Calendar', provider: 'Google', status: 'connected' },
         { id: 'sso', name: 'SSO', provider: 'Azure AD', status: 'not_configured' },
       ]);
+      setSaturdayWorking(false);
+      setSlaDays(3);
       setLoading(false);
       return;
     }
 
     try {
-      const response = await apiService.getSettings();
+      const [response, workWeekRes, slaRes] = await Promise.all([
+        apiService.getSettings(),
+        apiService.getWorkWeekSettings().catch(() => null),
+        apiService.getApprovalSlaSettings().catch(() => null),
+      ]);
+      const workWeek = workWeekRes?.data ?? workWeekRes;
+      setSaturdayWorking(Boolean(workWeek?.saturdayWorking));
+      const sla = slaRes?.data ?? slaRes;
+      if (sla?.slaDays != null) setSlaDays(sla.slaDays);
       const settings = response?.data ?? response ?? {};
 
       setCompanySettings({
@@ -280,6 +304,59 @@ const HRSettings = () => {
     } catch (err) {
       setSystemPreferences(prev => ({ ...prev, [key]: !newValue })); // Revert on error
       setError(err.message || 'Failed to update preference.');
+    }
+  };
+
+  const handleToggleSaturdayWorking = async () => {
+    const newValue = !saturdayWorking;
+    setSaturdayWorking(newValue);
+    setWorkWeekSaving(true);
+    setSuccess('');
+
+    try {
+      await apiService.updateWorkWeekSettings({ saturdayWorking: newValue });
+      setSuccess(`Saturday is now marked as a ${newValue ? 'working' : 'non-working'} day.`);
+    } catch (err) {
+      setSaturdayWorking(!newValue); // revert on failure
+      setError(err.message || 'Failed to update the working-week setting.');
+    } finally {
+      setWorkWeekSaving(false);
+    }
+  };
+
+  const handleSaveSlaDays = async () => {
+    const days = Number(slaDays);
+    if (!Number.isFinite(days) || days < 1) {
+      return setError('SLA must be at least 1 day.');
+    }
+
+    setSlaSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await apiService.updateApprovalSlaSettings({ slaDays: days });
+      setSuccess(`Approval SLA set to ${days} day(s) — requests pending longer than that will auto-escalate to HR.`);
+    } catch (err) {
+      setError(err.message || 'Failed to update the approval SLA.');
+    } finally {
+      setSlaSaving(false);
+    }
+  };
+
+  const handleRunEscalationNow = async () => {
+    setSlaRunning(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await apiService.runEscalationNow();
+      const count = res?.data?.escalatedCount ?? res?.escalatedCount ?? 0;
+      setSuccess(count > 0
+        ? `Escalation run complete — ${count} overdue request(s) reassigned to HR.`
+        : 'Escalation run complete — nothing was overdue.');
+    } catch (err) {
+      setError(err.message || 'Failed to run escalation.');
+    } finally {
+      setSlaRunning(false);
     }
   };
 
@@ -691,7 +768,7 @@ const HRSettings = () => {
                       <div className="summary-card-content">
                         <div className="summary-card-label">{field.label}</div>
                         <div className="summary-card-value">
-                          {field.type === 'boolean' 
+                          {field.type === 'boolean'
                             ? (leaveSettings[field.key] ? 'Enabled' : 'Disabled')
                             : leaveSettings[field.key] || 'N/A'
                           }
@@ -706,6 +783,90 @@ const HRSettings = () => {
 
           {activeTab === 'leave-settings' && (
             <>
+              <div className="settings-card">
+                <div className="settings-card-header">
+                  <h3>Working Week</h3>
+                  <p className="settings-card-subtitle">
+                    Controls how leave days are counted for requests that span a weekend (Sandwich Leave policy).
+                  </p>
+                </div>
+
+                <div className="settings-form">
+                  <div className="settings-toggle-row">
+                    <div>
+                      <label>Saturday is a working day</label>
+                      <p className="settings-toggle-hint">
+                        Off (default): only Sunday is a non-working day — a request spanning Fri-Mon charges all 4
+                        days, and Sat/Sun are never individually required as their own leave request.
+                        {' '}On: Saturday is treated like any other working day — an employee absent on a Saturday
+                        has that day charged as leave, the same as a weekday.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={saturdayWorking}
+                      className={`settings-switch ${saturdayWorking ? 'on' : ''}`}
+                      onClick={handleToggleSaturdayWorking}
+                      disabled={workWeekSaving}
+                    >
+                      <span className="settings-switch-thumb" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-header">
+                  <h3>Approval SLA</h3>
+                  <p className="settings-card-subtitle">
+                    If a manager doesn't act on a leave request within this many days, it's automatically
+                    reassigned to HR — separate from Delegation, which a manager sets up themselves before going
+                    away. This catches a request that was simply forgotten.
+                  </p>
+                </div>
+
+                <div className="settings-form">
+                  <div className="settings-toggle-row">
+                    <div>
+                      <label htmlFor="sla-days-input">Escalate after (days)</label>
+                      <p className="settings-toggle-hint">
+                        Counted from when the request was submitted. Runs automatically once a day — you can also
+                        trigger a check immediately below, e.g. to confirm this is configured correctly.
+                      </p>
+                    </div>
+                    <input
+                      id="sla-days-input"
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="settings-number-input"
+                      value={slaDays}
+                      onChange={(e) => setSlaDays(e.target.value)}
+                      disabled={slaSaving}
+                    />
+                  </div>
+                  <div className="settings-form-actions sla-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleRunEscalationNow}
+                      disabled={slaRunning}
+                    >
+                      {slaRunning ? 'Running...' : 'Run Escalation Check Now'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleSaveSlaDays}
+                      disabled={slaSaving}
+                    >
+                      {slaSaving ? 'Saving...' : 'Save SLA'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="settings-card">
                 <div className="settings-card-header">
                   <h3>Leave Settings</h3>

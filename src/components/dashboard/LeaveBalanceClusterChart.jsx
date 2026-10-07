@@ -6,7 +6,7 @@ const H = 300;
 const PAD = { top: 22, right: 12, bottom: 30, left: 34 };
 const MAX_BAR_W = 68;
 const USED_COLOR = '#dc2626'; // red
-const REMAINING_COLOR = '#16a34a'; // green
+const REMAINING_COLOR = '#86efac'; // light green
 const MIN_ZONE = 18; // smallest hoverable height for the lower part
 const MIN_LABEL_H = 16; // segments shorter than this get no in-bar number
 
@@ -183,7 +183,7 @@ const LeaveBalanceClusterChart = ({ trend = [], ledger = [] }) => {
                 </text>
               )}
               {b.remH >= MIN_LABEL_H && (
-                <text x={b.x + barW / 2} y={b.remTop + b.remH / 2 + 4} textAnchor="middle" className="balance-chart-value on-solid">
+                <text x={b.x + barW / 2} y={b.remTop + b.remH / 2 + 4} textAnchor="middle" className="balance-chart-value">
                   {fmt(b.remaining)}
                 </text>
               )}

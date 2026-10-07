@@ -26,6 +26,7 @@ const ApprovalRequestsTable = ({
   onSelect,
   onApprove,
   onReject,
+  currentUserId,
   page,
   totalPages,
   totalCount,
@@ -54,6 +55,14 @@ const ApprovalRequestsTable = ({
             const employeeName = getEmployeeName(req);
             const color = getAvatarColor(employeeName);
             const isPending = req.status === 'PENDING_L1' || req.status === 'PENDING_L2';
+            // An escalated request that's no longer actually assigned to
+            // this viewer (e.g. a manager looking at one that moved to HR)
+            // shouldn't offer Approve/Reject — they're not the current
+            // approver anymore and the backend would reject the action
+            // anyway. Doesn't affect HR's own queue: an item escalated TO
+            // them has currentApproverId pointing at HR, so their buttons
+            // still show normally.
+            const canAct = !req.escalated || String(req.currentApproverId) === String(currentUserId);
             const isSelected = selectedId === req.id;
 
             return (
@@ -66,15 +75,15 @@ const ApprovalRequestsTable = ({
                   <div className="approval-table-employee">
                     <span
                       className="approval-table-avatar"
-                      style={{ 
-                        background: req.avatarUrl ? 'transparent' : color.bg, 
-                        color: req.avatarUrl ? 'transparent' : color.fg 
+                      style={{
+                        background: req.avatarUrl ? 'transparent' : color.bg,
+                        color: req.avatarUrl ? 'transparent' : color.fg
                       }}
                     >
                       {req.avatarUrl ? (
-                        <img 
-                          src={req.avatarUrl} 
-                          alt={employeeName} 
+                        <img
+                          src={req.avatarUrl}
+                          alt={employeeName}
                           className="approval-table-avatar-image"
                           onError={(e) => {
                             e.target.style.display = 'none';
@@ -115,6 +124,22 @@ const ApprovalRequestsTable = ({
                       LOP
                     </span>
                   )}
+                  {req.escalated && (
+                    <span
+                      title={`Auto-escalated to HR${req.originalApproverName ? ` from ${req.originalApproverName}` : ''}`}
+                      style={{
+                        marginLeft: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: '#9f1239',
+                        background: '#ffe4e6',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                      }}
+                    >
+                      ESCALATED
+                    </span>
+                  )}
                 </td>
                 <td className="approval-table-reason" title={req.reason}>
                   {req.reason}
@@ -124,7 +149,7 @@ const ApprovalRequestsTable = ({
                 </td>
                 <td>
                   <div className="approval-table-actions" onClick={(e) => e.stopPropagation()}>
-                    {isPending && (
+                    {isPending && canAct && (
                       <>
                         <button
                           className="approval-action-btn approve"
@@ -141,6 +166,11 @@ const ApprovalRequestsTable = ({
                           <XIcon width={15} height={15} />
                         </button>
                       </>
+                    )}
+                    {isPending && !canAct && (
+                      <span className="approval-action-with-hr" title="This request escalated to HR — only HR can act on it now">
+                        With HR
+                      </span>
                     )}
                     <button className="approval-action-link" onClick={() => onSelect(req.id)}>
                       View

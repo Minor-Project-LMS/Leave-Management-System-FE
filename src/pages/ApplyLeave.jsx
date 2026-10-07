@@ -27,6 +27,8 @@ const USE_MOCK =
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 const REASON_MAX_LEN = 500;
+
+const URGENCY_LABELS = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High' };
 const today = new Date().toISOString().split('T')[0];
 
 const formatBytes = (bytes) => {
@@ -48,6 +50,36 @@ const daysBetweenInclusive = (start, end) => {
   return diff > 0 ? diff : 0;
 };
 
+// Mirrors the backend's calculateTotalDays() exactly (see
+// LeaveRequestsController) so the live preview here never disagrees with
+// what actually gets saved: a working day always counts (Saturday counts
+// when the org has it marked as a working day), and a non-working day
+// (Sunday, or a non-working Saturday) counts too — but only when it's
+// sandwiched between two other days in the range, not when it's the very
+// first or last day of the request.
+const isWorkingDay = (date, saturdayWorking) => {
+  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+  if (day === 0) return false;
+  if (day === 6) return saturdayWorking;
+  return true;
+};
+
+const businessAwareDaysBetween = (start, end, saturdayWorking) => {
+  if (!start || !end) return 0;
+  const a = new Date(start);
+  const b = new Date(end);
+  if (b < a) return 0;
+
+  let total = 0;
+  const cursor = new Date(a);
+  while (cursor <= b) {
+    const isBoundary = cursor.getTime() === a.getTime() || cursor.getTime() === b.getTime();
+    if (isWorkingDay(cursor, saturdayWorking) || !isBoundary) total++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return total;
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -67,6 +99,9 @@ const ApplyLeave = () => {
 
   const [categories, setCategories] = useState([]);
   const [ledger, setLedger] = useState([]);
+  // Defaults to false (Saturday off) until the real setting loads, matching
+  // the backend's own default for a brand-new org.
+  const [saturdayWorking, setSaturdayWorking] = useState(false);
   const [policy, setPolicy] = useState(null);
   const [compOffBalance, setCompOffBalance] = useState(null);
 
@@ -88,6 +123,25 @@ const ApplyLeave = () => {
   const [startDate, setStartDate] = useState(draftData?.fromDate || draftData?.startDate || '');
   const [endDate, setEndDate] = useState(draftData?.toDate || draftData?.endDate || '');
   const [reason, setReason] = useState(draftData?.reason || '');
+  // Handover checklist: a self-checklist the applicant adds (no assignee —
+  // they tick these off themselves from Request Details), each with an
+  // urgency level so the approving manager can weigh how critical an
+  // unfinished item is rather than the app blocking approval outright.
+  const [handoverTasks, setHandoverTasks] = useState(draftData?.handoverTasks || []);
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskUrgency, setNewTaskUrgency] = useState('MEDIUM');
+
+  const addHandoverTask = () => {
+    const text = newTaskText.trim();
+    if (!text) return;
+    setHandoverTasks((prev) => [...prev, { description: text, urgency: newTaskUrgency }]);
+    setNewTaskText('');
+    setNewTaskUrgency('MEDIUM');
+  };
+
+  const removeHandoverTask = (index) => {
+    setHandoverTasks((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({}); // { fileName: progressPercentage }
@@ -171,12 +225,8 @@ const ApplyLeave = () => {
       return startDate ? 0.5 : 0;
     }
 
-    // Sandwich Leave policy: a continuous leave request that spans a
-    // weekend counts those weekend days too, rather than excluding them —
-    // so this is just plain inclusive calendar-day counting, matching the
-    // backend's calculateTotalDays() exactly.
-    return daysBetweenInclusive(startDate, endDate);
-  }, [applyFor, startDate, endDate]);
+    return businessAwareDaysBetween(startDate, endDate, saturdayWorking);
+  }, [applyFor, startDate, endDate, saturdayWorking]);
 
   const loadInitialData = useCallback(async () => {
     setLoading(true);
@@ -185,6 +235,7 @@ const ApplyLeave = () => {
     if (USE_MOCK) {
       setCategories(mockLeaveCategories);
       setLedger(mockLeaveLedger);
+      setSaturdayWorking(false);
 
       // Match category ID from draft if provided, otherwise default to first category
       let matchedId = mockLeaveCategories[0]?.id;
@@ -201,10 +252,16 @@ const ApplyLeave = () => {
     }
 
     try {
-      const [catRes, ledgerRes] = await Promise.all([
+      const [catRes, ledgerRes, workWeekRes] = await Promise.all([
         apiService.getLeaveCategories(),
         apiService.getLeaveLedger(),
+        // Not critical to the page — if it fails, just keep the default
+        // (Saturday off) rather than blocking the whole form.
+        apiService.getWorkWeekSettings().catch(() => null),
       ]);
+
+      const workWeek = workWeekRes?.data ?? workWeekRes;
+      setSaturdayWorking(Boolean(workWeek?.saturdayWorking));
 
       const cats = catRes?.data ?? catRes ?? [];
 
@@ -260,6 +317,9 @@ const ApplyLeave = () => {
           ? 'HALF_DAY'
           : 'FULL_DAY'
       );
+      if (Array.isArray(draftData.handoverTasks)) {
+        setHandoverTasks(draftData.handoverTasks);
+      }
     }
   }, [draftData]);
 
@@ -531,6 +591,10 @@ const ApplyLeave = () => {
     // Add compOffRequestId if this is a comp-off category request
     if (isCompOffCategory && compOffRequestId) {
       payload.compOffRequestId = compOffRequestId;
+    }
+
+    if (handoverTasks.length) {
+      payload.handoverTasks = handoverTasks;
     }
 
     return payload;
@@ -947,6 +1011,64 @@ const ApplyLeave = () => {
             <span className="apply-leave-char-count">
               {reason.length}/{REASON_MAX_LEN}
             </span>
+          </div>
+
+          {/* Handover Checklist — self-checklist, no assignee. The employee
+              ticks these off from Request Details up until their leave
+              starts; the manager sees the same list (read-only) with
+              urgency so they can judge for themselves whether it's enough
+              to approve, rather than the form blocking submission. */}
+          <div className="form-field apply-leave-full">
+            <label>Handover Checklist (optional)</label>
+            <p className="apply-leave-handover-hint">
+              List anything you need to wrap up or hand off before you're out. You can check these off yourself
+              later from My Requests — your manager will see this list (with urgency) when reviewing your request.
+            </p>
+
+            {handoverTasks.length > 0 && (
+              <ul className="apply-leave-handover-list">
+                {handoverTasks.map((task, index) => (
+                  <li key={index} className={`apply-leave-handover-item urgency-${task.urgency.toLowerCase()}`}>
+                    <span className="apply-leave-handover-urgency-dot" />
+                    <span className="apply-leave-handover-text">{task.description}</span>
+                    <span className="apply-leave-handover-urgency-label">{URGENCY_LABELS[task.urgency]}</span>
+                    <button
+                      type="button"
+                      className="apply-leave-handover-remove"
+                      onClick={() => removeHandoverTask(index)}
+                      aria-label={`Remove task: ${task.description}`}
+                    >
+                      <XIcon width={14} height={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="apply-leave-handover-add-row">
+              <input
+                type="text"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addHandoverTask();
+                  }
+                }}
+                placeholder="e.g. Submit Q3 report"
+                maxLength={300}
+              />
+              <select value={newTaskUrgency} onChange={(e) => setNewTaskUrgency(e.target.value)}>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+              <button type="button" className="apply-leave-handover-add" onClick={addHandoverTask}>
+                <PlusIcon width={15} height={15} />
+                Add
+              </button>
+            </div>
           </div>
 
           {/* Attachment */}

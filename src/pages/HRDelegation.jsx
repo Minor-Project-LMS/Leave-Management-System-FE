@@ -501,6 +501,7 @@ const HRDelegation = () => {
                   onSelect={setSelectedId}
                   onApprove={handleApprove}
                   onReject={setRejectTarget}
+                  currentUserId={user?.id}
                   page={approvalPage}
                   totalPages={approvalTotalPages}
                   totalCount={approvalTotalCount}

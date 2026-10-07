@@ -54,6 +54,30 @@ const RequestDetails = () => {
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [withdrawReason, setWithdrawReason] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [handoverSavingId, setHandoverSavingId] = useState(null);
+
+  // Optimistic toggle: flips the checkbox immediately, then confirms with
+  // the server; reverts if the save fails rather than leaving the UI out
+  // of sync with what's actually stored.
+  const handleToggleHandoverTask = async (task) => {
+    const nextCompleted = !task.completed;
+    setHandoverSavingId(task.id);
+    setRequest((prev) => ({
+      ...prev,
+      handoverTasks: prev.handoverTasks.map((t) => (t.id === task.id ? { ...t, completed: nextCompleted } : t)),
+    }));
+
+    try {
+      await apiService.updateHandoverTask(requestId, task.id, nextCompleted);
+    } catch (err) {
+      setRequest((prev) => ({
+        ...prev,
+        handoverTasks: prev.handoverTasks.map((t) => (t.id === task.id ? { ...t, completed: !nextCompleted } : t)),
+      }));
+    } finally {
+      setHandoverSavingId(null);
+    }
+  };
 
   const loadRequestDetails = useCallback(async () => {
     setLoading(true);
@@ -161,12 +185,15 @@ const RequestDetails = () => {
         updatedAt: requestData.updatedAt,
         updatedAtFormatted: formatDateTime(requestData.updatedAt),
 
-        // Contact and handover details - not in current API response
+        // Contact details
         contactNumber: requestData.contactNumber || employeeData?.data?.phone || '',
         addressDuringLeave: requestData.addressDuringLeave || employeeData?.data?.address || '',
-        handoverTo: requestData.handoverTo,
-        handoverToName: requestData.handoverToName,
-        handoverNotes: requestData.handoverNotes,
+        // Self-checklist the applicant added when applying — no assignee,
+        // just items they tick off themselves before/during their leave.
+        handoverTasks: Array.isArray(requestData.handoverTasks) ? requestData.handoverTasks : [],
+        escalated: Boolean(requestData.escalated),
+        escalatedAt: requestData.escalatedAt,
+        originalApproverName: requestData.originalApproverName,
 
         // Employee name from API
         employeeName: requestData.userName || requestData.employeeName || employeeData?.data?.name || user?.name || 'N/A',
@@ -473,6 +500,17 @@ const RequestDetails = () => {
           </div>
         </div>
 
+        {request.escalated && (
+          <div className="request-details-escalated-banner">
+            <ClockIcon width={15} height={15} />
+            <span>
+              This request sat pending too long and was <strong>automatically escalated to HR</strong>
+              {request.originalApproverName ? ` (originally with ${request.originalApproverName})` : ''} for a
+              decision.
+            </span>
+          </div>
+        )}
+
         <div className="request-details-grid">
           {/* Column 1 - Left */}
           <div className="request-details-col-left">
@@ -526,16 +564,25 @@ const RequestDetails = () => {
                   <span className="detail-colon">:</span>
                   <span className="detail-value">{request.contactNumber || 'N/A'}</span>
                 </div>
-                <div className="detail-line">
-                  <span className="detail-label">Handover To</span>
-                  <span className="detail-colon">:</span>
-                  <span className="detail-value">{request.handoverToName || 'N/A'}</span>
-                </div>
-                {request.handoverNotes && (
-                  <div className="detail-line">
-                    <span className="detail-label">Handover Notes</span>
-                    <span className="detail-colon">:</span>
-                    <span className="detail-value">{request.handoverNotes}</span>
+                {request.handoverTasks.length > 0 && (
+                  <div className="detail-handover-section">
+                    <span className="detail-label detail-handover-heading">Handover Checklist</span>
+                    <ul className="detail-handover-list">
+                      {request.handoverTasks.map((task) => (
+                        <li key={task.id} className={`detail-handover-item urgency-${task.urgency.toLowerCase()}`}>
+                          <label className="detail-handover-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              disabled={handoverSavingId === task.id}
+                              onChange={() => handleToggleHandoverTask(task)}
+                            />
+                            <span className={task.completed ? 'is-done' : ''}>{task.description}</span>
+                          </label>
+                          <span className="detail-handover-urgency-label">{task.urgency}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
                 <div className="detail-line">

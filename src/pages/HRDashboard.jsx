@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
@@ -105,7 +105,6 @@ const HRDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
-  const pollRef = useRef(null);
 
   const [summary, setSummary] = useState(null);
   const [trend, setTrend] = useState([]);
@@ -130,12 +129,13 @@ const HRDashboard = () => {
     }
 
     try {
-      const [hrSummaryRes, reportsSummaryRes, leaveRequests, deptRes, approvalsRes] = await Promise.all([
+      const [hrSummaryRes, reportsSummaryRes, leaveRequests, deptRes, approvalsRes, distributionRes] = await Promise.all([
         apiService.getHRSummary(),
         apiService.getReportsSummary(),
         fetchLeaveRequestsForTrend(),
         apiService.getDepartmentSummary(),
         apiService.getHRPendingApprovals(5),
+        apiService.getReportsDistribution(),
       ]);
 
       const hrSummary = hrSummaryRes?.data ?? hrSummaryRes ?? {};
@@ -145,8 +145,9 @@ const HRDashboard = () => {
         totalEmployees: hrSummary.totalEmployees ?? 0,
         onLeaveToday: hrSummary.onLeaveToday ?? 0,
         pendingRequests: reportsSummary.pendingRequests ?? 0,
-        // Not exposed by the backend today — see note in api.js's getHRSummary().
-        leaveUtilizationPct: reportsSummary.approvalRate ?? null,
+        // Real YTD utilization (days used / days entitled). This used to be
+        // fed the approval rate, which is a different number.
+        leaveUtilizationPct: reportsSummary.utilizationPct ?? null,
       });
 
       setTrend(buildSixMonthLeaveTrend(leaveRequests));
@@ -155,24 +156,25 @@ const HRDashboard = () => {
         departmentName: d.departmentName,
         totalEmployees: d.totalEmployees,
         totalLeaveDays: d.totalLeaveDays,
-        utilizationPct: d.approvalRate ?? d.avgLeaveDaysPerEmployee ?? 0,
+        utilizationPct: d.utilizationPct ?? 0,
       }));
       setDepartments(deptData);
 
       setApprovals(approvalsRes?.data ?? approvalsRes ?? []);
 
-      // Distribution isn't in the spec for HR yet — reuse mock until a
-      // /dashboard/hr-leave-distribution (or similar) endpoint exists.
-      setDistribution(mockHRDistribution);
-      setDistributionTotal(mockHRDistributionTotal);
+      const distributionData = distributionRes?.data ?? distributionRes ?? {};
+      setDistribution(distributionData.items ?? []);
+      setDistributionTotal(distributionData.total ?? 0);
     } catch (err) {
+      // Not falling back to sample numbers: a failed load should look like
+      // one, not like a plausible-looking (fake) dashboard.
       setError(err.message || 'Failed to load HR dashboard data.');
-      setSummary(mockHRSummary);
-      setTrend(mockHRLeaveTrend);
-      setDistribution(mockHRDistribution);
-      setDistributionTotal(mockHRDistributionTotal);
-      setDepartments(mockDepartmentSummary);
-      setApprovals(mockHRPendingApprovals);
+      setSummary(null);
+      setTrend([]);
+      setDistribution([]);
+      setDistributionTotal(0);
+      setDepartments([]);
+      setApprovals([]);
     } finally {
       setLoading(false);
     }
@@ -180,7 +182,6 @@ const HRDashboard = () => {
 
   useEffect(() => {
     loadDashboard();
-    return () => clearInterval(pollRef.current);
   }, [loadDashboard]);
 
   const handleLogout = async () => {
@@ -198,36 +199,24 @@ const HRDashboard = () => {
     }
 
     try {
-      const res = await apiService.exportReport({ reportType: 'LEAVE_SUMMARY', format: 'xlsx' });
-      const jobId = res?.jobId ?? res?.data?.jobId;
-      if (!jobId) throw new Error('Export did not return a job id.');
+      // The backend now builds the file synchronously and returns it ready
+      // as a data: URL — there's no job id to poll any more (this used to
+      // poll for a downloadUrl that never arrived, then report a timeout).
+      const res = await apiService.exportReport({ reportType: 'LEAVE_SUMMARY', format: 'csv' });
+      const downloadUrl = res?.downloadUrl ?? res?.data?.downloadUrl;
+      const filename = res?.filename ?? res?.data?.filename ?? 'leave-summary-report.csv';
+      if (!downloadUrl) throw new Error('Export did not return a file.');
 
-      let attempts = 0;
-      pollRef.current = setInterval(async () => {
-        attempts += 1;
-        try {
-          const statusRes = await apiService.getReportExportStatus(jobId);
-          const status = statusRes?.status ?? statusRes?.data?.status;
-          const downloadUrl = statusRes?.downloadUrl ?? statusRes?.data?.downloadUrl;
-
-          if (status === 'READY' && downloadUrl) {
-            clearInterval(pollRef.current);
-            setExporting(false);
-            window.open(downloadUrl, '_blank');
-          } else if (status === 'FAILED' || attempts > 15) {
-            clearInterval(pollRef.current);
-            setExporting(false);
-            setError('Report export failed or timed out.');
-          }
-        } catch {
-          clearInterval(pollRef.current);
-          setExporting(false);
-          setError('Report export failed.');
-        }
-      }, 2000);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (err) {
+      setError(err.message || 'Failed to export report.');
+    } finally {
       setExporting(false);
-      setError(err.message || 'Failed to start report export.');
     }
   };
 
@@ -253,7 +242,7 @@ const HRDashboard = () => {
       notificationCount={summary?.pendingRequests || 0}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <div className="hr-dashboard-header-row">
         <div />
@@ -269,8 +258,7 @@ const HRDashboard = () => {
           icon={UsersIcon}
           label="Total Employees"
           value={summary?.totalEmployees ?? 0}
-          sublabel="vs. previous month"
-          trend={{ value: summary?.totalEmployeesChangePct ?? 0, direction: 'up', tone: 'positive' }}
+          sublabel="Active and inactive"
         />
         <StatCard
           variant="detailed"
@@ -278,8 +266,7 @@ const HRDashboard = () => {
           iconClass="icon-green"
           label="On Leave Today"
           value={summary?.onLeaveToday ?? 0}
-          sublabel="of active workforce"
-          trend={{ value: summary?.onLeaveTodayChangePct ?? 0, direction: 'up', tone: 'warning' }}
+          sublabel="Approved leave covering today"
         />
         <StatCard
           variant="detailed"
@@ -297,7 +284,6 @@ const HRDashboard = () => {
           label="Leave Utilization"
           value={summary?.leaveUtilizationPct != null ? `${summary.leaveUtilizationPct}%` : '—'}
           sublabel="YTD entitlement used"
-          sublabelTone="positive"
         />
       </div>
 

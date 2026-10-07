@@ -408,3 +408,11 @@ export const RefreshCwIcon = (props) => (
 );
 
 export const RefreshIcon = RefreshCwIcon;
+
+export const GiftIcon = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="8" width="18" height="4" rx="1" />
+    <path d="M12 8v13M3 12v6a2 2 0 002 2h14a2 2 0 002-2v-6" />
+    <path d="M12 8c-1.5-4-4-5-5.5-3.5S8 8 12 8zM12 8c1.5-4 4-5 5.5-3.5S16 8 12 8z" />
+  </svg>
+);

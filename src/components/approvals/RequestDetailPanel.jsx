@@ -1,7 +1,7 @@
 import LeaveTypeBadge from './LeaveTypeBadge';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
 import { getEmployeeName, getEmployeeCode } from '../../utils/employee';
-import { PaperclipIcon, DownloadIcon, InfoIcon } from '../icons/Icons';
+import { PaperclipIcon, DownloadIcon, InfoIcon, ClockIcon } from '../icons/Icons';
 import './RequestDetailPanel.css';
 
 const formatDate = (iso, withTime = false) => {
@@ -61,17 +61,17 @@ const RequestDetailPanel = ({ detail, loading }) => {
       </div>
 
       <div className="request-detail-employee">
-        <span 
-          className="request-detail-avatar" 
-          style={{ 
-            background: detail.avatarUrl ? 'transparent' : color.bg, 
-            color: detail.avatarUrl ? 'transparent' : color.fg 
+        <span
+          className="request-detail-avatar"
+          style={{
+            background: detail.avatarUrl ? 'transparent' : color.bg,
+            color: detail.avatarUrl ? 'transparent' : color.fg
           }}
         >
           {detail.avatarUrl ? (
-            <img 
-              src={detail.avatarUrl} 
-              alt={employeeName} 
+            <img
+              src={detail.avatarUrl}
+              alt={employeeName}
               className="request-detail-avatar-image"
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -91,6 +91,17 @@ const RequestDetailPanel = ({ detail, loading }) => {
           </span>
         </div>
       </div>
+
+      {detail.escalated && (
+        <div className="request-detail-escalated-banner">
+          <ClockIcon width={15} height={15} />
+          <span>
+            This request sat pending too long and was <strong>automatically escalated to HR</strong>
+            {detail.originalApproverName ? ` (originally with ${detail.originalApproverName})` : ''}
+            {detail.escalatedAt ? ` on ${formatDate(detail.escalatedAt, true)}` : ''}.
+          </span>
+        </div>
+      )}
 
       {detail.lopDays > 0 && (
         <div className="request-detail-lop-banner">
@@ -151,6 +162,32 @@ const RequestDetailPanel = ({ detail, loading }) => {
           <dd>{detail.currentApproverName || '—'}</dd>
         </div>
       </dl>
+
+      {detail.handoverTasks?.length > 0 && (
+        <div className="request-detail-section">
+          <h4>Handover Checklist</h4>
+          {/* Read-only for the manager — informational only, so they can
+              weigh task urgency themselves rather than the app blocking
+              Approve until everything is checked off. */}
+          <ul className="request-detail-handover-list">
+            {detail.handoverTasks.map((task) => (
+              <li key={task.id} className={`request-detail-handover-item urgency-${task.urgency.toLowerCase()}`}>
+                <span className={`request-detail-handover-status ${task.completed ? 'done' : 'pending'}`}>
+                  {task.completed ? '✓' : '○'}
+                </span>
+                <span className={`request-detail-handover-text ${task.completed ? 'is-done' : ''}`}>
+                  {task.description}
+                </span>
+                <span className="request-detail-handover-urgency-badge">{task.urgency}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="request-detail-handover-summary">
+            {detail.handoverTasks.filter((t) => t.completed).length} of {detail.handoverTasks.length} handover task
+            {detail.handoverTasks.length === 1 ? '' : 's'} completed
+          </p>
+        </div>
+      )}
 
       {detail.attachments?.length > 0 && (
         <div className="request-detail-section">
