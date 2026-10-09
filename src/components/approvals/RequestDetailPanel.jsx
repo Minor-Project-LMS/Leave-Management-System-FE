@@ -103,6 +103,18 @@ const RequestDetailPanel = ({ detail, loading }) => {
         </div>
       )}
 
+      {detail.hrNotified && (detail.status === 'PENDING_L1' || detail.status === 'PENDING_L2') && (
+        <div className="request-detail-hr-notified-banner">
+          <InfoIcon width={15} height={15} />
+          <span>
+            <strong>{detail.hrNotifiedByName || 'HR'}</strong> flagged this request
+            {detail.hrNotifiedAt ? ` on ${formatDate(detail.hrNotifiedAt, true)}` : ''}
+            {detail.hrNotificationMessage ? `: “${detail.hrNotificationMessage}”` : '.'} Please act on it before
+            it's escalated to HR.
+          </span>
+        </div>
+      )}
+
       {detail.lopDays > 0 && (
         <div className="request-detail-lop-banner">
           <InfoIcon width={15} height={15} />

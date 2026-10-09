@@ -7,6 +7,8 @@ import PendingApprovalsWidget from '../components/manager/PendingApprovalsWidget
 import HRLeaveTrendChart from '../components/hr/HRLeaveTrendChart';
 import DepartmentSummaryTable from '../components/hr/DepartmentSummaryTable';
 import HRQuickActions from '../components/hr/HRQuickActions';
+import PendingWithManagersWidget from '../components/hr/PendingWithManagersWidget';
+import NotifyManagerModal from '../components/hr/NotifyManagerModal';
 import { UsersIcon, ClockIcon, HourglassIcon, ClipboardListIcon, DownloadIcon } from '../components/icons/Icons';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -66,6 +68,33 @@ const buildSixMonthLeaveTrend = (requests = []) => {
   return months.map(({ key, ...month }) => month);
 };
 
+const PENDING_STATUSES = ['PENDING_L1', 'PENDING_L2'];
+
+// Leave starting on or before today + urgentWindowDays is "urgent" — the
+// same rule the backend's LeaveEscalationService uses to decide what can
+// escalate. /leave-requests doesn't send the urgent flag itself (only the
+// approval inbox does), so it's derived here from the SLA settings.
+const isUrgentLeave = (startDate, urgentWindowDays) => {
+  if (!startDate || urgentWindowDays == null) return false;
+  const urgentUntil = new Date();
+  urgentUntil.setHours(0, 0, 0, 0);
+  urgentUntil.setDate(urgentUntil.getDate() + Number(urgentWindowDays));
+  return new Date(`${startDate}T00:00:00`) <= urgentUntil;
+};
+
+const fetchPendingWithManagers = async (hrUserId) => {
+  const pages = await Promise.all(
+    PENDING_STATUSES.map((status) =>
+      apiService.getLeaveRequests({ status, page: 1, limit: 100, sort: 'oldest' })
+    )
+  );
+  return pages
+    .flatMap((res) => res?.data ?? res ?? [])
+    // Requests already in HR's own seat are handled from the Delegation
+    // inbox — there's no manager to notify for those.
+    .filter((r) => r.currentApproverId == null || String(r.currentApproverId) !== String(hrUserId));
+};
+
 const toLocalDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -112,6 +141,16 @@ const HRDashboard = () => {
   const [distributionTotal, setDistributionTotal] = useState(0);
   const [departments, setDepartments] = useState([]);
   const [approvals, setApprovals] = useState([]);
+
+  // Pending requests still with managers, for HR's "notify manager" step.
+  const [pendingWithManagers, setPendingWithManagers] = useState([]);
+  const [urgentWindowDays, setUrgentWindowDays] = useState(null);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingError, setPendingError] = useState('');
+  const [notifyTarget, setNotifyTarget] = useState(null);
+  const [notifySubmitting, setNotifySubmitting] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
+  const [notifySuccess, setNotifySuccess] = useState('');
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -184,6 +223,71 @@ const HRDashboard = () => {
     loadDashboard();
   }, [loadDashboard]);
 
+  const hrUserId = user?.id;
+  const loadPendingWithManagers = useCallback(async () => {
+    if (USE_MOCK) {
+      setPendingWithManagers([]);
+      setPendingLoading(false);
+      return;
+    }
+    setPendingLoading(true);
+    setPendingError('');
+    try {
+      const [slaRes, pending] = await Promise.all([
+        apiService.getApprovalSlaSettings().catch(() => null),
+        fetchPendingWithManagers(hrUserId),
+      ]);
+      const sla = slaRes?.data ?? slaRes;
+      const windowDays = sla?.urgentWindowDays ?? null;
+      setUrgentWindowDays(windowDays);
+      const rows = pending
+        .map((r) => ({ ...r, urgent: r.urgent ?? isUrgentLeave(r.startDate, windowDays) }))
+        // Urgent first (closest to escalating), then earliest start date.
+        .sort((a, b) => {
+          if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;
+          return String(a.startDate).localeCompare(String(b.startDate));
+        });
+      setPendingWithManagers(rows);
+    } catch (err) {
+      setPendingError(err.message || 'Failed to load pending requests.');
+      setPendingWithManagers([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  }, [hrUserId]);
+
+  useEffect(() => {
+    loadPendingWithManagers();
+  }, [loadPendingWithManagers]);
+
+  const handleNotifyConfirm = async (message) => {
+    if (!notifyTarget) return;
+    setNotifySubmitting(true);
+    setNotifyError('');
+    try {
+      const res = await apiService.notifyManagerAboutRequest(notifyTarget.id, message);
+      const updated = res?.data ?? res ?? {};
+      setPendingWithManagers((prev) =>
+        prev.map((r) =>
+          r.id === notifyTarget.id
+            ? {
+                ...r,
+                hrNotified: true,
+                hrNotifiedAt: updated.hrNotifiedAt ?? new Date().toISOString(),
+                hrNotificationMessage: updated.hrNotificationMessage ?? r.hrNotificationMessage,
+              }
+            : r
+        )
+      );
+      setNotifySuccess(`${notifyTarget.currentApproverName || 'The manager'} has been notified.`);
+      setNotifyTarget(null);
+    } catch (err) {
+      setNotifyError(err.message || 'Failed to notify the manager.');
+    } finally {
+      setNotifySubmitting(false);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
@@ -243,6 +347,7 @@ const HRDashboard = () => {
       onLogout={handleLogout}
     >
       {error && <div className="dashboard-error-banner">{error}</div>}
+      {notifySuccess && <div className="hr-dashboard-success-banner">{notifySuccess}</div>}
 
       <div className="hr-dashboard-header-row">
         <div />
@@ -331,6 +436,30 @@ const HRDashboard = () => {
           <HRQuickActions onExportReport={handleExportReport} exporting={exporting} />
         </div>
       </div>
+
+      <div className="dashboard-panel hr-pending-managers-panel">
+        <PendingWithManagersWidget
+          requests={pendingWithManagers}
+          urgentWindowDays={urgentWindowDays}
+          loading={pendingLoading}
+          error={pendingError}
+          onNotify={(req) => {
+            setNotifyError('');
+            setNotifySuccess('');
+            setNotifyTarget(req);
+          }}
+        />
+      </div>
+
+      {notifyTarget && (
+        <NotifyManagerModal
+          request={notifyTarget}
+          onCancel={() => setNotifyTarget(null)}
+          onConfirm={handleNotifyConfirm}
+          submitting={notifySubmitting}
+          error={notifyError}
+        />
+      )}
     </DashboardLayout>
   );
 };

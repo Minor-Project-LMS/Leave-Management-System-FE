@@ -1334,3 +1334,21 @@
   flex-shrink: 0;
   margin-top: 0.15rem;
 }
+
+.request-details-hr-notified-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 0 1.5rem 1.1rem;
+}
+
+.request-details-hr-notified-banner svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}

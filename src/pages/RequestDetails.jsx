@@ -12,6 +12,7 @@ import {
   DownloadIcon, 
   FileTextIcon, 
   HourglassIcon,
+  InfoIcon,
   MessageSquareIcon,
   XCircleIcon
 } from '../components/icons/Icons';
@@ -194,6 +195,8 @@ const RequestDetails = () => {
         escalated: Boolean(requestData.escalated),
         escalatedAt: requestData.escalatedAt,
         originalApproverName: requestData.originalApproverName,
+        hrNotified: Boolean(requestData.hrNotified),
+        hrNotifiedAt: requestData.hrNotifiedAt,
 
         // Employee name from API
         employeeName: requestData.userName || requestData.employeeName || employeeData?.data?.name || user?.name || 'N/A',
@@ -507,6 +510,17 @@ const RequestDetails = () => {
               This request sat pending too long and was <strong>automatically escalated to HR</strong>
               {request.originalApproverName ? ` (originally with ${request.originalApproverName})` : ''} for a
               decision.
+            </span>
+          </div>
+        )}
+
+        {request.hrNotified && !request.escalated && request.status === 'Pending' && (
+          <div className="request-details-hr-notified-banner">
+            <InfoIcon width={15} height={15} />
+            <span>
+              HR has reminded your approver to act on this request
+              {request.hrNotifiedAt ? ` (${formatDateTime(request.hrNotifiedAt)})` : ''}. If it isn't decided soon,
+              it will be escalated to HR.
             </span>
           </div>
         )}

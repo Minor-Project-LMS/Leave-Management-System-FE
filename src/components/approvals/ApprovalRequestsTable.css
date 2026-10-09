@@ -188,3 +188,31 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.approval-table tbody tr.row-hr-flagged {
+  background: #fffbeb;
+}
+
+.approval-table tbody tr.row-hr-flagged.row-selected {
+  background: var(--bg-blue-light);
+}
+
+.approval-badge-hr-flagged,
+.approval-badge-urgent {
+  margin-left: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.approval-badge-hr-flagged {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.approval-badge-urgent {
+  color: #b91c1c;
+  background: #fee2e2;
+}

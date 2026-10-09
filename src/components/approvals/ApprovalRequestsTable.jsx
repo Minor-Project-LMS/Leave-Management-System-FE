@@ -64,11 +64,17 @@ const ApprovalRequestsTable = ({
             // still show normally.
             const canAct = !req.escalated || String(req.currentApproverId) === String(currentUserId);
             const isSelected = selectedId === req.id;
+            // HR has nudged the approver about this one — the backend
+            // already pins these to the top of the pending list.
+            const isHrFlagged = isPending && req.hrNotified;
+            const rowClass = [isSelected && 'row-selected', isHrFlagged && 'row-hr-flagged']
+              .filter(Boolean)
+              .join(' ');
 
             return (
               <tr
                 key={req.id}
-                className={isSelected ? 'row-selected' : ''}
+                className={rowClass}
                 onClick={() => onSelect(req.id)}
               >
                 <td>
@@ -138,6 +144,22 @@ const ApprovalRequestsTable = ({
                       }}
                     >
                       ESCALATED
+                    </span>
+                  )}
+                  {isHrFlagged && (
+                    <span
+                      className="approval-badge-hr-flagged"
+                      title={req.hrNotificationMessage || `Flagged by ${req.hrNotifiedByName || 'HR'}`}
+                    >
+                      HR FLAGGED
+                    </span>
+                  )}
+                  {isPending && req.urgent && (
+                    <span
+                      className="approval-badge-urgent"
+                      title="Leave starts soon — this can be escalated to HR if not acted on"
+                    >
+                      URGENT
                     </span>
                   )}
                 </td>

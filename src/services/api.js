@@ -800,6 +800,26 @@ class ApiService {
     });
   }
 
+  // HR -> manager nudge that precedes escalation. message is optional — the
+  // backend falls back to a default reminder when it's blank.
+  async notifyManagerAboutRequest(requestId, message) {
+    const trimmed = message?.trim();
+    return this.request(`/approvals/${requestId}/notify-manager`, {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify(trimmed ? { message: trimmed } : {}),
+    });
+  }
+
+  // Pending requests HR has flagged to the current user — drives the
+  // dashboard popup for managers.
+  async getHrAlerts() {
+    return this.request('/approvals/hr-alerts', {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+  }
+
   // Leave Donation / Pooling
   async getUserDirectory(q = '') {
     const params = new URLSearchParams();

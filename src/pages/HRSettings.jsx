@@ -106,6 +106,10 @@ const HRSettings = () => {
   // Approval SLA escalation — same reasoning as Working Week above: its
   // own real, working endpoint rather than the generic settings save.
   const [slaDays, setSlaDays] = useState(3);
+  // Only leave starting within urgentWindowDays can escalate, and only
+  // escalationGraceDays after HR has notified the manager.
+  const [urgentWindowDays, setUrgentWindowDays] = useState(7);
+  const [escalationGraceDays, setEscalationGraceDays] = useState(1);
   const [slaSaving, setSlaSaving] = useState(false);
   const [slaRunning, setSlaRunning] = useState(false);
 
@@ -198,6 +202,8 @@ const HRSettings = () => {
       ]);
       setSaturdayWorking(false);
       setSlaDays(3);
+      setUrgentWindowDays(7);
+      setEscalationGraceDays(1);
       setLoading(false);
       return;
     }
@@ -212,6 +218,8 @@ const HRSettings = () => {
       setSaturdayWorking(Boolean(workWeek?.saturdayWorking));
       const sla = slaRes?.data ?? slaRes;
       if (sla?.slaDays != null) setSlaDays(sla.slaDays);
+      if (sla?.urgentWindowDays != null) setUrgentWindowDays(sla.urgentWindowDays);
+      if (sla?.escalationGraceDays != null) setEscalationGraceDays(sla.escalationGraceDays);
       const settings = response?.data ?? response ?? {};
 
       setCompanySettings({
@@ -326,16 +334,31 @@ const HRSettings = () => {
 
   const handleSaveSlaDays = async () => {
     const days = Number(slaDays);
+    const urgentDays = Number(urgentWindowDays);
+    const graceDays = Number(escalationGraceDays);
     if (!Number.isFinite(days) || days < 1) {
       return setError('SLA must be at least 1 day.');
+    }
+    if (!Number.isFinite(urgentDays) || urgentDays < 0) {
+      return setError('Urgent window cannot be negative.');
+    }
+    if (!Number.isFinite(graceDays) || graceDays < 0) {
+      return setError('Escalation grace period cannot be negative.');
     }
 
     setSlaSaving(true);
     setError('');
     setSuccess('');
     try {
-      await apiService.updateApprovalSlaSettings({ slaDays: days });
-      setSuccess(`Approval SLA set to ${days} day(s) — requests pending longer than that will auto-escalate to HR.`);
+      const res = await apiService.updateApprovalSlaSettings({
+        slaDays: days,
+        urgentWindowDays: urgentDays,
+        escalationGraceDays: graceDays,
+      });
+      const saved = res?.data ?? res;
+      if (saved?.urgentWindowDays != null) setUrgentWindowDays(saved.urgentWindowDays);
+      if (saved?.escalationGraceDays != null) setEscalationGraceDays(saved.escalationGraceDays);
+      setSuccess(`Approval SLA saved — overdue requests whose leave starts within ${urgentDays} day(s) are flagged to the manager, then escalated to HR ${graceDays} day(s) later if still pending.`);
     } catch (err) {
       setError(err.message || 'Failed to update the approval SLA.');
     } finally {
@@ -349,10 +372,20 @@ const HRSettings = () => {
     setSuccess('');
     try {
       const res = await apiService.runEscalationNow();
-      const count = res?.data?.escalatedCount ?? res?.escalatedCount ?? 0;
-      setSuccess(count > 0
-        ? `Escalation run complete — ${count} overdue request(s) reassigned to HR.`
-        : 'Escalation run complete — nothing was overdue.');
+      const result = res?.data ?? res ?? {};
+      const escalated = result.escalatedCount ?? 0;
+      const notified = result.managersNotifiedCount ?? 0;
+      const deferred = result.deferredNotUrgentCount ?? 0;
+      if (escalated + notified + deferred === 0) {
+        setSuccess('Escalation run complete — nothing was overdue.');
+      } else {
+        const parts = [
+          `${escalated} escalated to HR`,
+          `${notified} manager(s) notified`,
+        ];
+        if (deferred > 0) parts.push(`${deferred} left with the manager (leave not starting soon)`);
+        setSuccess(`Escalation run complete — ${parts.join(', ')}.`);
+      }
     } catch (err) {
       setError(err.message || 'Failed to run escalation.');
     } finally {
@@ -820,9 +853,10 @@ const HRSettings = () => {
                 <div className="settings-card-header">
                   <h3>Approval SLA</h3>
                   <p className="settings-card-subtitle">
-                    If a manager doesn't act on a leave request within this many days, it's automatically
-                    reassigned to HR — separate from Delegation, which a manager sets up themselves before going
-                    away. This catches a request that was simply forgotten.
+                    If a manager doesn't act on a leave request within this many days and the leave starts soon,
+                    the manager is notified first and, if they still don't act, the request is reassigned to HR —
+                    separate from Delegation, which a manager sets up themselves before going away. This catches a
+                    request that was simply forgotten.
                   </p>
                 </div>
 
@@ -843,6 +877,44 @@ const HRSettings = () => {
                       className="settings-number-input"
                       value={slaDays}
                       onChange={(e) => setSlaDays(e.target.value)}
+                      disabled={slaSaving}
+                    />
+                  </div>
+                  <div className="settings-toggle-row">
+                    <div>
+                      <label htmlFor="sla-urgent-window-input">Urgent window (days)</label>
+                      <p className="settings-toggle-hint">
+                        Only requests whose leave starts within this many days are escalated. Leave further out
+                        stays with the manager until its start date comes within this window.
+                      </p>
+                    </div>
+                    <input
+                      id="sla-urgent-window-input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="settings-number-input"
+                      value={urgentWindowDays}
+                      onChange={(e) => setUrgentWindowDays(e.target.value)}
+                      disabled={slaSaving}
+                    />
+                  </div>
+                  <div className="settings-toggle-row">
+                    <div>
+                      <label htmlFor="sla-grace-input">Grace period after notifying manager (days)</label>
+                      <p className="settings-toggle-hint">
+                        An urgent request is never escalated without the manager being notified first. This is how
+                        long they get to act after that notification before it's reassigned to HR.
+                      </p>
+                    </div>
+                    <input
+                      id="sla-grace-input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="settings-number-input"
+                      value={escalationGraceDays}
+                      onChange={(e) => setEscalationGraceDays(e.target.value)}
                       disabled={slaSaving}
                     />
                   </div>

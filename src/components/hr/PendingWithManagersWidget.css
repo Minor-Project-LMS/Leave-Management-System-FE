@@ -1,0 +1,98 @@
+.pending-managers-error {
+  font-size: 0.78rem;
+  color: #b91c1c;
+  margin-bottom: 0.75rem;
+}
+
+.pending-managers-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.pending-managers-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.pending-managers-row.is-urgent {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.pending-managers-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pending-managers-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.pending-managers-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pending-managers-meta {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.pending-managers-chip {
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.pending-managers-chip.urgent {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.pending-managers-chip.notified {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.pending-managers-btn {
+  flex-shrink: 0;
+  background: var(--bg-light);
+  color: var(--primary-blue);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-md);
+}
+
+.pending-managers-btn:hover:not(:disabled) {
+  background: var(--bg-blue-light);
+}
+
+.pending-managers-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
