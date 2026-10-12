@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
@@ -38,6 +38,22 @@ const getErrorMessage = (err, fallback) => {
   return fallback;
 };
 
+// Mock mode only (VITE mock data on): the old mock rows have fixed
+// casual/sick/earned/compOff keys; the chart now takes per-type series.
+const MOCK_TREND_TYPES = [
+  { key: 'casual', category: 'Casual Leave', color: '#2563eb' },
+  { key: 'sick', category: 'Sick Leave', color: '#16a34a' },
+  { key: 'earned', category: 'Earned Leave', color: '#dc2626' },
+  { key: 'compOff', category: 'Comp Off', color: '#9333ea' },
+];
+const mockTrendSeries = MOCK_TREND_TYPES.map((t) => ({
+  category: t.category,
+  color: t.color,
+  points: mockCategoryTrend.map((row) => ({ month: row.month, days: row[t.key] || 0 })),
+}));
+const mockDistribution = { items: mockReportsDistribution, total: mockReportsDistributionTotal };
+const emptyDistribution = { items: [], total: 0 };
+
 const currentYearRange = () => {
   const year = new Date().getFullYear();
   return { from: `${year}-01-01`, to: `${year}-12-31` };
@@ -47,7 +63,6 @@ const HRReportsAnalytics = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   useRoleRedirect('hr');
-  const pollRef = useRef(null);
 
   const initialRange = currentYearRange();
   const [reportType, setReportType] = useState('All');
@@ -59,6 +74,8 @@ const HRReportsAnalytics = () => {
   const [departments, setDepartments] = useState([]);
   const [summary, setSummary] = useState(null);
   const [monthlyTrend, setMonthlyTrend] = useState([]);
+  const [trendByType, setTrendByType] = useState([]);
+  const [distribution, setDistribution] = useState(emptyDistribution);
   const [departmentSummary, setDepartmentSummary] = useState([]);
   const [topEmployees, setTopEmployees] = useState([]);
 
@@ -84,6 +101,8 @@ const HRReportsAnalytics = () => {
     if (USE_MOCK) {
       setSummary(mockReportsSummary);
       setMonthlyTrend(mockMonthlyLeaveTrend);
+      setTrendByType(mockTrendSeries);
+      setDistribution(mockDistribution);
       setDepartmentSummary(mockDepartmentSummary);
       setTopEmployees(mockTopEmployees);
       setLoading(false);
@@ -91,27 +110,39 @@ const HRReportsAnalytics = () => {
     }
 
     try {
-      const [summaryRes, trendRes, deptRes, topRes] = await Promise.all([
+      // Taken from the date string itself: new Date('2026-01-01') is UTC
+      // midnight, which getFullYear() reads as 2025 in timezones west of UTC.
+      const year = Number(dateFrom.slice(0, 4));
+
+      const [summaryRes, trendRes, typeTrendRes, distributionRes, deptRes, topRes] = await Promise.all([
         apiService.getReportsSummary({
           dateFrom,
           dateTo,
           ...(departmentId ? { departmentId } : {}),
         }),
-        apiService.getHRLeaveTrend({ year: new Date(dateFrom).getFullYear(), departmentId }),
+        apiService.getHRLeaveTrend({ year, departmentId }),
+        apiService.getReportsLeaveTrendByType({ year, departmentId }),
+        apiService.getReportsDistribution({ dateFrom, dateTo, departmentId }),
         apiService.getDepartmentSummary({ dateFrom, dateTo }),
-        apiService.getTopEmployees({ dateFrom, dateTo, limit: 5 }),
+        apiService.getTopEmployees({ dateFrom, dateTo, limit: 5, departmentId }),
       ]);
 
       setSummary(summaryRes?.data ?? summaryRes ?? {});
       setMonthlyTrend(trendRes?.data ?? trendRes ?? []);
+      setTrendByType(typeTrendRes?.data ?? typeTrendRes ?? []);
+      setDistribution(distributionRes?.data ?? distributionRes ?? emptyDistribution);
       setDepartmentSummary(deptRes?.data ?? deptRes ?? []);
       setTopEmployees(topRes?.data ?? topRes ?? []);
     } catch (err) {
+      // Deliberately NOT falling back to sample numbers here: a failed
+      // request should look like a failed request, not like a (fake) report.
       setError(getErrorMessage(err, 'Failed to load reports data.'));
-      setSummary(mockReportsSummary);
-      setMonthlyTrend(mockMonthlyLeaveTrend);
-      setDepartmentSummary(mockDepartmentSummary);
-      setTopEmployees(mockTopEmployees);
+      setSummary(null);
+      setMonthlyTrend([]);
+      setTrendByType([]);
+      setDistribution(emptyDistribution);
+      setDepartmentSummary([]);
+      setTopEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -119,7 +150,6 @@ const HRReportsAnalytics = () => {
 
   useEffect(() => {
     loadReports();
-    return () => clearInterval(pollRef.current);
   }, [loadReports]);
 
   const handleLogout = async () => {
@@ -181,7 +211,7 @@ const HRReportsAnalytics = () => {
       user={user}
       onLogout={handleLogout}
     >
-      {error && <div className="dashboard-error-banner">{error} — showing sample data instead.</div>}
+      {error && <div className="dashboard-error-banner">{error}</div>}
 
       <ReportsFilterBar
         reportType={reportType}
@@ -200,7 +230,7 @@ const HRReportsAnalytics = () => {
       />
 
       <div className="reports-stats-row">
-        <StatCard variant="detailed" icon={ClipboardListIcon} label="Total Leaves" value={summary?.totalLeavesTaken ?? 0} sublabel="Taken this period" />
+        <StatCard variant="detailed" icon={ClipboardListIcon} label="Total Leave Days" value={summary?.totalLeavesTaken ?? 0} sublabel="Approved, this period" />
         <StatCard variant="detailed" icon={UsersIcon} iconClass="icon-green" label="Active Employees" value={summary?.totalEmployees ?? 0} sublabel="Org-wide" />
         <StatCard variant="detailed" icon={TrendUpIcon} iconClass="icon-amber" label="Avg Leaves/Employee" value={summary?.avgLeavePerEmployee ?? 0} sublabel="This period" />
         <StatCard
@@ -209,8 +239,7 @@ const HRReportsAnalytics = () => {
           iconClass="icon-purple"
           label="Leave Approval Rate"
           value={summary?.approvalRate != null ? `${summary.approvalRate}%` : '—'}
-          sublabel="vs last period"
-          sublabelTone="positive"
+          sublabel="Of decided requests"
         />
         <StatCard variant="detailed" icon={HourglassIcon} iconClass="icon-red" label="Pending Requests" value={summary?.pendingRequests ?? 0} sublabel="Awaiting action" sublabelTone="warning" />
       </div>
@@ -225,13 +254,13 @@ const HRReportsAnalytics = () => {
                   <p className="hr-panel-subtitle">By leave type · This period</p>
                 </div>
               </div>
-              <ReportsCategoryTrendChart data={mockCategoryTrend} />
+              <ReportsCategoryTrendChart data={trendByType} />
             </div>
             <div className="dashboard-panel">
               <div className="widget-header">
                 <h3>Leave Distribution by Type</h3>
               </div>
-              <ReportsDistributionChart data={mockReportsDistribution} total={mockReportsDistributionTotal} />
+              <ReportsDistributionChart data={distribution?.items ?? []} total={distribution?.total ?? 0} />
             </div>
           </div>
 

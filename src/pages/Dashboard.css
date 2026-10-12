@@ -50,13 +50,44 @@
   margin-bottom: 1.25rem;
 }
 
-/* Row 2: trend chart (wide) + donut + holiday calendar */
+/* Row 2: trend chart (wide) + donut + holiday calendar. The holiday
+   calendar is tall, so it spans two grid rows and the used-vs-remaining
+   chart sits under the trend + donut panels — that fills the empty space
+   that used to sit below the (shorter) trend chart. */
 .dashboard-charts-row {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
   gap: 1.25rem;
   margin-bottom: 1.25rem;
   align-items: start;
+}
+
+.dashboard-charts-row .dashboard-panel-stretch {
+  align-self: stretch;
+}
+
+/* Trend panel: keep the chart vertically centred when the panel is
+   stretched to match the taller donut panel beside it. */
+.dashboard-panel-flex {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-panel-body-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dashboard-charts-row .dashboard-charts-holidays {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: stretch;
+}
+
+.dashboard-charts-row .dashboard-charts-balance {
+  grid-column: 1 / span 2;
 }
 
 /* Row 3: recent requests + quick actions + recent activity */
@@ -80,6 +111,16 @@
     grid-column: 1 / -1;
   }
 
+  .dashboard-charts-row .dashboard-charts-holidays {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: start;
+  }
+
+  .dashboard-charts-row .dashboard-charts-balance {
+    grid-column: 1 / -1;
+  }
+
   .dashboard-bottom-row {
     grid-template-columns: 1fr 1fr;
   }
@@ -100,6 +141,7 @@
   }
 
   .dashboard-charts-row .dashboard-panel:first-child,
+  .dashboard-charts-row .dashboard-charts-balance,
   .dashboard-bottom-row .dashboard-panel:first-child {
     grid-column: auto;
   }

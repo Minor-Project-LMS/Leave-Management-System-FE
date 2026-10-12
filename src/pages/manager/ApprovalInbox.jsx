@@ -71,7 +71,7 @@ const ApprovalInbox = () => {
   const [page, setPage] = useState(1);
 
   const [requests, setRequests] = useState([]);
-  const [counts, setCounts] = useState({ all: 0, pending: 0, approved: 0, rejected: 0 });
+  const [counts, setCounts] = useState({ all: 0, pending: 0, approved: 0, rejected: 0, escalated: 0 });
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -127,13 +127,13 @@ const ApprovalInbox = () => {
       const res = await apiService.getApprovalInbox({ status, page, limit: LIMIT, sort });
       const data = res?.data ?? [];
       setRequests(data);
-      setCounts(res?.counts ?? { all: 0, pending: 0, approved: 0, rejected: 0 });
+      setCounts(res?.counts ?? { all: 0, pending: 0, approved: 0, rejected: 0, escalated: 0 });
       setTotalCount(res?.totalCount ?? data.length);
       setTotalPages(res?.totalPages ?? 1);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load approval inbox.'));
       setRequests(mockApprovalInbox.slice(0, LIMIT));
-      setCounts({ all: 5, pending: 5, approved: 0, rejected: 0 });
+      setCounts({ all: 5, pending: 5, approved: 0, rejected: 0, escalated: 0 });
       setTotalCount(5);
       setTotalPages(1);
     } finally {
@@ -294,6 +294,7 @@ const ApprovalInbox = () => {
               onSelect={setSelectedId}
               onApprove={handleApprove}
               onReject={setRejectTarget}
+              currentUserId={user?.id}
               page={page}
               totalPages={totalPages}
               totalCount={totalCount}

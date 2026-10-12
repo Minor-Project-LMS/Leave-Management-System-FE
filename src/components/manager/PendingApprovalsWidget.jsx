@@ -64,6 +64,11 @@ const PendingApprovalsWidget = ({ approvals = [], isHR = false }) => {
                     {req.type} · {req.dateRange}
                   </span>
                 </div>
+                {req.hrNotified && (
+                  <span className="pending-approvals-hr-chip" title="HR has flagged this request">
+                    HR
+                  </span>
+                )}
                 <StatusBadge status="Pending" />
               </li>
             );

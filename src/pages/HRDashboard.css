@@ -54,3 +54,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+.hr-pending-managers-panel {
+  margin-top: 1.25rem;
+}
+
+.hr-dashboard-success-banner {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}

@@ -14,6 +14,7 @@ import {
   SettingsIcon,
   HistoryIcon,
   HelpCircleIcon,
+  GiftIcon,
 } from '../components/icons/Icons';
 
 export const EMPLOYEE_PORTAL = {
@@ -24,6 +25,7 @@ export const EMPLOYEE_PORTAL = {
     { label: 'My Requests', path: '/my-requests', icon: FileTextIcon },
     { label: 'Leave Ledger', path: '/leave-ledger', icon: BookIcon },
     { label: 'Comp-Off', path: '/comp-off', icon: CoffeeIcon },
+    { label: 'Leave Pooling', path: '/donate-leave', icon: GiftIcon },
     { label: 'Holiday Calendar', path: '/holiday-calendar', icon: CalendarIcon },
     { label: 'Notifications', path: '/notifications', icon: BellIcon, badgeKey: 'notifications', helpIcon: HelpCircleIcon },
     { label: 'Profile', path: '/profile', icon: UserIcon },
@@ -51,6 +53,7 @@ export const HR_PORTAL = {
     { label: 'Leave Policies', path: '/hr/leave-policies', icon: BookIcon },
     { label: 'Leave Categories', path: '/hr/leave-categories', icon: ClipboardListIcon },
     { label: 'Delegation', path: '/hr/delegation', icon: InboxIcon },
+    { label: 'Leave Pooling', path: '/hr/leave-donations', icon: GiftIcon },
     { label: 'Reports & Analytics', path: '/hr/reports', icon: BarChartIcon },
     { label: 'Audit Trail', path: '/hr/audit-trail', icon: HistoryIcon },
     { label: 'Notification Queue', path: '/hr/notification-queue', icon: BellIcon, badgeKey: 'notifications' },

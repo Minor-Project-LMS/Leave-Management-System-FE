@@ -1,0 +1,194 @@
+.hr-donations-summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 700px;
+}
+
+.hr-donations-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.hr-donations-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.hr-donations-tabs button {
+  padding: 0.65rem 1.1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -2px;
+}
+
+.hr-donations-tabs button:hover {
+  color: var(--text-primary);
+}
+
+.hr-donations-tabs button.active {
+  color: var(--primary-blue);
+  border-bottom-color: var(--primary-blue);
+}
+
+.hr-donations-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+.hr-donations-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.hr-donation-row {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hr-donation-row:last-child {
+  border-bottom: none;
+}
+
+.hr-donation-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hr-donation-transfer {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.hr-donation-arrow {
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+.hr-donation-days {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+.hr-donation-category {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Status badges reuse the same visual language as DonateLeave.css */
+.donate-status-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.donate-status-badge.status-pending { background: #fef3c7; color: #92400e; }
+.donate-status-badge.status-approved { background: #d1fae5; color: #047857; }
+.donate-status-badge.status-rejected { background: #fee2e2; color: #b91c1c; }
+
+.hr-donation-reason {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.hr-donation-meta {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  color: var(--text-light);
+}
+
+.hr-donation-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.hr-donation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.hr-donation-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hr-donation-btn.approve {
+  background: #16a34a;
+  color: #fff;
+}
+
+.hr-donation-btn.reject-outline {
+  background: #fff;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.hr-donation-btn.reject {
+  background: #dc2626;
+  color: #fff;
+}
+
+.hr-donation-btn.cancel {
+  background: var(--bg-light);
+  color: var(--text-secondary);
+}
+
+.hr-donation-reject-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+.hr-donation-reject-box textarea {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  resize: vertical;
+}
+
+.hr-donation-reject-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .hr-donations-summary-row {
+    grid-template-columns: 1fr;
+  }
+}

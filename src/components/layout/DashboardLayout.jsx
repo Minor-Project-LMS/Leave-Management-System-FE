@@ -13,6 +13,7 @@ const DashboardLayout = ({
   searchPlaceholder,
   user,
   notificationCount = 0,
+  onNotificationClick,
   badgeCounts,
   onLogout,
   children,
@@ -38,6 +39,7 @@ const DashboardLayout = ({
           searchPlaceholder={searchPlaceholder}
           user={user}
           notificationCount={notificationCount}
+          onNotificationClick={onNotificationClick}
           onMenuClick={() => setSidebarOpen((prev) => !prev)}
         />
         <main className="app-shell-content">{children}</main>

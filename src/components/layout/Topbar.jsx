@@ -10,6 +10,7 @@ const Topbar = ({
   dateLabel,
   user,
   notificationCount = 0,
+  onNotificationClick,
   onMenuClick,
 }) => {
   const initials = (user?.name || 'U')
@@ -63,7 +64,7 @@ const Topbar = ({
 
 
 
-        <button className="topbar-bell" aria-label="Notifications">
+        <button className="topbar-bell" aria-label="Notifications" onClick={onNotificationClick}>
           <BellIcon />
           {notificationCount > 0 && <span className="topbar-bell-badge">{notificationCount}</span>}
         </button>
